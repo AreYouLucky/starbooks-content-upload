@@ -1,0 +1,1 @@
+import AuthLayout from "@/layouts/auth-layout";
