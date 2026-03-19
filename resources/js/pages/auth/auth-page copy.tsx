@@ -64,7 +64,7 @@ function AuthPage() {
             </div>
 
             <div className="rounded-[1.75rem] border border-white/80 bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:p-6">
-                <div className="mb-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-sky-100 via-white to-amber-100 px-4 py-3">
+                <div className="mb-5 flex items-center gap-3 rounded-2xl bg-linear-to-r from-sky-100 via-white to-amber-100 px-4 py-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-200">
                         <Sparkles className="h-5 w-5" />
                     </div>

@@ -4,6 +4,8 @@ import { Toaster } from 'sonner';
 export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
         <Toaster />
-        {children}
+        <main className='p-5'>
+            {children}
+        </main>
     </AppLayoutTemplate>
 );

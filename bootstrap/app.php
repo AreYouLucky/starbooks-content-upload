@@ -6,6 +6,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use App\Http\Middleware\StiiAdminMiddleware;
+use App\Http\Middleware\CommitteeMiddleware;
+use App\Http\Middleware\QualityMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+        $middleware->alias([
+            'stii_admin' => StiiAdminMiddleware::class,
+            'committee' => CommitteeMiddleware::class,
+            'quality' => QualityMiddleware::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

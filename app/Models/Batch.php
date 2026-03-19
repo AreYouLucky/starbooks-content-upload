@@ -13,6 +13,9 @@ class Batch extends Model
         'batch_description',
         'target_published_date',
         'target_initial_review_date',
+        'target_quality_approval_date',
         'target_committee_review_date',
+        'status',
+        'is_active'
     ];
 }
