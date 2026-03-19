@@ -34,4 +34,6 @@ class Record extends Model
         'url'
     ];
     public $timestamps = false;
+
+
 }

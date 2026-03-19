@@ -1,11 +1,13 @@
+import '../css/app.css';
+
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '../css/app.css';
-import { initializeTheme } from './hooks/use-appearance';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const queryClient = new QueryClient();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -19,14 +21,21 @@ createInertiaApp({
 
         root.render(
             <StrictMode>
-                <App {...props} />
+                <QueryClientProvider client={queryClient}>
+                    <App {...props} />
+                </QueryClientProvider>
             </StrictMode>,
         );
     },
     progress: {
-        color: '#4B5563',
+        delay: 250,
+        color: '#29d',
+        includeCSS: true,
+        showSpinner: false,
+    },
+    defaults: {
+        visitOptions: () => {
+            return { viewTransition: true }
+        },
     },
 });
-
-// This will set light / dark mode on load...
-initializeTheme();
