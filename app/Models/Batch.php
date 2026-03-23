@@ -11,10 +11,14 @@ class Batch extends Model
         'batch_name',
         'content_source',
         'batch_description',
-        'target_published_date',
+        'target_shortlist_date',
+        'shortlisted_date',
         'target_initial_review_date',
+        'initial_reviewed_date',
         'target_quality_approval_date',
-        'target_committee_review_date',
+        'quality_approval_date',
+        'target_published_date',
+        'published_date',
         'status',
         'is_active'
     ];

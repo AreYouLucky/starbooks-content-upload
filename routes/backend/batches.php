@@ -4,5 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth','stii_admin'])->group(function () {
     Route::resource('/batches', BatchesController::class);
+    Route::post('/update-batch/{id}', [BatchesController::class, 'update']);
     Route::get('/view-batches', [BatchesController::class, 'viewBatches'])->name('view-batches');
+    Route::post('/toggle-batch-shortlist/{id}', [BatchesController::class, 'toggleBatchShortlist']);
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Batch;
 use Inertia\Inertia;
+use Illuminate\Support\Carbon;
 
 class BatchesController extends Controller
 {
@@ -12,13 +13,14 @@ class BatchesController extends Controller
      * Display a listing of the resource.
      */
 
-    public function viewBatches(){
+    public function viewBatches()
+    {
         return Inertia::render('batches/batches-page');
     }
 
     public function index()
     {
-        return Batch::orderBy('created_at', 'desc')->get();
+        return Batch::orderBy('created_at', 'desc')->paginate(5);
     }
 
     /**
@@ -26,7 +28,7 @@ class BatchesController extends Controller
      */
     public function create()
     {
-        return Inertia::render('batches/batch-form');        
+        return Inertia::render('batches/batch-form');
     }
 
     /**
@@ -35,21 +37,31 @@ class BatchesController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'batch_name' => 'required|string|max:50|unique:batches,batch_name',
+            'batch_name' => 'required|string|max:50|unique:content_batches,batch_name',
             'content_source' => 'required|string|max:100',
             'batch_description' => 'required|string|max:255',
             'target_published_date' => 'required|string|max:100',
-            'target_initial_review_date' => 'required|string|max:100',
-            'target_committee_review_date' => 'required|string|max:100',
         ]);
+
+
+        $today = Carbon::today();
+        $publishDate = Carbon::parse($request->target_published_date);
+        $totalDays = $today->diffInDays($publishDate);
+
+        $shortlistDate = $today->copy()->addDays(intval($totalDays * 0.2))->toDateString();
+        $committeeReviewDate = $today->copy()->addDays(intval($totalDays * 0.5))->toDateString();
+        $qualityApprovalDate = $today->copy()->addDays(intval($totalDays * 0.9))->toDateString();
+
 
         Batch::create([
             'batch_name' => $request->batch_name,
             'content_source' => $request->content_source,
             'batch_description' => $request->batch_description,
             'target_published_date' => $request->target_published_date,
-            'target_initial_review_date' => $request->target_initial_review_date,
-            'target_committee_review_date' => $request->target_committee_review_date,
+            'target_shortlist_date' => $shortlistDate,
+            'target_initial_review_date' => $committeeReviewDate,
+            'target_quality_approval_date' => $qualityApprovalDate,
+            'status' => 'for shortlisting'
         ]);
 
         return response()->json([
@@ -65,31 +77,24 @@ class BatchesController extends Controller
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        $batch = Batch::find($id);
 
-        return Inertia::render('batches/batch-form', [
-            'batch' => $batch
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'batch_name' => ['required|string|max:50|unique:batches,batch_name,'.$id .',id'],
-            'content_source' => ['required|string|max:100'],
-            'batch_description' => ['required|string|max:255'],
-            'target_published_date' => ['required|string|max:100'],
-            'target_initial_review_date' => ['required|string|max:100'],
-            'target_committee_review_date' => ['required|string|max:100'],
+            'batch_name' => ['required', 'string', 'max:50', 'unique:content_batches,batch_name,' . $id . ',id'],
+            'content_source' => ['required', 'string', 'max:100'],
+            'batch_description' => ['required', 'string', 'max:255'],
+            'target_published_date' => ['required', 'string', 'max:100'],
         ]);
+
+
+        $today = Carbon::today();
+        $publishDate = Carbon::parse($request->target_published_date);
+        $totalDays = $today->diffInDays($publishDate);
+
+        $shortlistDate = $today->copy()->addDays(intval($totalDays * 0.2))->toDateString();
+        $committeeReviewDate = $today->copy()->addDays(intval($totalDays * 0.5))->toDateString();
+        $qualityApprovalDate = $today->copy()->addDays(intval($totalDays * 0.9))->toDateString();
 
         $batch = Batch::find($id);
         $batch->update([
@@ -97,8 +102,9 @@ class BatchesController extends Controller
             'content_source' => $request->content_source,
             'batch_description' => $request->batch_description,
             'target_published_date' => $request->target_published_date,
-            'target_initial_review_date' => $request->target_initial_review_date,
-            'target_committee_review_date' => $request->target_committee_review_date,
+            'target_shortlist_date' => $shortlistDate,
+            'target_initial_review_date' => $committeeReviewDate,
+            'target_quality_approval_date' => $qualityApprovalDate,
         ]);
 
         return response()->json([
@@ -106,15 +112,19 @@ class BatchesController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function toggleBatchShortlist(String $id)
     {
-        $batch = Batch::find($id);
-        $batch->delete();
+        $batch = Batch::where('id', $id)->first();
+        if (!$batch->status == 'for shortlisting' || !$batch->status == 'for initial review') {
+            return response()->json([
+                'status' => 'error',
+            ], 400);
+        }
+
+        $batch->status == "for shortlisting" ? $batch->status = "for initial review" : $batch->status = "for shortlisting";
+        $batch->save();
         return response()->json([
-            'message' => "Batches Successfully Deleted"
+            'status' => 'Batch Successfully Updated'
         ]);
     }
 }

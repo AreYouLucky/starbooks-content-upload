@@ -1,6 +1,6 @@
 export type TimestampFields = {
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
 };
 
 export type NullableTimestampFields = {
@@ -28,11 +28,15 @@ export type BatchModel = TimestampFields & {
     batch_name: string;
     content_source: string;
     batch_description: string;
+    target_shortlist_date?: string;
+    shortlisted_date?: string;
+    target_initial_review_date?: string;
+    initial_reviewed_date?: string;
+    target_quality_approval_date?: string;
+    quality_approval_date?: string;
     target_published_date: string;
-    target_initial_review_date: string;
-    target_committee_review_date: string;
-    target_quality_approval_date: string;
-    status: string;
+    published_date?: string;
+    status?: string;
 };
 
 export type ApprovalRequestModel = TimestampFields & {

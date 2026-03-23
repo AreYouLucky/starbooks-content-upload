@@ -1,28 +1,17 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import AppLayout from '@/layouts/app-layout';
-import { Link } from '@inertiajs/react';
 import { Input } from '@/components/ui/input';
 import { useHandleChange } from '@/hooks/use-handle-change';
-import {
-  CalendarDays,
-  CircleCheckBig,
-  FileClock,
-  FolderSync,
-  PencilLine,
-  TextSearch,
-  Plus,
-  BookOpenCheck,
-  Search
-} from 'lucide-react';
-import { type ReactNode } from 'react';
-
+import BatchForm from './partials/batch-form';
+import { CalendarDays, CircleCheckBig, FileClock, FolderSync, PencilLine, TextSearch, Plus, BookOpenCheck, Search } from 'lucide-react';
+import { type ReactNode, use, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import type { BatchModel } from '@/types/model';
-import { useFetchBatches } from './partials/batches-hooks';
-
+import { useFetchBatches, useToggleBatchShortlist } from './partials/batches-hooks';
+import { formatDate } from '@/lib/utils';
+import { useDebounce } from '@/hooks/use-debounce';
 const breadcrumbs: BreadcrumbItem[] = [
   {
     title: 'Dashboard',
@@ -34,42 +23,67 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date);
-};
 
 export default function ViewBatches() {
-  const { data, isFetching, refetch } = useFetchBatches();
-  const batches = data ?? [];
-  const { item, setItem, handleChange } = useHandleChange({
+  const [page, setPage] = useState(1);
+
+  const onFilterChange = () => {
+    setPage(1);
+  };
+
+  const [batchDialog, setBatchDialog] = useState(false);
+  const { item, setItem } = useHandleChange({
     search: '',
   });
+  const [batch, setBatch] = useState<BatchModel>({
+    id: 0,
+    batch_name: '',
+    batch_description: '',
+    target_published_date: new Date().toISOString().split('T')[0],
+    content_source: '',
+  });
+  const debouncedTitle = useDebounce(item.search, 1000);
+  const queryFilters = {
+    ...item,
+    title: debouncedTitle,
+  };
+  const { data, isFetching, refetch } = useFetchBatches(page, queryFilters);
+  const batches = data?.data ?? [];
+
+  const getStatusColor = (target?: string, actual?: string) => {
+    if (!actual) return "text-gray-400"; // not done
+
+    const t = new Date(target as string);
+    const a = new Date(actual);
+
+    return a > t ? "text-red-500" : "text-green-500";
+  };
+
+  const displayDate = (date?: string) => {
+    return date ? formatDate(date) : "NA";
+  };
   const stats = [
     {
-      label: 'For Committee Review',
-      value: batches.filter((batch) => batch.status === 'shortlisted').length,
+      label: 'For Shortlisting',
+      value: batches.filter((batch) => batch.status === 'for shortlisting').length,
       icon: FileClock,
-      tone: 'bg-slate-50 text-slate-700',
+      tone: 'bg-sky-50 text-sky-700',
+    },
+    {
+      label: 'For Committee Review',
+      value: batches.filter((batch) => batch.status === 'committee approval').length,
+      icon: FileClock,
+      tone: 'bg-sky-50 text-sky-700',
     },
     {
       label: 'For Quality Approval',
-      value: batches.filter((batch) => batch.status === 'committee_approval').length,
+      value: batches.filter((batch) => batch.status === 'for quality approval').length,
       icon: TextSearch,
-      tone: 'bg-yellow-50 text-yellow-500',
+      tone: 'bg-sky-50 text-sky-500',
     },
     {
       label: 'Ready to publish',
-      value: batches.filter((batch) => batch.status === 'quality_approval').length,
+      value: batches.filter((batch) => batch.status === 'for publishing').length,
       icon: CircleCheckBig,
       tone: 'bg-sky-50 text-sky-500',
     },
@@ -77,17 +91,34 @@ export default function ViewBatches() {
       label: 'Published',
       value: batches.filter((batch) => batch.status === 'published').length,
       icon: BookOpenCheck,
-      tone: 'bg-emerald-50 text-emerald-700',
+      tone: 'bg-sky-50 text-sky-700',
     },
   ];
 
+  const showUpdateDialog = (batch: BatchModel) => {
+    setBatchDialog(true);
+    setBatch(batch);
+  }
+
+  const toggleBatchShortlist = useToggleBatchShortlist();
+  const toggleBatchShortlistFn = (id: number) => {
+    toggleBatchShortlist.mutate(id, {
+      onSuccess: () => {
+        refetch();
+      },
+      onError: (err) => {
+        console.log(err);
+      },
+    });
+  }
+
   return (
     <div className="space-y-3">
-      <section className="relative overflow-hidden rounded-xl p-4 border md:p-8">
+      <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8">
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-sky-600">
+              <h1 className="text-3xl font-bold tracking-tight text-sky-500">
                 Batch Management
               </h1>
               <p className="max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
@@ -96,7 +127,7 @@ export default function ViewBatches() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
@@ -106,7 +137,7 @@ export default function ViewBatches() {
               <FolderSync className="size-4" />
               Refresh
             </Button>
-            <Button className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2">
+            <Button className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2" onClick={() => setBatchDialog(true)}>
               <Plus className="size-4" />
               New batch
             </Button>
@@ -114,13 +145,13 @@ export default function ViewBatches() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="gap-0 rounded-xl border-slate-100 py-0 ">
-              <CardContent className="flex items-center justify-between px-8 py-5">
+            <Card key={stat.label} className="gap-0 rounded-xl border-sky-100 py-0 ">
+              <CardContent className="flex items-center justify-between px-9 py-5">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-500">{stat.label}</p>
                   <p className="text-3xl font-semibold tracking-tight text-slate-900">{stat.value}</p>
@@ -134,8 +165,8 @@ export default function ViewBatches() {
         })}
       </section>
 
-      <Card className="gap-0 rounded-xl border-slate-100 py-0 ">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="gap-0 rounded-xl border-sky-100 py-0 ">
+        <div className="flex flex-col gap-3 border-b border-sky-100 px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1 relative">
             <Search className="absolute left-2.5 top-3 text-[#00aeef]" size={16} />
             <Input
@@ -143,13 +174,11 @@ export default function ViewBatches() {
               name="title"
               type="text"
               placeholder="Search Title"
-              onChange={handleChange}
-              className="min-w-62.5 h-10 border-[#00aeef] shadow-none ps-8"
+              onChange={(e) => { setItem(prev => ({ ...prev, title: e.target.value })); onFilterChange() }}
+              className="min-w-62.5 h-10 border-[#d1f3ff] shadow-none ps-8"
             />
           </div>
-          <Badge variant="outline" className="rounded-full border-slate-50 bg-sky-50 px-3 py-1 text-slate-600">
-            {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
-          </Badge>
+
         </div>
 
         <CardContent className="p-4 sm:px-8">
@@ -158,8 +187,8 @@ export default function ViewBatches() {
             headers={[
               { name: 'Batch', position: 'left' },
               { name: 'Source', position: 'left' },
-              { name: 'Review Timeline', position: 'left' },
-              { name: 'Published Date', position: 'center' },
+              { name: 'Target Date', position: 'left' },
+              { name: 'Date Accomplished', position: 'left' },
               { name: 'Status', position: 'center' },
               { name: 'Actions', position: 'center' },
             ]}
@@ -169,54 +198,110 @@ export default function ViewBatches() {
             renderRow={(batch) => {
 
               return (
-                <tr key={batch.id} className="border-b border-slate-100 bg-white transition hover:bg-slate-50/80">
+                <tr key={batch.id} className="border-b border-sky-100 bg-white transition hover:bg-slate-50/80">
                   <td className="px-6 py-4 align-top">
                     <div className="space-y-1">
                       <div className="font-semibold text-slate-900">{batch.batch_name}</div>
-                      <p className="max-w-md text-sm leading-6 text-slate-500">
+                      <p className="max-w-md text-sm leading-6 text-slate-500 text-justify">
                         {batch.batch_description}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 align-top">
-                    <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                  <td className="px-6 py-4 align-middle">
+                    <div className="inline-flex rounded-full  px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
                       {batch.content_source}
                     </div>
+
                   </td>
-                  <td className="px-6 py-4 align-top">
-                    <div className="space-y-2 text-sm text-slate-600">
+                  <td className="px-6 py-4 align-middle">
+                    <div className="space-y-1 text-xs text-slate-600">
                       <div className="flex items-center gap-2">
-                        <CalendarDays className="size-4 text-sky-500" />
-                        Initial: {formatDate(batch.target_initial_review_date)}
+                        <CalendarDays className="size-4 text-cyan-500" />
+                        Shortlist: {displayDate(batch.target_shortlist_date)}
                       </div>
                       <div className="flex items-center gap-2">
                         <CalendarDays className="size-4 text-cyan-500" />
-                        Committee: {formatDate(batch.target_committee_review_date)}
+                        IR: {displayDate(batch.target_initial_review_date)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="size-4 text-cyan-500" />
+                        QA: {displayDate(batch.target_quality_approval_date)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="size-4 text-cyan-500" />
+                        Publish: {displayDate(batch.target_published_date)}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center align-top text-sm font-medium text-slate-700">
-                    {formatDate(batch.target_published_date)}
+
+                  <td className="px-6 py-4 text-center align-middle text-sm text-slate-700">
+                    <div className="space-y-1 text-xs text-slate-600">
+
+                      <div className="flex items-center gap-2">
+                        <CalendarDays
+                          className={`size-4 ${getStatusColor(
+                            batch.target_shortlist_date,
+                            batch.shortlisted_date
+                          )}`}
+                        />
+                        Shortlisted: {displayDate(batch.shortlisted_date)}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <CalendarDays
+                          className={`size-4 ${getStatusColor(
+                            batch.target_initial_review_date,
+                            batch.initial_reviewed_date
+                          )}`}
+                        />
+                        IR: {displayDate(batch.initial_reviewed_date)}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <CalendarDays
+                          className={`size-4 ${getStatusColor(
+                            batch.target_quality_approval_date,
+                            batch.quality_approval_date
+                          )}`}
+                        />
+                        QA: {displayDate(batch.quality_approval_date)}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <CalendarDays
+                          className={`size-4 ${getStatusColor(
+                            batch.target_published_date,
+                            batch.published_date
+                          )}`}
+                        />
+                        Published: {displayDate(batch.published_date)}
+                      </div>
+
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-center align-top">
-                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold`}>
+                  <td className="px-6 py-4 text-center align-middle">
+                    <span className={`inline-flex rounded-full  bg-sky-50 uppercase text-sky-500 px-3 py-1 text-xs font-semibold`}>
                       {batch.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 align-top">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button asChild variant="outline" className="h-9 rounded-lg border-slate-100 px-3">
-                        <Link href={`/batches/${batch.id}/edit`}>
-                          <PencilLine className="size-4" />
-                          Edit
-                        </Link>
+                  <td className="px-6 py-4 align-middle">
+                    <div className="flex items-center justify-center flex-col gap-2">
+                      {(batch.status === 'for shortlisting' || batch.status === 'for initial review') &&
+                        <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 ${batch.status === 'for shortlisting' ? 'bg-sky-100 text-sky-400' : 'bg-gray-200'}`} onClick={() => toggleBatchShortlistFn(batch.id)}>
+                          {batch.status === 'for shortlisting' ? 'Mark as Shortlisted' : 'Shortlisted'}
+                        </Button>
+                      }
+
+                      <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white" onClick={() => showUpdateDialog(batch)}>
+                        <PencilLine className="size-4" />
+                        Edit
                       </Button>
                     </div>
                   </td>
                 </tr>
               );
             }}
-            itemsPerPage={10}
+            itemsPerPage={5}
             searchPlaceholder="Search batches"
             onRefresh={() => refetch()}
             isLoading={isFetching}
@@ -225,6 +310,7 @@ export default function ViewBatches() {
           />
         </CardContent>
       </Card>
+      <BatchForm show={batchDialog} onClose={() => setBatchDialog(false)} data={batch} />
     </div>
   );
 }

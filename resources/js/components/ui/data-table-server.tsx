@@ -111,7 +111,6 @@ function PaginatedSearchTableInner<T = unknown>({
     return { from, to, total: total };
   }, [page, itemsPerPage, total]);
 
-  /** Prev/Next disabled */
   const isPrevDisabled = isServerPaginated
     ? !prevPageUrl
     : page <= 1;
@@ -151,7 +150,7 @@ function PaginatedSearchTableInner<T = unknown>({
           <tr>
             <td colSpan={headers.length} className="text-center py-6">
               <div className="flex justify-center items-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-sky-500 border-t-transparent"></div>
                 <span className="ml-3 text-gray-600">Loading...</span>
               </div>
             </td>
