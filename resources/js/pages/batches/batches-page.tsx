@@ -51,7 +51,7 @@ const formatDate = (value: string) => {
 export default function ViewBatches() {
   const { data, isFetching, refetch } = useFetchBatches();
   const batches = data ?? [];
-  const { item,setItem, handleChange } = useHandleChange({
+  const { item, setItem, handleChange } = useHandleChange({
     search: '',
   });
   const stats = [
@@ -100,17 +100,15 @@ export default function ViewBatches() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-lg border-slate-200 bg-white/80 px-4 text-slate-700 hover:bg-slate-100"
+              className="h-11 rounded-lg border-slate-300 bg-white/80 px-4 text-slate-700 hover:bg-slate-100"
               onClick={() => refetch()}
             >
               <FolderSync className="size-4" />
               Refresh
             </Button>
-            <Button asChild className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600">
-              <Link href="/batches/create">
-                <Plus className="size-4" />
-                New batch
-              </Link>
+            <Button className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2">
+              <Plus className="size-4" />
+              New batch
             </Button>
           </div>
         </div>
@@ -121,13 +119,13 @@ export default function ViewBatches() {
           const Icon = stat.icon;
 
           return (
-            <Card key={stat.label} className="gap-0 rounded-2xl border-slate-200 py-0 shadow-sm">
-              <CardContent className="flex items-center justify-between p-5">
+            <Card key={stat.label} className="gap-0 rounded-xl border-slate-100 py-0 ">
+              <CardContent className="flex items-center justify-between px-8 py-5">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-500">{stat.label}</p>
                   <p className="text-3xl font-semibold tracking-tight text-slate-900">{stat.value}</p>
                 </div>
-                <div className={`rounded-2xl p-3 ${stat.tone}`}>
+                <div className={`rounded-xl p-3 ${stat.tone}`}>
                   <Icon className="size-5" />
                 </div>
               </CardContent>
@@ -136,20 +134,20 @@ export default function ViewBatches() {
         })}
       </section>
 
-      <Card className="gap-0 rounded-xl border-slate-200 py-0 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <Search className="absolute left-2.5 top-3 text-teal-500" size={16} />
+      <Card className="gap-0 rounded-xl border-slate-100 py-0 ">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1 relative">
+            <Search className="absolute left-2.5 top-3 text-[#00aeef]" size={16} />
             <Input
               id="title"
               name="title"
               type="text"
               placeholder="Search Title"
               onChange={handleChange}
-              className="min-w-62.5 h-10 border-teal-600 shadow-none ps-8"
+              className="min-w-62.5 h-10 border-[#00aeef] shadow-none ps-8"
             />
           </div>
-          <Badge variant="outline" className="rounded-full border-slate-200 px-3 py-1 text-slate-600">
+          <Badge variant="outline" className="rounded-full border-slate-50 bg-sky-50 px-3 py-1 text-slate-600">
             {batches.length} {batches.length === 1 ? 'batch' : 'batches'}
           </Badge>
         </div>
@@ -207,7 +205,7 @@ export default function ViewBatches() {
                   </td>
                   <td className="px-6 py-4 align-top">
                     <div className="flex items-center justify-center gap-2">
-                      <Button asChild variant="outline" className="h-9 rounded-lg border-slate-200 px-3">
+                      <Button asChild variant="outline" className="h-9 rounded-lg border-slate-100 px-3">
                         <Link href={`/batches/${batch.id}/edit`}>
                           <PencilLine className="size-4" />
                           Edit

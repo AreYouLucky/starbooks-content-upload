@@ -82,12 +82,7 @@ function AuthPage() {
                         <InputError message={errors.password ?? ''} />
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 rounded-2xl  px-2">
-                        <div className="space-y-1">
-                            <p className="text-xs text-slate-700">
-                                Show password
-                            </p>
-                        </div>
+                    <div className="flex items-center justify-start gap-4 rounded-2xl  px-2">
                         <div className="flex items-center space-x-3">
                             <Checkbox
                                 id="showPassword"
@@ -98,11 +93,16 @@ function AuthPage() {
                                 className="size-5 rounded-xl border-sky-300 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
                             />
                         </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-slate-700">
+                                Show password
+                            </p>
+                        </div>
                     </div>
-                    <div className='px-10 pb-3 pt-3'>
+                    <div className=' pb-3 pt-3'>
                         <Button
                             type="submit"
-                            className="mt-1 h-11 uppercase w-full rounded-2xl  bg-[#00aeef]  text-base font-bold text-white  transition-transform hover:-translate-y-0.5 hover:opacity-95"
+                            className="mt-1 h-11 uppercase w-full rounded-xl  bg-[#00aeef]  text-base font-bold text-white  transition-transform hover:-translate-y-0.5 hover:opacity-95"
                             disabled={loading}
                             onClick={handleSubmit}
                         >
