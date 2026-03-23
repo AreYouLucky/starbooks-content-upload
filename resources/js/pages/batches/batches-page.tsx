@@ -146,7 +146,7 @@ export default function ViewBatches() {
               type="text"
               placeholder="Search Title"
               onChange={handleChange}
-              className="min-w-[250px] h-10 border-teal-600 shadow-none ps-8"
+              className="min-w-62.5 h-10 border-teal-600 shadow-none ps-8"
             />
           </div>
           <Badge variant="outline" className="rounded-full border-slate-200 px-3 py-1 text-slate-600">

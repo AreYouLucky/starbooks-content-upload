@@ -99,17 +99,17 @@ function AuthPage() {
                             />
                         </div>
                     </div>
-                    <div className='px-6 pb-3'>
+                    <div className='px-10 pb-3 pt-3'>
                         <Button
                             type="submit"
-                            className="mt-1 h-12 uppercase w-full rounded-2xl  bg-[#00aeef]  text-base font-bold text-white  transition-transform hover:-translate-y-0.5 hover:opacity-95"
+                            className="mt-1 h-11 uppercase w-full rounded-2xl  bg-[#00aeef]  text-base font-bold text-white  transition-transform hover:-translate-y-0.5 hover:opacity-95"
                             disabled={loading}
                             onClick={handleSubmit}
                         >
                             {loading && <Spinner className="mr-2" />}
                             {loading
                                 ? 'Opening your workspace...'
-                                : 'Log in to dashboard'}
+                                : 'Log in'}
                         </Button>
                     </div>
                 </div>

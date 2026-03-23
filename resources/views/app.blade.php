@@ -25,12 +25,6 @@
 
         body {
             min-height: 100vh;
-            background-image:
-                url('/storage/logos/background.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
             overflow: hidden;
         }
 
