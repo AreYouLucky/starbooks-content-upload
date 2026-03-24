@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { ApprovalRequestModel } from "@/types/model";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { BatchModel } from "@/types/model";
 import axios from "axios";
+import { AxiosError } from "axios";
 
 type PaginatedResponse<T> = {
   data: T[];
@@ -12,7 +13,7 @@ type PaginatedResponse<T> = {
   prev_page_url: string | null;
 };
 
-type ApiOk = { status: string; batch?: ApprovalRequestModel; errors: undefined, id?: number };
+type ApiOk = { status: string; batch?: BatchModel; errors: undefined, id?: number };
 type ApiValidationErrors = Record<string, string[]>;
 type ApiError = {
   message?: string;
@@ -26,10 +27,10 @@ type filters = {
 
 export function useFetchShortlisted(page: number,
   filters: filters) {
-  return useQuery<PaginatedResponse<ApprovalRequestModel>>({
+  return useQuery<PaginatedResponse<BatchModel>>({
     queryKey: ["shortlisted", page, filters],
     queryFn: async () => {
-      const res = await axios.get("/shortlisted", {
+      const res = await axios.get("/shortlist", {
         params: {
           page,
           ...filters,
@@ -39,5 +40,17 @@ export function useFetchShortlisted(page: number,
     },
     staleTime: 1000 * 60,
     refetchOnWindowFocus: false
+  });
+}
+
+
+export function useToggleBatchShortlist() {
+  const queryClient = useQueryClient();
+  return useMutation<ApiOk, AxiosError<ApiError>, number>({
+    mutationFn: (id) =>
+      axios.post<ApiOk>(`/toggle-batch-shortlist/${id}`).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+    },
   });
 }

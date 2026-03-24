@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import BatchForm from './partials/batch-form';
 import { CalendarDays, CircleCheckBig, FileClock, FolderSync, PencilLine, TextSearch, Plus, BookOpenCheck, Search } from 'lucide-react';
-import { type ReactNode, use, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import type { BatchModel } from '@/types/model';
-import { useFetchBatches, useToggleBatchShortlist } from './partials/batches-hooks';
+import { useFetchBatches } from './partials/batches-hooks';
 import { formatDate } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 const breadcrumbs: BreadcrumbItem[] = [
@@ -42,10 +42,10 @@ export default function ViewBatches() {
     target_published_date: new Date().toISOString().split('T')[0],
     content_source: '',
   });
-  const debouncedTitle = useDebounce(item.search, 1000);
+  const debouncedSearch = useDebounce(item.search, 1000);
   const queryFilters = {
     ...item,
-    title: debouncedTitle,
+    search: debouncedSearch,
   };
   const { data, isFetching, refetch } = useFetchBatches(page, queryFilters);
   const batches = data?.data ?? [];
@@ -98,18 +98,6 @@ export default function ViewBatches() {
   const showUpdateDialog = (batch: BatchModel) => {
     setBatchDialog(true);
     setBatch(batch);
-  }
-
-  const toggleBatchShortlist = useToggleBatchShortlist();
-  const toggleBatchShortlistFn = (id: number) => {
-    toggleBatchShortlist.mutate(id, {
-      onSuccess: () => {
-        refetch();
-      },
-      onError: (err) => {
-        console.log(err);
-      },
-    });
   }
 
   return (
@@ -166,22 +154,22 @@ export default function ViewBatches() {
       </section>
 
       <Card className="gap-0 rounded-xl border-sky-100 py-0 ">
-        <div className="flex flex-col gap-3 border-b border-sky-100 px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-sky-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1 relative">
             <Search className="absolute left-2.5 top-3 text-[#00aeef]" size={16} />
             <Input
-              id="title"
-              name="title"
+              id="search"
+              name="search"
               type="text"
-              placeholder="Search Title"
-              onChange={(e) => { setItem(prev => ({ ...prev, title: e.target.value })); onFilterChange() }}
+              placeholder="Search any keyword..."
+              onChange={(e) => { setItem(prev => ({ ...prev, search: e.target.value })); onFilterChange() }}
               className="min-w-62.5 h-10 border-[#d1f3ff] shadow-none ps-8"
             />
           </div>
 
         </div>
 
-        <CardContent className="p-4 sm:px-8">
+        <CardContent className="p-6">
           <PaginatedSearchTable<BatchModel>
             items={batches}
             headers={[
@@ -286,13 +274,8 @@ export default function ViewBatches() {
                   </td>
                   <td className="px-6 py-4 align-middle">
                     <div className="flex items-center justify-center flex-col gap-2">
-                      {(batch.status === 'for shortlisting' || batch.status === 'for initial review') &&
-                        <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 ${batch.status === 'for shortlisting' ? 'bg-sky-100 text-sky-400' : 'bg-gray-200'}`} onClick={() => toggleBatchShortlistFn(batch.id)}>
-                          {batch.status === 'for shortlisting' ? 'Mark as Shortlisted' : 'Shortlisted'}
-                        </Button>
-                      }
 
-                      <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white" onClick={() => showUpdateDialog(batch)}>
+                      <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-slate-600" onClick={() => showUpdateDialog(batch)}>
                         <PencilLine className="size-4" />
                         Edit
                       </Button>

@@ -5,25 +5,28 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalMultimedia;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use App\Models\Batch;
 
 class ShortlistController extends Controller
 {
 
-    public function viewShortlistPage(){
-        $batches = Batch::orderBy('created_at', 'desc')->get();
+    public function viewShortlistPage()
+    {
         return Inertia::render(
-            'shortlisted/shortlisted-page',
-            [
-                'batches' => $batches
-            ]
+            'shortlisted/shortlisted-page'
         );
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return ApprovalRequest::join('content_batch', 'content_approval_request.batch_id', '=', 'content_batch.id')->where('approval_status', 0)->paginate(10);
+        $query = Batch::select('id','batch_name', 'content_source', 'batch_description', 'target_shortlist_date', 'shortlisted_date', 'status')->where('is_active', 1);
+        if ($request->filled('search')) {
+            $query->where('batch_name', 'LIKE', '%' . $request->search . '%')
+                ->orWhere('batch_description', 'LIKE', '%' . $request->search . '%');
+        }
+        return  $query->orderBy('created_at', 'desc')->paginate(5);
     }
 
     /**
@@ -72,5 +75,26 @@ class ShortlistController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function toggleBatchShortlist(String $id)
+    {
+        $batch = Batch::where('id', $id)->first();
+        if (!$batch->status == 'for shortlisting' || !$batch->status == 'for initial review') {
+            return response()->json([
+                'status' => 'error',
+            ], 400);
+        }
+        if ($batch->status == "for shortlisting") {
+            $batch->status = "for initial review";
+            $batch->shortlisted_date = Carbon::today()->format('Y-m-d');
+        } else {
+            $batch->status = "for shortlisting";
+            $batch->shortlisted_date = null;
+        }
+        $batch->save();
+        return response()->json([
+            'status' => 'Batch Successfully Updated'
+        ]);
     }
 }

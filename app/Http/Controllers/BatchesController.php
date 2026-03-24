@@ -18,9 +18,14 @@ class BatchesController extends Controller
         return Inertia::render('batches/batches-page');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return Batch::orderBy('created_at', 'desc')->paginate(5);
+        $query = Batch::where('is_active', 1);
+        if ($request->filled('search')) {
+            $query->where('batch_name', 'LIKE', '%' . $request->search . '%')
+                ->orWhere('batch_description', 'LIKE', '%' . $request->search . '%');
+        }
+        return  $query->orderBy('created_at', 'desc')->paginate(5);
     }
 
     /**
@@ -112,19 +117,5 @@ class BatchesController extends Controller
         ]);
     }
 
-    public function toggleBatchShortlist(String $id)
-    {
-        $batch = Batch::where('id', $id)->first();
-        if (!$batch->status == 'for shortlisting' || !$batch->status == 'for initial review') {
-            return response()->json([
-                'status' => 'error',
-            ], 400);
-        }
-
-        $batch->status == "for shortlisting" ? $batch->status = "for initial review" : $batch->status = "for shortlisting";
-        $batch->save();
-        return response()->json([
-            'status' => 'Batch Successfully Updated'
-        ]);
-    }
+    
 }

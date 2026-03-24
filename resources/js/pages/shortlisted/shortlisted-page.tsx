@@ -1,16 +1,19 @@
 import { ReactNode } from 'react'
 import PaginatedSearchTable from '@/components/ui/data-table-server';
-import { CalendarDays, FolderSync, Plus, PencilLine, Search } from 'lucide-react';
+import { CalendarDays, FolderSync, Plus, PencilLine, Search, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PiListPlusLight } from "react-icons/pi";
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { ApprovalRequestModel } from '@/types/model';
+import { BatchModel } from '@/types/model';
 import type { BreadcrumbItem } from '@/types';
-import { useFetchShortlisted } from './partials/shortlisted-hooks';
+import { useFetchShortlisted, useToggleBatchShortlist } from './partials/shortlisted-hooks';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { useDebounce } from '@/hooks/use-debounce';
+import { formatDate } from '@/lib/utils';
+import { toast } from 'react-toastify';
+import { Link } from '@inertiajs/react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -23,18 +26,33 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function ShortlistedPage() {
-    const {item, handleChange} = useHandleChange({
+    const { item, handleChange } = useHandleChange({
         search: "", batch_id: 0
     })
 
-      const debouncedTitle = useDebounce(item.search, 1000);
-      const queryFilters = {
+    const debouncedTitle = useDebounce(item.search, 1000);
+    const queryFilters = {
         ...item,
         search: debouncedTitle,
-      };
+    };
 
     const { data, isFetching, refetch } = useFetchShortlisted(1, queryFilters)
-    
+
+
+    const displayDate = (date?: string) => {
+        return date ? formatDate(date) : "NA";
+    };
+
+    const toggleBatchShortlist = useToggleBatchShortlist()
+    const toggleBatchShortlistFn = (id: number) => {
+        toggleBatchShortlist.mutate(id, {
+            onSuccess: () => {
+                refetch()
+                toast.success("Batch Shortlisted Successfully");
+            }
+        })
+    }
+
     return (
         <div className="space-y-3">
             <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8">
@@ -45,7 +63,7 @@ export default function ShortlistedPage() {
                                 For Shortlisting
                             </h1>
                             <p className="max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
-                                Track upload content for shortlisting, and generate for shortlisting reports.
+                                Track upload content for shortlisting, generate for shortlisting reports and manage batch status.
                             </p>
                         </div>
                     </div>
@@ -55,7 +73,7 @@ export default function ShortlistedPage() {
                             type="button"
                             variant="outline"
                             className="h-11 rounded-lg border-slate-300 bg-white/80 px-4 text-slate-700 hover:bg-slate-100"
-
+                            onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
                             Refresh
@@ -64,49 +82,83 @@ export default function ShortlistedPage() {
                             <PiListPlusLight className="size-4" />
                             Bulk Upload
                         </Button>
-                        <Button className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2" >
+                        <Link href={'/single-upload/create'} className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2 items-center justify-center font-semibold hover:scale-105" >
                             <Plus className="size-4" />
                             Single Upload
-                        </Button>
+                        </Link>
                     </div>
                 </div>
             </section>
             <Card className="gap-0 rounded-xl border-sky-100 py-0 ">
-                <div className="flex flex-col gap-3 border-b border-sky-100 px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-sky-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1 relative">
                         <Search className="absolute left-2.5 top-3 text-[#00aeef]" size={16} />
                         <Input
                             id="title"
                             name="title"
                             type="text"
-                            placeholder="Search Title"
+                            placeholder="Search any keyword..."
                             className="min-w-62.5 h-10 border-[#d1f3ff] shadow-none ps-8"
                         />
                     </div>
 
                 </div>
 
-                <CardContent className="p-4 sm:px-8">
-                    <PaginatedSearchTable<ApprovalRequestModel>
+                <CardContent className="p-4 sm:px-6">
+                    <PaginatedSearchTable<BatchModel>
                         items={data?.data ?? []}
                         headers={[
                             { name: 'Batch', position: 'left' },
-                            { name: 'Source', position: 'left' },
-                            { name: 'Target Date', position: 'left' },
-                            { name: 'Date Accomplished', position: 'left' },
-                            { name: 'Status', position: 'center' },
+                            { name: 'Content Source', position: 'left' },
+                            { name: 'Target Date ', position: 'left' },
+                            { name: 'Date Accomplished ', position: 'left' },
+                            { name: 'STATUS', position: 'left' },
                             { name: 'Actions', position: 'center' },
                         ]}
                         renderRow={(batch) => {
                             return (
                                 <tr key={batch.id} className="border-b border-sky-100 bg-white transition hover:bg-slate-50/80">
-                                    
+                                    <td className="px-6 py-4 align-top">
+                                        <div className="space-y-1">
+                                            <div className="font-semibold text-slate-900">{batch.batch_name}</div>
+                                            <p className="max-w-md text-sm leading-6 text-slate-500 text-justify">
+                                                {batch.batch_description}
+                                            </p>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="inline-flex rounded-full  px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                                            {batch.content_source}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className=" rounded-full  px-3 py-1 text-xs font-semibold  text-slate-500 flex items-center gap-2">
+                                            <CalendarDays className="size-4" />
+                                            {displayDate(batch.target_shortlist_date)}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className=" rounded-full  px-3 py-1 text-xs font-semibold  text-slate-500 flex items-center gap-2">
+                                            <CalendarDays className="size-4" />
+                                            {displayDate(batch.shortlisted_date)}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center align-middle">
+                                        <span className={`inline-flex rounded-full  bg-sky-50 uppercase text-sky-500 px-3 py-1 text-xs font-semibold`}>
+                                            {batch.status}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 align-middle">
                                         <div className="flex items-center justify-center flex-col gap-2">
-
-                                            <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white" >
-                                                <PencilLine className="size-4" />
-                                                Edit
+                                            {(batch.status === 'for shortlisting' || batch.status === 'for initial review') &&
+                                                <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 ${batch.status === 'for shortlisting' ? 'bg-slate-100 text-slate-600' : 'bg-gray-200'}`} onClick={() => toggleBatchShortlistFn(batch.id)}>
+                                                    <PencilLine className="size-4" />
+                                                    {batch.status === 'for shortlisting' ? 'Mark as Shortlisted' : 'Shortlisted'}
+                                                </Button>
+                                            }
+                                            <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-slate-600" >
+                                                <Eye className="size-4" />
+                                                View Contents
                                             </Button>
                                         </div>
                                     </td>

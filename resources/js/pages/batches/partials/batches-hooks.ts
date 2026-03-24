@@ -63,14 +63,3 @@ export function useUpdateBatch() {
     },
   });
 }
-
-export function useToggleBatchShortlist() {
-  const queryClient = useQueryClient();
-  return useMutation<ApiOk, AxiosError<ApiError>, number>({
-    mutationFn: (id) =>
-      axios.post<ApiOk>(`/toggle-batch-shortlist/${id}`).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["batches"] });
-    },
-  });
-}
