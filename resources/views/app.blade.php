@@ -75,6 +75,10 @@
             font-weight: 800;
             font-style: normal;
         }
+         .ck-editor__editable {
+            min-height: 200px;
+            background-color: rgba(255, 255, 255, 0.486) !important;
+        }
     </style>
 
     <title inertia>{{ config('app.name', 'Laravel') }}</title>

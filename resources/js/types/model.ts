@@ -40,30 +40,30 @@ export type BatchModel = TimestampFields & {
 };
 
 export type ApprovalRequestModel = TimestampFields & {
-    id: number;
-    approval_status: number;
-    HoldingsID: string | null;
-    MaterialType: string | null;
-    Title: string | null;
-    FileName: string | null;
-    SubTitle: string | null;
-    SeriesTitle: string | null;
-    BibliographicNote: string | null;
-    Contents: string | null;
-    Abstracts: string | null;
-    JournalTitle: string | null;
-    AgencyCode: string | null;
-    BroadClass: string | null;
-    VolumeNo: string | null;
-    IssueNo: string | null;
-    IssueDate: string | null;
-    Author: string | null;
-    Type: string | null;
-    Subject: string | null;
-    EditDate: string | null;
-    uploaded_by: number | null;
-    batch_id: number | null;
-    is_active: boolean;
+    id?: number;
+    approval_status?: number;
+    HoldingsID?: string | null;
+    MaterialType?: string | null;
+    Title?: string | null;
+    FileName?: string | null;
+    SubTitle?: string | null;
+    SeriesTitle?: string | null;
+    BibliographicNote?: string | null;
+    Contents?: string | null;
+    Abstracts?: string | null;
+    JournalTitle?: string | null;
+    AgencyCode?: string | null;
+    BroadClass?: string | null;
+    VolumeNo?: string | null;
+    IssueNo?: string | null;
+    IssueDate?: string | null;
+    Author?: string | null;
+    Type?: string | null;
+    Subject?: string | null;
+    EditDate?: string | null;
+    uploaded_by?: number | null;
+    batch_id?: number | null;
+    is_active?: boolean;
 };
 
 export type ApprovalMultimediaModel = TimestampFields & {

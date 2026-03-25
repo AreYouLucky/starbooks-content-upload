@@ -156,10 +156,10 @@ export default function ShortlistedPage() {
                                                     {batch.status === 'for shortlisting' ? 'Mark as Shortlisted' : 'Shortlisted'}
                                                 </Button>
                                             }
-                                            <Button variant="outline" className="h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-slate-600" >
+                                            <Link href={`/shortlist/${batch.id}`} className=" flex justify-center items-center font-semibold gap-2 h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-slate-600" >
                                                 <Eye className="size-4" />
                                                 View Contents
-                                            </Button>
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>
