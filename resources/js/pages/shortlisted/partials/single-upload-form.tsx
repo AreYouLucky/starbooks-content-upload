@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import type { BreadcrumbItem } from '@/types';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { usePage } from '@inertiajs/react';
@@ -15,6 +15,7 @@ import { content_type, material_type } from '@/lib/default';
 import { Button } from '@/components/ui/button';
 import TextField from '@/components/ui/text-field';
 import { useUploadSingleRequest, useUpdateSingleRequest } from './upload-hooks';
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -36,6 +37,7 @@ export default function SingleUpload() {
     const content_group = props.content_group ?? []
     const batches = props.batches ?? []
     const approval_request = props.approval_request
+    const [open, setOpen] = useState(false);
     const { item, handleChange, setItem, errors, setErrors } = useHandleChange({
         id: approval_request?.id ?? 0,
         Title: approval_request?.Title ?? '',
@@ -96,6 +98,7 @@ export default function SingleUpload() {
                 }
             },
         });
+        setOpen(false);
     }
 
     const updateSingleRequest = useUpdateSingleRequest()
@@ -112,6 +115,7 @@ export default function SingleUpload() {
                 }
             },
         });
+        setOpen(false);
     }
 
     return (
@@ -374,15 +378,14 @@ export default function SingleUpload() {
                     </div>
                     <div className=" pt-4">
                         <Button className="bg-sky-500 text-white w-fit poppins-bold flex flex-row items-center justify-center"
-                            onClick={item.id !== 0 ? updateSingleRequestFn : uploadSingleRequestFn}
+                            onClick={() => setOpen(true)}
                         > {uploadSingleRequest.isPending || updateSingleRequest.isPending ? <Spinner className="mr-1" /> : <FaUpload className="mr-1" />}
                             {item.id == 0 ? 'Add' : 'Update'} Post
                         </Button>
                     </div>
                 </div>
-
-
             </Card>
+            <ConfirmationDialog show={open} onClose={()=>setOpen(false)} message={item.id === 0 ? "Are you sure you want to add this request?" : "Are you sure you want to update this request?"} type={2} onConfirm={()=>{item.id === 0 ? uploadSingleRequestFn() : updateSingleRequestFn()}}/>
         </div>
     )
 }

@@ -22,7 +22,7 @@ export const useUploadSingleRequest = () => {
 export const useUpdateSingleRequest = () => {
     const queryClient = useQueryClient();
     return useMutation<ApiOk, AxiosError<ApiError>, {id: number; payload: FormData}>({
-        mutationFn: (payload, id) =>
+        mutationFn: ({id,payload}) =>
             axios.post<ApiOk>("/update-single-upload/"+id, payload).then((res) => res.data),
         onSuccess: (res) => {
             queryClient.invalidateQueries({ queryKey: ["requests"+res.id] });

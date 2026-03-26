@@ -76,17 +76,17 @@ class SingleUploadController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        //
-    }
+    public function show(string $id) {}
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(string $id)
     {
-        //
+        $approval_request = ApprovalRequest::find($id);
+        $content_group = LkContent::all();
+        $batches = Batch::orderBy('created_at', 'desc')->get();
+        return Inertia::render('shortlisted/partials/single-upload-form', ['content_group' => $content_group, 'batches' => $batches, 'approval_request' => $approval_request]);
     }
 
     /**
@@ -94,7 +94,46 @@ class SingleUploadController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'Title' => ['required', 'string', 'unique:tblrecord,Title', 'unique:content_approval_requests,Title,'.$id.',id'],
+            'Author' => ['required', 'string'],
+            'HoldingsID' => ['required', 'string'],
+            'Contents' => ['required', 'string'],
+            'MaterialType' => ['required', 'string'],
+            'JournalTitle' => ['nullable', 'string'],
+            'Subject' => ['nullable', 'string'],
+            'SubTitle' => ['nullable', 'string'],
+            'VolumeNo' => ['nullable', 'string'],
+            'IssueNo' => ['nullable', 'string'],
+            'IssueDate' => ['nullable', 'string'],
+            'BroadClass' => ['required', 'string'],
+            'AgencyCode' => ['required', 'string'],
+            'Type' => ['required', 'string'],
+            'batch_id' => ['required', 'string'],
+            'Abstracts' => ['required', 'string'],
+        ]);
+        $request = ApprovalRequest::where('id', $id)->update([
+            'Title' => $request->Title ?? "",
+            'Author' => $request->Author ?? "",
+            'HoldingsID' => $request->HoldingsID ?? "",
+            'Contents' => $request->Contents ?? "",
+            'MaterialType' => $request->MaterialType ?? "",
+            'JournalTitle' => $request->JournalTitle ?? "",
+            'Subject' => $request->Subject ?? "",
+            'SubTitle' => $request->SubTitle ?? "",
+            'VolumeNo' => $request->VolumeNo ?? "",
+            'IssueNo' => $request->IssueNo ?? "",
+            'IssueDate' => $request->IssueDate ?? "",
+            'BroadClass' => $request->BroadClass ?? "",
+            'AgencyCode' => $request->AgencyCode ?? "",
+            'Type' => $request->Type ?? "",
+            'batch_id' => $request->batch_id ?? "",
+            'Abstracts' => $request->Abstracts ?? "",
+        ]);
+        return response()->json([
+            'status' => 'Request Successfully Created',
+            'approval_request' => $request
+        ], 200);
     }
 
     /**
@@ -102,6 +141,7 @@ class SingleUploadController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        ApprovalRequest::where('id', $id)->delete();
+        return response()->json(['status' => 'Request Successfully Deleted'], 200);
     }
 }

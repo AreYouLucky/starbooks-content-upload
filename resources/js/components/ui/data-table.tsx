@@ -48,7 +48,7 @@ const DataTable = memo(function DataTable({
     <div className="relative my-2 rounded-lg ">
       <div className="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 rounded-lg">
         <table className="w-full text-sm text-left rtl:text-right text-gray-600 rounded-lg">
-          <thead className="text-xs text-gray-50 uppercase bg-teal-600/90">
+          <thead className="text-xs text-gray-50 uppercase bg-sky-500/90">
             <tr>
               {headers.map((header, index) => (
                 <th
@@ -166,18 +166,16 @@ function PaginatedSearchTableInner<T = unknown>({
               placeholder={searchPlaceholder}
               value={searchTerm}
               onChange={handleSearch}
-              className="min-w-[250px] h-10 border-gray-500 shadow-none ps-8"
+              className="min-w-62.5 h-10 border-gray-300 shadow-none ps-8"
             />
-
             <Search className="absolute left-2.5 text-gray-500" size={16} />
-
           </div>
 
           {onRefresh && (
             <div>
               <Button
                 onClick={onRefresh}
-                className="px-4 bg-teal-600 h-full text-gray-50 poppins-semibold"
+                className="px-4 bg-sky-600 h-full text-gray-50 poppins-semibold"
                 type="button"
                 disabled={isLoading}
               >
@@ -196,7 +194,7 @@ function PaginatedSearchTableInner<T = unknown>({
           <tr>
             <td colSpan={headers.length} className="text-center py-6">
               <div className="flex justify-center items-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-sky-500 border-t-transparent"></div>
                 <span className="ml-3 text-gray-600">Loading...</span>
               </div>
             </td>
@@ -219,24 +217,24 @@ function PaginatedSearchTableInner<T = unknown>({
       {/* Pagination */}
       <div className="w-full flex justify-between pt-5 px-2 poppins-semibold">
         <div>
-          <span className="text-sm text-teal-600">
-            Showing <span className="text-teal-700">{count.from}</span> to{" "}
-            <span className="text-teal-700">{count.to}</span> of{" "}
-            <span className="text-teal-700">{count.total}</span> Entries
+          <span className="text-sm text-sky-600">
+            Showing <span className="text-sky-700">{count.from}</span> to{" "}
+            <span className="text-sky-700">{count.to}</span> of{" "}
+            <span className="text-sky-700">{count.total}</span> Entries
           </span>
         </div>
         <div className="flex items-center gap-2">
           {/* Optional: show current page / total */}
-          <span className="text-sm text-teal-600">
+          <span className="text-sm text-sky-600">
             Page {page} / {totalPages}
           </span>
 
           <Button
             onClick={prevPage}
             disabled={isPrevDisabled}
-            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-teal-800 ${isPrevDisabled
+            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-sky-800 ${isPrevDisabled
               ? "text-gray-600 bg-gray-200 cursor-not-allowed border-gray-50"
-              : "text-gray-50 bg-teal-600 hover:bg-gray-100 hover:text-gray-700 border-gray-50"
+              : "text-gray-50 bg-sky-600 hover:bg-gray-100 hover:text-gray-700 border-gray-50"
               }`}
             type="button"
           >
@@ -246,9 +244,9 @@ function PaginatedSearchTableInner<T = unknown>({
           <Button
             onClick={nextPage}
             disabled={isNextDisabled}
-            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-teal-800 ${isNextDisabled
+            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-sky-800 ${isNextDisabled
               ? "text-gray-600 bg-gray-200 cursor-not-allowed border-gray-50"
-              : "text-gray-50 bg-teal-600 hover:bg-gray-100 hover:text-gray-700 border-gray-50"
+              : "text-gray-50 bg-sky-600 hover:bg-gray-100 hover:text-gray-700 border-gray-50"
               }`}
             type="button"
           >
