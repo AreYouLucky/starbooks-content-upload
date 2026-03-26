@@ -102,14 +102,14 @@ export default function ViewBatches() {
 
   return (
     <div className="space-y-3">
-      <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8">
+      <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8 bg-sky-500 text-white">
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-sky-500">
+              <h1 className="text-3xl font-bold tracking-tight">
                 Batch Management
               </h1>
-              <p className="max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
+              <p className="max-w-xl text-sm leading-6  sm:text-base">
                 Track upload groups, review targets, and publication schedules in one place.
               </p>
             </div>
@@ -119,13 +119,13 @@ export default function ViewBatches() {
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-lg border-slate-300 bg-white/80 px-4 text-slate-700 hover:bg-slate-100"
+              className="h-11 rounded-lg border-slate-300 bg-white px-4 text-slate-700 hover:bg-slate-100"
               onClick={() => refetch()}
             >
               <FolderSync className="size-4" />
               Refresh
             </Button>
-            <Button className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2" onClick={() => setBatchDialog(true)}>
+            <Button className="h-11 rounded-lg bg-sky-500 border border-white px-5 text-white hover:bg-sky-50  flex gap-2" onClick={() => setBatchDialog(true)}>
               <Plus className="size-4" />
               New batch
             </Button>

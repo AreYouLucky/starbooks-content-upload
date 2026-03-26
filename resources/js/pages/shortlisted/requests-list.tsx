@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { FolderSync, PencilLine, Trash } from 'lucide-react';
 import { trimText, purifyDom } from '@/lib/utils';
@@ -7,8 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PaginatedSearchTable from '@/components/ui/data-table';
 import type { BreadcrumbItem } from '@/types';
-import { formatDate } from '@/lib/utils';
 import { ApprovalRequestModel, BatchModel } from '@/types/model';
+import { toast } from 'sonner';
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
+import { useDeleteSingleRequest } from './partials/upload-hooks';
+import { downloadShortlisted } from '@/lib/excel-download';
+import ContentViewer from '@/components/ui/content-viewer';
+import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -33,20 +38,38 @@ export default function RequestList() {
 
   const approvalRequests = props.approval_requests ?? [];
   const batch = props.batch;
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [pdfs,setPdfs] = useState<string[]>([])
+  const [id, setId] = useState<number | null>(0);
+  const deleteSingleRequest = useDeleteSingleRequest();
+  const deleteSingleRequestFn = () => {
+    deleteSingleRequest.mutate(id as number, {
+      onSuccess: () => {
+        toast.success('Request Deleted Successfully');
+        window.location.reload();
+      },
+    });
+  }
+  
 
-  const shortlistedCount = approvalRequests.filter((request) => request.approval_status === 1).length;
+  const viewContent = () => {
+
+  }
 
   return (
     <div className="space-y-4">
-      <section className="relative overflow-hidden rounded-2xl border border-sky-100   p-5 shadow-sm md:px-8 py-4 bg-white">
+      <section className="relative overflow-hidden rounded-2xl border border-sky-100 text-gray-50  p-5 shadow-sm md:px-8 py-6 bg-sky-500">
         <div className="relative flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-4xl space-y-4">
               <div className="space-y-2">
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-sky-500 md:text-2xl uppercase">
+                  <h1 className="text-3xl font-bold tracking-tight  md:text-2xl uppercase">
                     {batch?.batch_name ?? 'Shortlisting Requests'}
                   </h1>
+                  <p className="text-sm ">
+                    {batch?.batch_description ?? 'Batch Description'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -55,7 +78,14 @@ export default function RequestList() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-xl border-slate-200 bg-sky-500 text-gray-50 px-4"
+                className="h-11 rounded-xl border-slate-200 bg-white text-slate-800 px-4"
+                onClick={() => {
+                  if (!batch) return;
+                  downloadShortlisted({
+                    records: approvalRequests,
+                    batch: batch,
+                  });
+                }}
               >
                 <FolderSync className="size-4" />
                 Export Excel
@@ -66,7 +96,7 @@ export default function RequestList() {
       </section>
 
       <Card className="gap-0 rounded-2xl border-sky-200 py-0 shadow-sm">
-        <CardContent className="px-4 py-4">
+        <CardContent className="px-4 py-2">
           <PaginatedSearchTable<ApprovalRequestModel>
             items={approvalRequests}
             headers={[
@@ -80,7 +110,7 @@ export default function RequestList() {
               `${item.Title ?? ''} ${item.Abstracts ?? ''} ${item.Author ?? ''} ${item.HoldingsID ?? ''}`
             }
             renderRow={(request) => (
-              <tr key={request.id ?? request.HoldingsID} className="border-b border-sky-100 bg-white transition hover:bg-sky-50/40">
+              <tr key={request.id ?? request.HoldingsID} className="border-b border-gray-100 bg-white transition hover:bg-gray-100/40">
                 <td className="px-6 py-4 align-top">
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-slate-900">{request.HoldingsID || 'N/A'}</p>
@@ -96,7 +126,7 @@ export default function RequestList() {
                   </div>
                 </td>
                 <td className="px-6 py-4 align-top">
-                  <p className="max-w-2xl text-sm leading-6 text-slate-600 text-justify">
+                  <div className="max-w-2xl text-sm leading-6 text-slate-600 text-justify">
                     {request.Abstracts !== '' ?
                       <div
                         className="p-2 text-justify"
@@ -104,18 +134,18 @@ export default function RequestList() {
                           __html: purifyDom(trimText(String(request?.Abstracts), 220) ?? ""),
                         }}
                       /> : 'Not Set'}
-                  </p>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-center align-middle">
                   <p className="text-sm  text-slate-900">{request.BroadClass || 'N/A'}</p>
                 </td>
                 <td className="px-6 py-4 text-center align-middle ">
                   <div className='flex justify-center items-center w-full gap-2'>
-                    <Link href={`/single-upload/${request?.id}/edit`} className=" flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border-sky-100 px-3 bg-sky-500 text-white hover:text-slate-600" >
+                    <Link href={`/single-upload/${request?.id}/edit`} className="hover:scale-105 flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border border-sky-300 px-3 bg-sky-500 text-slate-50 hover:text-white" >
                       <PencilLine className="size-4" />
                       Edit
                     </Link>
-                    <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 bg-red-500 text-white`} >
+                    <Button variant="outline" className={` transition-all hover:scale-105 h-9 rounded-lg bg-white/80 px-3 text-slate-500`} onClick={() => { setId(Number(request.id)); setIsDialogOpen(true) }}>
                       <Trash className="size-4" />
                       Delete
                     </Button>
@@ -129,6 +159,7 @@ export default function RequestList() {
           />
         </CardContent>
       </Card>
+      <ConfirmationDialog show={isDialogOpen} onClose={() => setIsDialogOpen(false)} message='Are you sure you want to delete this request?' type={2} onConfirm={deleteSingleRequestFn} />
     </div>
   );
 }

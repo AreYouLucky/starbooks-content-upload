@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode,useState } from 'react'
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import { CalendarDays, FolderSync, Plus, PencilLine, Search, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Link } from '@inertiajs/react';
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -31,6 +32,8 @@ export default function ShortlistedPage() {
     })
 
     const debouncedTitle = useDebounce(item.search, 1000);
+    const [open, setOpen] = useState(false);
+    const [id, setId] = useState(0);
     const queryFilters = {
         ...item,
         search: debouncedTitle,
@@ -44,25 +47,26 @@ export default function ShortlistedPage() {
     };
 
     const toggleBatchShortlist = useToggleBatchShortlist()
-    const toggleBatchShortlistFn = (id: number) => {
+    const toggleBatchShortlistFn = () => {
         toggleBatchShortlist.mutate(id, {
             onSuccess: () => {
                 refetch()
                 toast.success("Batch Shortlisted Successfully");
+                setOpen(false);
             }
         })
     }
 
     return (
         <div className="space-y-3">
-            <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8">
-                <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 bg-sky-500 md:p-8 text-white">
+                <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="max-w-2xl space-y-4">
                         <div className="space-y-1">
-                            <h1 className="text-3xl font-bold tracking-tight text-sky-500">
+                            <h1 className="text-3xl font-bold tracking-tight ">
                                 For Shortlisting
                             </h1>
-                            <p className="max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
+                            <p className="max-w-xl text-sm leading-6  sm:text-base">
                                 Track upload content for shortlisting, generate for shortlisting reports and manage batch status.
                             </p>
                         </div>
@@ -72,17 +76,17 @@ export default function ShortlistedPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-11 rounded-lg border-slate-300 bg-white/80 px-4 text-slate-700 hover:bg-slate-100"
+                            className="h-11 rounded-lg border-slate-300 bg-white px-4 text-slate-700 hover:bg-slate-100"
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
                             Refresh
                         </Button>
-                        <Button className="h-11 rounded-lg bg-sky-600 px-5 text-white hover:bg-sky-600 flex gap-2" >
+                        <Link href={'/bulk-upload/create'} className="h-11 rounded-lg bg-sky-500 border border-white px-5 text-white hover:bg-sky-600 flex gap-2 items-center justify-center  hover:text-white font-semibold hover:scale-105" >
                             <PiListPlusLight className="size-4" />
                             Bulk Upload
-                        </Button>
-                        <Link href={'/single-upload/create'} className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2 items-center justify-center font-semibold hover:scale-105" >
+                        </Link>
+                        <Link href={'/single-upload/create'} className="h-11 rounded-lg bg-sky-500 px-5 text-white hover:bg-sky-600 flex gap-2 items-center justify-center font-semibold hover:scale-105 border border-white" >
                             <Plus className="size-4" />
                             Single Upload
                         </Link>
@@ -99,6 +103,7 @@ export default function ShortlistedPage() {
                             type="text"
                             placeholder="Search any keyword..."
                             className="min-w-62.5 h-10 border-[#d1f3ff] shadow-none ps-8"
+                            onChange={handleChange}
                         />
                     </div>
 
@@ -149,14 +154,14 @@ export default function ShortlistedPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 align-middle">
-                                        <div className="flex items-center justify-center flex-col gap-2">
+                                        <div className="flex items-start justify-center flex-col gap-2">
                                             {(batch.status === 'for shortlisting' || batch.status === 'for initial review') &&
-                                                <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 ${batch.status === 'for shortlisting' ? 'bg-slate-100 text-slate-600' : 'bg-gray-200'}`} onClick={() => toggleBatchShortlistFn(batch.id)}>
+                                                <Button variant="outline" className={`h-9 rounded-lg border-sky-100 px-3 ${batch.status === 'for shortlisting' ? 'bg-slate-100 text-slate-600' : 'bg-gray-200'}`} onClick={() => {setOpen(true); setId(batch.id)}}>
                                                     <PencilLine className="size-4" />
                                                     {batch.status === 'for shortlisting' ? 'Mark as Shortlisted' : 'Shortlisted'}
                                                 </Button>
                                             }
-                                            <Link href={`/shortlist/${batch.id}`} className=" flex justify-center items-center font-semibold gap-2 h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-slate-600" >
+                                            <Link href={`/shortlist/${batch.id}`} className=" flex justify-center items-center font-semibold gap-2 h-9 rounded-lg border-sky-100 px-3 bg-sky-400 text-white hover:text-white hover:scale-105" >
                                                 <Eye className="size-4" />
                                                 View Contents
                                             </Link>
@@ -174,6 +179,7 @@ export default function ShortlistedPage() {
                     />
                 </CardContent>
             </Card>
+            <ConfirmationDialog show={open} onClose={() => setOpen(false)} type={2} onConfirm={toggleBatchShortlistFn} message="Are you sure you want to proceed?" />
         </div>
     )
 }

@@ -86,6 +86,7 @@ export default function SingleUpload() {
                 toast.success("Request Successfully Created");
                 const newUrl = `/single-upload/${data?.approval_request?.id}/edit`;
                 window.history.pushState({}, "", newUrl);
+                setOpen(false);
                 setItem((prev) => ({
                     ...prev,
                     id: data?.approval_request?.id as number
@@ -95,10 +96,10 @@ export default function SingleUpload() {
                 if (err.response?.data?.errors) {
                     setErrors(err.response.data.errors);
                     toast.error("Check input fields for errors");
+                    setOpen(false);
                 }
             },
         });
-        setOpen(false);
     }
 
     const updateSingleRequest = useUpdateSingleRequest()
@@ -107,15 +108,16 @@ export default function SingleUpload() {
         updateSingleRequest.mutate({ id: item.id as number, payload: formData }, {
             onSuccess: () => {
                 toast.success("Request Successfully Updated");
+                setOpen(false);
             },
             onError: (err) => {
                 if (err.response?.data?.errors) {
                     setErrors(err.response.data.errors);
+                    setOpen(false);
                     toast.error("Check input fields for errors");
                 }
             },
         });
-        setOpen(false);
     }
 
     return (
