@@ -48,7 +48,7 @@ const DataTable = memo(function DataTable({
     <div className="relative my-2 rounded-lg ">
       <div className="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 rounded-lg">
         <table className="w-full text-sm text-left rtl:text-right text-gray-600 rounded-lg">
-          <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+          <thead className="text-xs text-gray-500 uppercase border-b border-gray-100 bg-sky-100">
             <tr>
               {headers.map((header, index) => (
                 <th

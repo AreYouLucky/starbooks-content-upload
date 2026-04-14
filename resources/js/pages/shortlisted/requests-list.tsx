@@ -39,7 +39,7 @@ export default function RequestList() {
   const approvalRequests = props.approval_requests ?? [];
   const batch = props.batch;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [pdfs,setPdfs] = useState<string[]>([])
+  const [pdfs, setPdfs] = useState<string[]>([])
   const [id, setId] = useState<number | null>(0);
   const deleteSingleRequest = useDeleteSingleRequest();
   const deleteSingleRequestFn = () => {
@@ -50,7 +50,7 @@ export default function RequestList() {
       },
     });
   }
-  
+
 
   const viewContent = () => {
 
@@ -96,7 +96,7 @@ export default function RequestList() {
       </section>
 
       <Card className="gap-0 rounded-2xl border-sky-200 py-0 shadow-sm">
-        <CardContent className="px-4 py-2">
+        <CardContent className=" p-2">
           <PaginatedSearchTable<ApprovalRequestModel>
             items={approvalRequests}
             headers={[
@@ -145,7 +145,7 @@ export default function RequestList() {
                       <PencilLine className="size-4" />
                       Edit
                     </Link>
-                    <Button variant="outline" className={` transition-all hover:scale-105 h-9 rounded-lg bg-white/80 px-3 text-slate-500`} onClick={() => { setId(Number(request.id)); setIsDialogOpen(true) }}>
+                    <Button variant="outline" className={` transition-all hover:scale-105 h-9 rounded-lg bg-red-400 text-slate-50 hover:text-white hover:bg-orange/80 px-3 `} onClick={() => { setId(Number(request.id)); setIsDialogOpen(true) }}>
                       <Trash className="size-4" />
                       Delete
                     </Button>

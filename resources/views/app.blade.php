@@ -98,7 +98,7 @@
 
 <body class="font-sans antialiased">
     @inertia
-    <div style="color: red;">Gwapo PO ako</div>
 </body>
 
 </html>
+

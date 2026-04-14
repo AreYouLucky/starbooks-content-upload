@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('content_batches', function (Blueprint $table) {
             $table->id();
             $table->string('batch_name')->unique();
+            $table->string('quarter');
+            $table->string('year');
             $table->string('content_source');
             $table->text('batch_description');
             $table->string('target_published_date');

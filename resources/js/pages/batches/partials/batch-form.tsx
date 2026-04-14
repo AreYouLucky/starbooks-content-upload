@@ -10,7 +10,8 @@ import { useCreateBatch, useUpdateBatch } from "./batches-hooks";
 import { useHandleChange } from "@/hooks/use-handle-change";
 import { useEffect } from "react";
 import { BatchModel } from "@/types/model";
-
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, } from "@/components/ui/select"
+import { generateYears, quarters } from "./defaults";
 
 
 type BatchFormProps = {
@@ -24,8 +25,11 @@ function BatchForm(props: BatchFormProps) {
         {
             id: props.data?.id || 0,
             batch_name: props.data?.batch_name || '',
+            year: props.data?.year || '',
+            quarter: props.data?.quarter || '',
             batch_description: props.data?.batch_description || '',
-            target_published_date: props.data?.target_published_date || new Date().toISOString().split('T')[0], content_source: ""
+            content_source: props.data?.content_source || '',
+            start_date: props.data?.start_date || '',
         }
     );
 
@@ -34,7 +38,8 @@ function BatchForm(props: BatchFormProps) {
         formData.append("batch_name", item.batch_name);
         formData.append("content_source", item.content_source);
         formData.append("batch_description", item.batch_description);
-        formData.append("target_published_date", item.target_published_date);
+        formData.append("year", item.year);
+        formData.append("quarter", item.quarter);
         return formData;
     }
 
@@ -78,7 +83,7 @@ function BatchForm(props: BatchFormProps) {
 
 
     const clearFields = useCallback(() => {
-        setItem({ id: 0, batch_name: '', batch_description: '', target_published_date: new Date().toISOString().split('T')[0], content_source: "" });
+        setItem({ id: 0, batch_name: '', batch_description: '', content_source: "", year: "", quarter: "" , start_date: ""});
         setErrors({});
     }, [setItem, setErrors]);
 
@@ -90,11 +95,15 @@ function BatchForm(props: BatchFormProps) {
                 id: props.data.id as number,
                 batch_name: props.data.batch_name,
                 batch_description: props.data.batch_description,
-                target_published_date: props.data.target_published_date,
-                content_source: props.data.content_source
+                content_source: props.data.content_source,
+                year: props.data.year as string,
+                quarter: props.data.quarter as string,
+                start_date: props.data.start_date as string
             });
         }
     }, [props.data, setItem, clearFields]);
+
+    const years = generateYears();
 
     return (
         <Dialog open={props.show} onOpenChange={props.onClose}>
@@ -106,47 +115,70 @@ function BatchForm(props: BatchFormProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="w-full flex flex-col pb-4 pt-2 gap-4 ">
-                    <div className="grid gap-2">
-                        <Label htmlFor="batch_name" className="text-gray-600">Title</Label>
-                        <Input
-                            id="batch_name"
-                            type="text"
-                            name="batch_name"
-                            required
-                            onChange={handleChange}
-                            value={String(item.batch_name)}
-                            className="text-gray-600 "
-                        />
-                        <InputError message={errors.batch_name as string} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-2">
-                            <Label htmlFor="content_source" className="text-gray-600">Content Source</Label>
-                            <Input
-                                id="content_source"
-                                type="text"
-                                name="content_source"
-                                required
-                                onChange={handleChange}
-                                value={String(item.content_source)}
-                                className="text-gray-600 "
-                            />
-                            <InputError message={errors.content_source as string} />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="grid gap-1">
+                            <Label htmlFor="batch_id" className="text-gray-600 poppins-semibold text-[13px]">Quarter </Label>
+                            <Select
+                                value={String(item.quarter)}
+                                onValueChange={(value) => {
+                                    setErrors((prev) => ({ ...prev, quarter: '' }))
+                                    setItem((prev) => ({ ...prev, quarter: value }))
+                                }
+                                }
+                            >
+                                <SelectTrigger className="border-sky-300">
+                                    <SelectValue placeholder="" className="text-[12px]" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {quarters.map((type, index) => (
+                                        <SelectItem key={index} value={type.value}>
+                                            {type.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <InputError message={errors.quarter} />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="target_published_date" className="text-gray-600">Target Published Date</Label>
-                            <Input
-                                id="target_published_date"
-                                type="date"
-                                name="target_published_date"
-                                required
-                                onChange={handleChange}
-                                value={item.target_published_date}
-                                className="text-gray-600 "
-                            />
-                            <InputError message={errors.target_published_date as string} />
+                        <div className="grid gap-1">
+                            <Label htmlFor="batch_id" className="text-gray-600 poppins-semibold text-[13px]">Year </Label>
+                            <Select
+                                value={String(item.year)}
+                                onValueChange={(value) => {
+                                    setErrors((prev) => ({ ...prev, year: '' }))
+                                    setItem((prev) => ({ ...prev, year: value }))
+                                }
+                                }
+                            >
+                                <SelectTrigger className="border-sky-300">
+                                    <SelectValue placeholder="" className="text-[12px]" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {years.map((type, index) => (
+                                        <SelectItem key={index} value={String(type)}>
+                                            {type}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <InputError message={errors.year} />
                         </div>
 
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="content_source" className="text-gray-600">Content Source</Label>
+                        <Input
+                            id="content_source"
+                            type="text"
+                            name="content_source"
+                            required
+                            onChange={handleChange}
+                            value={String(item.content_source)}
+                            className="text-gray-600 "
+                        />
+                        <InputError message={errors.content_source as string} />
                     </div>
                     <div className="grid gap-2 ">
                         <Label htmlFor="batch_description" className="text-gray-600">Description</Label>

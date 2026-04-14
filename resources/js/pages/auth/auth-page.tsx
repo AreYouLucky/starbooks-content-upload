@@ -22,7 +22,6 @@ function AuthPage() {
         axios
             .post('/request-login', item)
             .then((res) => {
-                toast.success(res.data.status);
                 window.location.href = '/dashboard';
                 setLoading(false);
             })

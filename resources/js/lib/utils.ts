@@ -3,11 +3,11 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
-    return typeof url === 'string' ? url : url.url;
+  return typeof url === 'string' ? url : url.url;
 }
 
 export const formatDate = (value: string) => {
@@ -27,14 +27,18 @@ export const formatDate = (value: string) => {
 import DOMPurify from "dompurify";
 
 
-export function purifyDom(text:string){
+export function purifyDom(text: string) {
   return DOMPurify.sanitize(text);
 }
 
-export function trimText(text:string, maxLength:number):string {
+export function trimText(text: string, maxLength: number): string {
   if (text.length > maxLength) {
     return text.substring(0, maxLength) + '...';
   } else {
     return text;
   }
 }
+
+export const displayDate = (date?: string) => {
+  return date ? formatDate(date) : 'NA';
+};

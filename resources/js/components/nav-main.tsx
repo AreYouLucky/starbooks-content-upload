@@ -15,7 +15,6 @@ import { SharedData } from '@/types';
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage<SharedData>().props;
-    console.log(auth.user);
     return (
         <SidebarGroup className="px-2 py-0">
             <SidebarGroupLabel>Platform</SidebarGroupLabel>

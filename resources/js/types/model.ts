@@ -37,6 +37,9 @@ export type BatchModel = TimestampFields & {
     target_published_date: string;
     published_date?: string;
     status?: string;
+    year?: string;
+    quarter?: string;
+    start_date?: string;
 };
 
 export type ApprovalRequestModel = TimestampFields & {

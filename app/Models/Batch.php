@@ -20,6 +20,8 @@ class Batch extends Model
         'target_published_date',
         'published_date',
         'status',
-        'is_active'
+        'is_active',
+        'quarter',
+        'year'
     ];
 }
