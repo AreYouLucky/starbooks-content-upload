@@ -13,7 +13,6 @@ import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { useDeleteSingleRequest } from './partials/upload-hooks';
 import { downloadShortlisted } from '@/lib/excel-download';
 import ContentViewer from '@/components/ui/content-viewer';
-import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -39,7 +38,6 @@ export default function RequestList() {
   const approvalRequests = props.approval_requests ?? [];
   const batch = props.batch;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [pdfs, setPdfs] = useState<string[]>([])
   const [id, setId] = useState<number | null>(0);
   const deleteSingleRequest = useDeleteSingleRequest();
   const deleteSingleRequestFn = () => {

@@ -22,6 +22,8 @@ class Batch extends Model
         'status',
         'is_active',
         'quarter',
-        'year'
+        'year',
+        'is_dost',
+        'start_date'
     ];
 }

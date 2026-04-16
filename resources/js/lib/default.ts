@@ -20,3 +20,10 @@ export const material_type = [
     { id: 11, name: "NONPRINT" },
     { id: 12, name: "PODCAST" }
 ]
+
+export const quarters = [
+    { label: '1st Quarter', value: 'Q1', desc : 'January - March' },
+    { label: '2nd Quarter', value: 'Q2', desc : 'April - June' },
+    { label: '3rd Quarter', value: 'Q3', desc : 'July - September' },
+    { label: '4th Quarter', value: 'Q4', desc : 'October - December' },
+]

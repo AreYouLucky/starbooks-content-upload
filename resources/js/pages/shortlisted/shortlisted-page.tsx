@@ -119,7 +119,7 @@ export default function ShortlistedPage() {
             </section>
 
             <Card className="gap-0 overflow-hidden rounded-lg border-sky-300 bg-white py-0 shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-slate-200 bg-sky-200/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-slate-200 bg-sky-200/70 px-5 py-4 sm:flex-row sm:items-center justify-between">
                     <div className="relative space-y-1">
                         <Search
                             className="absolute top-3 left-3 text-sky-500"
@@ -139,6 +139,22 @@ export default function ShortlistedPage() {
                                 onFilterChange();
                             }}
                         />
+                    </div>
+                    <div className='flex gap-2'>
+                        <Link
+                            href={'/bulk-upload/create'}
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-white  px-5 font-semibold text-sky-600 shadow-none hover:bg-white hover:text-slate-900"
+                        >
+                            <PiListPlusLight className="size-4" />
+                            Bulk Upload
+                        </Link>
+                        <Link
+                            href={'/single-upload/create'}
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-white px-5 font-semibold text-sky-700 shadow-none hover:bg-white hover:text-slate-900"
+                        >
+                            <Plus className="size-4" />
+                            Single Upload
+                        </Link>
                     </div>
                 </div>
 
@@ -198,14 +214,14 @@ export default function ShortlistedPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-2 align-middle">
-                                        <div className="flex flex-col items-center justify-center gap-1">
+                                        <div className="flex flex-row items-center justify-center gap-1">
                                             {(batch.status ===
                                                 'for shortlisting' ||
                                                 batch.status ===
                                                     'for initial review') && (
                                                 <Button
                                                     variant="outline"
-                                                    className={`h-9 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? 'border-sky-200 bg-yellow-500 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                    className={`h-9 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
                                                     onClick={() => {
                                                         setOpen(true);
                                                         setId(batch.id);
@@ -220,10 +236,9 @@ export default function ShortlistedPage() {
                                             )}
                                             <Link
                                                 href={`/shortlist/${batch.id}`}
-                                                className="flex h-9 items-center w-full justify-center gap-2 rounded-lg border py-5 border-sky-200 bg-sky-500 px-3 font-semibold text-white hover:bg-sky-50 hover:text-sky-800"
+                                                className="flex h-9 items-center  justify-center gap-2 rounded-lg border py-5 border-sky-400 bg-white px-3 font-semibold text-sky-400 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />
-                                                View Contents
                                             </Link>
                                         </div>
                                     </td>

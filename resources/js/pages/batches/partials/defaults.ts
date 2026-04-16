@@ -89,9 +89,3 @@ export const generateYears = () => {
     return years;
 };
 
-export const quarters = [
-    { label: '1st Quarter', value: 'Q1' },
-    { label: '2nd Quarter', value: 'Q2' },
-    { label: '3rd Quarter', value: 'Q3' },
-    { label: '4th Quarter', value: 'Q4' },
-]

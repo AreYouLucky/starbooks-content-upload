@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Batch;
 use Inertia\Inertia;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class BatchesController extends Controller
 {
@@ -42,31 +43,46 @@ class BatchesController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'batch_name' => 'required|string|max:50|unique:content_batches,batch_name',
             'content_source' => 'required|string|max:100',
+            'year' => 'required|string|max:50',
+            'quarter' => 'required|string|max:50',
             'batch_description' => 'required|string|max:255',
-            'target_published_date' => 'required|string|max:100',
+            'start_date' => 'required|string|max:100',
+            'is_dost' => 'required|boolean'
         ]);
+        $existing_count = Batch::where('year', $request->year)
+            ->where('quarter', $request->quarter)
+            ->count();
+
+        $batch_number = str_pad($existing_count + 1, 4, '0', STR_PAD_LEFT);
+        $batch_name =   $request->year . Str::upper($request->quarter) . '-B' . $batch_number;
 
 
-        $today = Carbon::today();
-        $publishDate = Carbon::parse($request->target_published_date);
-        $totalDays = $today->diffInDays($publishDate);
-
-        $shortlistDate = $today->copy()->addDays(intval($totalDays * 0.2))->toDateString();
-        $committeeReviewDate = $today->copy()->addDays(intval($totalDays * 0.5))->toDateString();
-        $qualityApprovalDate = $today->copy()->addDays(intval($totalDays * 0.9))->toDateString();
-
+        $date = Carbon::parse($request->start_date)->startOfDay();
+        $shortlisting_date = $date->copy()->addWeekdays(7);
+        if (!$request->is_dost) {
+            $ir_date = $date->copy()->addWeekdays(28);
+            $qa_date = $date->copy()->addWeekdays(42);
+            $uploading_date = $date->copy()->addWeekdays(47);
+        } else {
+            $ir_date = $date->copy()->addWeekdays(14);
+            $qa_date = $date->copy()->addWeekdays(14);
+            $uploading_date = $date->copy()->addWeekdays(19);
+        }
 
         Batch::create([
-            'batch_name' => $request->batch_name,
+            'batch_name' => $batch_name,
             'content_source' => $request->content_source,
             'batch_description' => $request->batch_description,
-            'target_published_date' => $request->target_published_date,
-            'target_shortlist_date' => $shortlistDate,
-            'target_initial_review_date' => $committeeReviewDate,
-            'target_quality_approval_date' => $qualityApprovalDate,
-            'status' => 'for shortlisting'
+            'start_date' => $date,
+            'target_shortlist_date' => $shortlisting_date,
+            'target_initial_review_date' => $ir_date,
+            'target_quality_approval_date' => $qa_date,
+            'target_published_date' => $uploading_date,
+            'status' => 'for shortlisting',
+            'is_dost' => $request->is_dost,
+            'year' => $request->year,
+            'quarter' => $request->quarter
         ]);
 
         return response()->json([
@@ -86,36 +102,58 @@ class BatchesController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'batch_name' => ['required', 'string', 'max:50', 'unique:content_batches,batch_name,' . $id . ',id'],
-            'content_source' => ['required', 'string', 'max:100'],
-            'batch_description' => ['required', 'string', 'max:255'],
-            'target_published_date' => ['required', 'string', 'max:100'],
+            'content_source' => 'required|string|max:100',
+            'year' => 'required|string|max:50',
+            'quarter' => 'required|string|max:50',
+            'batch_description' => 'required|string|max:255',
+            'start_date' => 'required|string|max:100',
+            'is_dost' => 'required|boolean'
         ]);
 
-
-        $today = Carbon::today();
-        $publishDate = Carbon::parse($request->target_published_date);
-        $totalDays = $today->diffInDays($publishDate);
-
-        $shortlistDate = $today->copy()->addDays(intval($totalDays * 0.2))->toDateString();
-        $committeeReviewDate = $today->copy()->addDays(intval($totalDays * 0.5))->toDateString();
-        $qualityApprovalDate = $today->copy()->addDays(intval($totalDays * 0.9))->toDateString();
-
         $batch = Batch::find($id);
+
+        if (
+            $batch->year != $request->year ||
+            $batch->quarter != $request->quarter
+        ) {
+            $existing_count = Batch::where('year', $request->year)
+                ->where('quarter', $request->quarter)
+                ->count();
+
+            $batch_number = str_pad($existing_count + 1, 4, '0', STR_PAD_LEFT);
+            $batch_name = $request->year . Str::upper($request->quarter) . '-B' . $batch_number;
+            $batch->batch_name = $batch_name;
+            $batch->save();
+        }
+
+
+        $date = Carbon::parse($request->start_date)->startOfDay();
+        $shortlisting_date = $date->copy()->addWeekdays(7);
+        if (!$request->is_dost) {
+            $ir_date = $date->copy()->addWeekdays(28);
+            $qa_date = $date->copy()->addWeekdays(42);
+            $uploading_date = $date->copy()->addWeekdays(47);
+        } else {
+            $ir_date = $date->copy()->addWeekdays(14);
+            $qa_date = $date->copy()->addWeekdays(14);
+            $uploading_date = $date->copy()->addWeekdays(19);
+        }
         $batch->update([
-            'batch_name' => $request->batch_name,
             'content_source' => $request->content_source,
             'batch_description' => $request->batch_description,
-            'target_published_date' => $request->target_published_date,
-            'target_shortlist_date' => $shortlistDate,
-            'target_initial_review_date' => $committeeReviewDate,
-            'target_quality_approval_date' => $qualityApprovalDate,
+            'start_date' => $date,
+            'target_shortlist_date' => $shortlisting_date,
+            'target_initial_review_date' => $ir_date,
+            'target_quality_approval_date' => $qa_date,
+            'target_published_date' => $uploading_date,
+            'status' => 'for shortlisting',
+            'is_dost' => $request->is_dost,
+            'year' => $request->year,
+            'quarter' => $request->quarter
         ]);
 
         return response()->json([
             'message' => "Batches Successfully Updated"
         ]);
     }
-
-    
 }

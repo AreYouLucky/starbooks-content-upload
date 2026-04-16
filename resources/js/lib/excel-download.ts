@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { ApprovalRequestModel, BatchModel } from "@/types/model";
-
+import { quarters } from "./default";
 export const downloadShortlisted = async ({ records, batch }: { records: ApprovalRequestModel[], batch: BatchModel }) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-GB", {
@@ -20,9 +20,9 @@ export const downloadShortlisted = async ({ records, batch }: { records: Approva
     worksheet.mergeCells("A2:J2");
     worksheet.mergeCells("A3:J3");
 
-    worksheet.getCell("A1").value = "STARBOOKS CONTENT REVIEW";
+    worksheet.getCell("A1").value = "STARBOOKS Content Committee Review";
     worksheet.getCell("A2").value = "SHORTLISTED CONTENT";
-    worksheet.getCell("A3").value = "(Quarter Year)";
+    worksheet.getCell("A3").value = quarters.find((q) => q.value === batch.quarter)?.desc + " " + batch.year;
 
     ["A1", "A2", "A3"].forEach((cell, i) => {
         const c = worksheet.getCell(cell);
@@ -37,11 +37,11 @@ export const downloadShortlisted = async ({ records, batch }: { records: Approva
     // =========================
     // META INFO
     // =========================
-    worksheet.getCell("A5").value = "Content Source:";
-    worksheet.getCell("A6").value = "Batch ID / Record Count:";
-    worksheet.getCell("B6").value = `${batchName} | ${records.length}`;
-    worksheet.getCell("H5").value = "Date Generated:";
-    worksheet.getCell("I5").value = dateStr;
+    worksheet.getCell("A5").value = "Batch No: "+ batch.batch_name;
+    worksheet.getCell("H5").value = "Content Source:";
+    worksheet.getCell("I5").value = batch.content_source;
+    worksheet.getCell("H6").value = "Date Generated:";
+    worksheet.getCell("I6").value = dateStr;
 
     // =========================
     // HEADERS
@@ -134,40 +134,28 @@ export const downloadShortlisted = async ({ records, batch }: { records: Approva
     const signStartRow = lastDataRow + 3;
 
     const signData = [
-        ["Prepared by:", "", "", "Reviewed by:", "", "", "Approved by:", "", ""],
-        [],
+        ["Prepared by:", "", "Reviewed by:", "", "Noted by:", "", "Approved by:", "", "", ""],
+        ["", "", "", "", "", "", "", "", "", ""],
         [
-            "PRECIOUS T. BIRAQUIT",
-            "",
-            "",
-            "LOUELLA L. PESTAÑO",
-            "",
-            "",
-            "MARIEVIC V. NARQUITA",
-            "",
-            "",
+            "PRECIOUS T. BIRAQUIT", "",
+            "LOUELLA L. PESTAÑO", "",
+            "MARIEVIC V. NARQUITA", "",
+            "ALAN C. TAULE", "",
+            "", ""
         ],
         [
-            "Science Research Specialist I",
-            "",
-            "",
-            "Science Research Specialist II",
-            "",
-            "",
-            "Supervising Science Research Specialist",
-            "",
-            "",
+            "Science Research Specialist I", "",
+            "Science Research Specialist II", "",
+            "Supervising Science Research Specialist", "",
+            "IRAD Chief", "",
+            "", ""
         ],
         [
-            "Date: ___________________",
-            "",
-            "",
-            "Date: ___________________",
-            "",
-            "",
-            "Date: ___________________",
-            "",
-            "",
+            "Date: ___________________", "",
+            "Date: ___________________", "",
+            "Date: ___________________", "",
+            "Date: ___________________", "",
+            "", ""
         ],
     ];
 
@@ -175,20 +163,24 @@ export const downloadShortlisted = async ({ records, batch }: { records: Approva
         worksheet.getRow(signStartRow + i).values = rowData;
     });
 
-    [1, 4, 7].forEach((col) => {
+    // A–B, C–D, E–F, G–H
+    [1, 3, 5, 7].forEach((col) => {
         for (let i = 0; i < 5; i++) {
-            worksheet.mergeCells(signStartRow + i, col, signStartRow + i, col + 2);
+            worksheet.mergeCells(signStartRow + i, col, signStartRow + i, col + 1);
         }
     });
 
-    [1, 4, 7].forEach((col) => {
+    // Alignment + bold names
+    [1, 3, 5, 7].forEach((col) => {
         [0, 2, 3, 4].forEach((offset) => {
             const cell = worksheet.getCell(signStartRow + offset, col);
-            cell.alignment = { horizontal: "center" };
-            if (offset === 2) cell.font = { bold: true };
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+
+            if (offset === 2) {
+                cell.font = { bold: true };
+            }
         });
     });
-
     // =========================
     // DOWNLOAD (NO file-saver)
     // =========================

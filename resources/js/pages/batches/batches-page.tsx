@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Input } from '@/components/ui/input';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import BatchForm from './partials/batch-form';
-import { CalendarDays, FolderSync, PencilLine,  Plus,  Search,} from 'lucide-react';
+import { CalendarDays, FolderSync, PencilLine, Plus, Search, } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import type { BatchModel } from '@/types/model';
@@ -192,13 +192,15 @@ export default function ViewBatches() {
                                                     batch.target_shortlist_date,
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <CalendarDays className="size-4 text-cyan-500" />
-                                                IR:{' '}
-                                                {displayDate(
-                                                    batch.target_initial_review_date,
-                                                )}
-                                            </div>
+                                            {!batch.is_dost && (
+                                                <div className="flex items-center gap-2">
+                                                    <CalendarDays className="size-4 text-cyan-500" />
+                                                    IR:{' '}
+                                                    {displayDate(
+                                                        batch.target_initial_review_date,
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-2">
                                                 <CalendarDays className="size-4 text-cyan-500" />
                                                 QA:{' '}
@@ -230,19 +232,20 @@ export default function ViewBatches() {
                                                     batch.shortlisted_date,
                                                 )}
                                             </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <CalendarDays
-                                                    className={`size-4 ${getStatusColor(
-                                                        batch.target_initial_review_date,
+                                            {!batch.is_dost && (
+                                                <div className="flex items-center gap-2">
+                                                    <CalendarDays
+                                                        className={`size-4 ${getStatusColor(
+                                                            batch.target_initial_review_date,
+                                                            batch.initial_reviewed_date,
+                                                        )}`}
+                                                    />
+                                                    IR:{' '}
+                                                    {displayDate(
                                                         batch.initial_reviewed_date,
-                                                    )}`}
-                                                />
-                                                IR:{' '}
-                                                {displayDate(
-                                                    batch.initial_reviewed_date,
-                                                )}
-                                            </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <div className="flex items-center gap-2">
                                                 <CalendarDays

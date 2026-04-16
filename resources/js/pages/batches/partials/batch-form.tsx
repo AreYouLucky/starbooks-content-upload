@@ -11,7 +11,9 @@ import { useHandleChange } from "@/hooks/use-handle-change";
 import { useEffect } from "react";
 import { BatchModel } from "@/types/model";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, } from "@/components/ui/select"
-import { generateYears, quarters } from "./defaults";
+import { generateYears } from "./defaults";
+import { quarters } from "@/lib/default";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 type BatchFormProps = {
@@ -29,7 +31,10 @@ function BatchForm(props: BatchFormProps) {
             quarter: props.data?.quarter || '',
             batch_description: props.data?.batch_description || '',
             content_source: props.data?.content_source || '',
-            start_date: props.data?.start_date || '',
+            start_date: props.data?.start_date
+                ? props.data.start_date.split(' ')[0]
+                : '',
+            is_dost: props.data?.is_dost || false,
         }
     );
 
@@ -38,8 +43,10 @@ function BatchForm(props: BatchFormProps) {
         formData.append("batch_name", item.batch_name);
         formData.append("content_source", item.content_source);
         formData.append("batch_description", item.batch_description);
+        formData.append("start_date", item.start_date);
         formData.append("year", item.year);
         formData.append("quarter", item.quarter);
+        formData.append("is_dost", item.is_dost ? "1" : "0");
         return formData;
     }
 
@@ -83,7 +90,7 @@ function BatchForm(props: BatchFormProps) {
 
 
     const clearFields = useCallback(() => {
-        setItem({ id: 0, batch_name: '', batch_description: '', content_source: "", year: "", quarter: "" , start_date: ""});
+        setItem({ id: 0, batch_name: '', batch_description: '', content_source: "", year: "", quarter: "", start_date: "", is_dost: false });
         setErrors({});
     }, [setItem, setErrors]);
 
@@ -98,12 +105,15 @@ function BatchForm(props: BatchFormProps) {
                 content_source: props.data.content_source,
                 year: props.data.year as string,
                 quarter: props.data.quarter as string,
-                start_date: props.data.start_date as string
+                start_date: props.data.start_date as string,
+                is_dost: props.data.is_dost as boolean
             });
         }
     }, [props.data, setItem, clearFields]);
 
     const years = generateYears();
+    console.log(props.data)
+    console.log(item)
 
     return (
         <Dialog open={props.show} onOpenChange={props.onClose}>
@@ -180,6 +190,19 @@ function BatchForm(props: BatchFormProps) {
                         />
                         <InputError message={errors.content_source as string} />
                     </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="start_date" className="text-gray-600">Start Date</Label>
+                        <Input
+                            id="start_date"
+                            type="date"
+                            name="start_date"
+                            required
+                            onChange={handleChange}
+                            value={props.data?.start_date?.split(' ')[0] || ''}
+                            className="text-gray-600 "
+                        />
+                        <InputError message={errors.start_date as string} />
+                    </div>
                     <div className="grid gap-2 ">
                         <Label htmlFor="batch_description" className="text-gray-600">Description</Label>
                         <Textarea
@@ -191,6 +214,24 @@ function BatchForm(props: BatchFormProps) {
                             className="text-gray-600 "
                         />
                         <InputError message={errors.batch_description as string} />
+                    </div>
+                    <div>
+                        <label
+                            htmlFor="showPassword"
+                            className="flex cursor-pointer items-center gap-3"
+                        >
+                            <Checkbox
+                                id="showPassword"
+                                checked={Boolean(item.is_dost)}
+                                onCheckedChange={(checked: boolean) =>
+                                    setItem((prev) => ({ ...prev, is_dost: checked }))
+                                }
+                                className="size-5 rounded-md border-slate-300 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
+                            />
+                            <span className="text-xs font-medium text-slate-600">
+                                DOST Agency?
+                            </span>
+                        </label>
                     </div>
                 </div>
                 <div className="w-full flex justify-start gap-2">
