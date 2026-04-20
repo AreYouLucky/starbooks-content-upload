@@ -9,7 +9,7 @@ import {
     Eye,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { PiListPlusLight } from 'react-icons/pi';
+import { PiListPlusLight,  PiListBulletsFill } from 'react-icons/pi';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -94,26 +94,21 @@ export default function ShortlistedPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none hover:bg-sky-50"
+                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none "
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
                             Refresh
                         </Button>
-                        <Link
-                            href={'/bulk-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-500  px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none "
+                            onClick={() => refetch()}
                         >
-                            <PiListPlusLight className="size-4" />
-                            Bulk Upload
-                        </Link>
-                        <Link
-                            href={'/single-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-600 px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
-                        >
-                            <Plus className="size-4" />
-                            Single Upload
-                        </Link>
+                            <PiListBulletsFill className="size-4" />
+                            Generate Report
+                        </Button>
                     </div>
                 </div>
             </section>
@@ -143,14 +138,14 @@ export default function ShortlistedPage() {
                     <div className='flex gap-2'>
                         <Link
                             href={'/bulk-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-white  px-5 font-semibold text-sky-600 shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-green-600/90  px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <PiListPlusLight className="size-4" />
                             Bulk Upload
                         </Link>
                         <Link
                             href={'/single-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-white px-5 font-semibold text-sky-700 shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-yellow-600/90 px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <Plus className="size-4" />
                             Single Upload
@@ -173,7 +168,7 @@ export default function ShortlistedPage() {
                             return (
                                 <tr
                                     key={batch.id}
-                                    className="border-b border-slate-100 bg-white transition hover:bg-sky-50/50"
+                                    className="border-b border-slate-100 bg-white transition /50"
                                 >
                                     <td className="px-6 py-4 align-top">
                                         <div className="space-y-1">

@@ -78,14 +78,14 @@ export default function ViewBatches() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none hover:bg-sky-50"
+                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none "
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
                             Refresh
                         </Button>
                         <Button
-                            className="flex h-10 gap-2 rounded-lg border border-white bg-sky-600 px-5 text-white shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 gap-2 rounded-lg border border-white bg-sky-600 px-5 text-white shadow-none "
                             onClick={() => setBatchDialog(true)}
                         >
                             <Plus className="size-4" />
