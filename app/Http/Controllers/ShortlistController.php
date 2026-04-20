@@ -63,9 +63,7 @@ class ShortlistController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id) {
-        
-    }
+    public function update(Request $request, string $id) {}
 
     /**
      * Remove the specified resource from storage.
@@ -95,6 +93,23 @@ class ShortlistController extends Controller
         $batch->save();
         return response()->json([
             'status' => 'Batch Successfully Updated'
+        ]);
+    }
+    public function generateReport(Request $req)
+    {
+        $req->validate([
+            'quarter' => 'required|string|max:50',
+            'year' => 'required|string|max:50',
+        ]);
+        $batches = Batch::where('quarter', $req->quarter)
+            ->where('year', $req->year)
+            ->get();
+        $batchIds = $batches->pluck('id'); 
+        $records = ApprovalRequest::whereIn('batch_id', $batchIds)->get();
+
+        return response()->json([
+            'batches' => $batches,
+            'records' => $records
         ]);
     }
 }

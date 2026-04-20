@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { ApprovalRequestModel, BatchModel } from "@/types/model";
 import { quarters } from "./default";
-export const downloadShortlisted = async ({ records, batch, type }: { records: ApprovalRequestModel[], batch: BatchModel, type: number }) => {
+export const downloadShortlisted = async ({ records, batch, batches, type, quarter, year }: { records: ApprovalRequestModel[], batch?: BatchModel, batches?: BatchModel[], type: number, quarter?: string, year?: string }) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -9,20 +9,19 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
         year: "numeric",
     });
 
-    const batchName = batch.batch_name;
+    const batchName = batch?.batch_name ?? "";
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Report");
-
-    // =========================
-    // HEADER TITLES
-    // =========================
     worksheet.mergeCells("A1:J1");
     worksheet.mergeCells("A2:J2");
     worksheet.mergeCells("A3:J3");
 
     worksheet.getCell("A1").value = "STARBOOKS Content Committee Review";
     worksheet.getCell("A2").value = "SHORTLISTED CONTENT";
-    worksheet.getCell("A3").value = quarters.find((q) => q.value === batch.quarter)?.desc + " " + batch.year;
+    if(type === 1)
+    worksheet.getCell("A3").value = quarters.find((q) => q.value === batch?.quarter)?.desc + " " + batch?.year;
+    else 
+    worksheet.getCell("A3").value = quarters.find((q) => q.value === quarter)?.desc + " " + year;
 
     ["A1", "A2", "A3"].forEach((cell, i) => {
         const c = worksheet.getCell(cell);
@@ -34,20 +33,20 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
         c.alignment = { horizontal: "center", vertical: "middle" };
     });
 
-    // =========================
-    // META INFO
-    // =========================
     if (type === 1) {
-        worksheet.getCell("A5").value = "Batch No: " + batch.batch_name;
+        worksheet.getCell("A5").value = "Batch No: " + batch?.batch_name;
         worksheet.getCell("H5").value = "Content Source:";
-        worksheet.getCell("I5").value = batch.content_source;
+        worksheet.getCell("I5").value = batch?.content_source;
+    }
+    else{
+        const batchesNames = batches?.map((b) => b.batch_name).join(", ");
+        const batchesSource = batches?.map((b) => b.content_source).join(", ");
+        worksheet.getCell("A5").value = "Batch No: " + batchesNames;
+        worksheet.getCell("H5").value = "Content Source:";
+        worksheet.getCell("I5").value = batchesSource;
     }
     worksheet.getCell("H6").value = "Date Generated:";
     worksheet.getCell("I6").value = dateStr;
-
-    // =========================
-    // HEADERS
-    // =========================
     const headers = [
         "Holdings ID",
         "Content Type",
@@ -113,9 +112,6 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
         });
     });
 
-    // =========================
-    // COLUMN WIDTHS
-    // =========================
     worksheet.columns = [
         { width: 25 },
         { width: 15 },
@@ -129,9 +125,6 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
         { width: 12 },
     ];
 
-    // =========================
-    // SIGNATURE SECTION
-    // =========================
     const lastDataRow = dataStartRow + records.length - 1;
     const signStartRow = lastDataRow + 3;
 
@@ -165,14 +158,13 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
         worksheet.getRow(signStartRow + i).values = rowData;
     });
 
-    // A–B, C–D, E–F, G–H
+
     [1, 3, 5, 7].forEach((col) => {
         for (let i = 0; i < 5; i++) {
             worksheet.mergeCells(signStartRow + i, col, signStartRow + i, col + 1);
         }
     });
 
-    // Alignment + bold names
     [1, 3, 5, 7].forEach((col) => {
         [0, 2, 3, 4].forEach((offset) => {
             const cell = worksheet.getCell(signStartRow + offset, col);
@@ -183,9 +175,7 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
             }
         });
     });
-    // =========================
-    // DOWNLOAD (NO file-saver)
-    // =========================
+
     const buffer = await workbook.xlsx.writeBuffer();
 
     const blob = new Blob([buffer], {
@@ -197,7 +187,7 @@ export const downloadShortlisted = async ({ records, batch, type }: { records: A
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ShortListed_${batchName}.xlsx`;
+    a.download = `ShortListed.xlsx`;
     document.body.appendChild(a);
     a.click();
 

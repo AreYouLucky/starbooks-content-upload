@@ -7,7 +7,6 @@ import {
     PencilLine,
     Search,
     Eye,
-    FileDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PiListPlusLight, PiListBulletsFill } from 'react-icons/pi';
@@ -27,6 +26,7 @@ import { toast } from 'react-toastify';
 import { Link } from '@inertiajs/react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { getStatusTone } from '../batches/partials/defaults';
+import GenerateReport from './partials/generate-report';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -51,6 +51,7 @@ export default function ShortlistedPage() {
 
     const debouncedSearch = useDebounce(item.search, 1000);
     const [open, setOpen] = useState(false);
+    const [reportDialog, setReportDialog] = useState(false);
     const [id, setId] = useState(0);
     const queryFilters = {
         ...item,
@@ -105,7 +106,7 @@ export default function ShortlistedPage() {
                             type="button"
                             variant="outline"
                             className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none "
-                            onClick={() => refetch()}
+                            onClick={() => setReportDialog(true)}
                         >
                             <PiListBulletsFill className="size-4" />
                             Generate Report
@@ -257,6 +258,7 @@ export default function ShortlistedPage() {
                 onConfirm={toggleBatchShortlistFn}
                 message="Are you sure you want to proceed?"
             />
+            <GenerateReport show={reportDialog} onClose={() => setReportDialog(false)} />
         </div>
     );
 }

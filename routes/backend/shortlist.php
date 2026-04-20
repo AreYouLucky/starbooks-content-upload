@@ -8,4 +8,5 @@ Route::middleware(['auth', 'stii_admin'])->group(function () {
     Route::get('/view-shortlisted', [ShortlistController::class, 'viewShortlistPage'])->name('shortlist');
     Route::resource('/shortlist', ShortlistController::class);
     Route::post('/toggle-batch-shortlist/{id}', [ShortlistController::class, 'toggleBatchShortlist']);
+    Route::get('/generate-report', [ShortlistController::class, 'generateReport']);
 });
