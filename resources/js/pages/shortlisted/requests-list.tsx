@@ -82,6 +82,7 @@ export default function RequestList() {
                   downloadShortlisted({
                     records: approvalRequests,
                     batch: batch,
+                    type:1
                   });
                 }}
               >

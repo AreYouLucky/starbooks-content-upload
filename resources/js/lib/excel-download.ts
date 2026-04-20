@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { ApprovalRequestModel, BatchModel } from "@/types/model";
 import { quarters } from "./default";
-export const downloadShortlisted = async ({ records, batch }: { records: ApprovalRequestModel[], batch: BatchModel }) => {
+export const downloadShortlisted = async ({ records, batch, type }: { records: ApprovalRequestModel[], batch: BatchModel, type: number }) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -37,9 +37,11 @@ export const downloadShortlisted = async ({ records, batch }: { records: Approva
     // =========================
     // META INFO
     // =========================
-    worksheet.getCell("A5").value = "Batch No: "+ batch.batch_name;
-    worksheet.getCell("H5").value = "Content Source:";
-    worksheet.getCell("I5").value = batch.content_source;
+    if (type === 1) {
+        worksheet.getCell("A5").value = "Batch No: " + batch.batch_name;
+        worksheet.getCell("H5").value = "Content Source:";
+        worksheet.getCell("I5").value = batch.content_source;
+    }
     worksheet.getCell("H6").value = "Date Generated:";
     worksheet.getCell("I6").value = dateStr;
 

@@ -7,9 +7,10 @@ import {
     PencilLine,
     Search,
     Eye,
+    FileDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { PiListPlusLight,  PiListBulletsFill } from 'react-icons/pi';
+import { PiListPlusLight, PiListBulletsFill } from 'react-icons/pi';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -138,14 +139,14 @@ export default function ShortlistedPage() {
                     <div className='flex gap-2'>
                         <Link
                             href={'/bulk-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-green-600/90  px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-white  px-5 font-semibold text-sky-600 shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <PiListPlusLight className="size-4" />
                             Bulk Upload
                         </Link>
                         <Link
                             href={'/single-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-yellow-600/90 px-5 font-semibold text-white shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border bg-white border-white text-sky-600  px-5 font-semibold shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <Plus className="size-4" />
                             Single Upload
@@ -213,25 +214,25 @@ export default function ShortlistedPage() {
                                             {(batch.status ===
                                                 'for shortlisting' ||
                                                 batch.status ===
-                                                    'for initial review') && (
-                                                <Button
-                                                    variant="outline"
-                                                    className={`h-9 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                                                    onClick={() => {
-                                                        setOpen(true);
-                                                        setId(batch.id);
-                                                    }}
-                                                >
-                                                    <PencilLine className="size-4" />
-                                                    {batch.status ===
-                                                    'for shortlisting'
-                                                        ? 'Mark as Shortlisted'
-                                                        : 'Shortlisted'}
-                                                </Button>
-                                            )}
+                                                'for initial review') && (
+                                                    <Button
+                                                        variant="outline"
+                                                        className={`h-9 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                        onClick={() => {
+                                                            setOpen(true);
+                                                            setId(batch.id);
+                                                        }}
+                                                    >
+                                                        <PencilLine className="size-4" />
+                                                        {batch.status ===
+                                                            'for shortlisting'
+                                                            ? 'Shortlist'
+                                                            : 'Shortlisted'}
+                                                    </Button>
+                                                )}
                                             <Link
                                                 href={`/shortlist/${batch.id}`}
-                                                className="flex h-9 items-center  justify-center gap-2 rounded-lg border py-5 border-sky-400 bg-white px-3 font-semibold text-sky-400 hover:bg-sky-50 hover:text-sky-800"
+                                                className="flex h-9 items-center  justify-center gap-2 rounded-lg border py-5 border-sky-400 bg-sky-600 px-3 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />
                                             </Link>
