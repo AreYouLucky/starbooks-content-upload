@@ -35,7 +35,7 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="inset" className='border-r border-sky-300'>
+        <Sidebar collapsible="icon" variant="inset" className=''>
             <SidebarHeader className='py-8 px-2 pr-4'>
                 <AppLogo />
             </SidebarHeader>

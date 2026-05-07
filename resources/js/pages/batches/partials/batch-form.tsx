@@ -198,7 +198,7 @@ function BatchForm(props: BatchFormProps) {
                             name="start_date"
                             required
                             onChange={handleChange}
-                            value={props.data?.start_date?.split(' ')[0] || ''}
+                            value={props.data?.start_date}
                             className="text-gray-600 "
                         />
                         <InputError message={errors.start_date as string} />

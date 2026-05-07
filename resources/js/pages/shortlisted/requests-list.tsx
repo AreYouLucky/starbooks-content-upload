@@ -140,13 +140,11 @@ export default function RequestList() {
                 </td>
                 <td className="px-6 py-4 text-center align-middle ">
                   <div className='flex justify-center items-center w-full gap-2'>
-                    <Link href={`/single-upload/${request?.id}/edit`} className="hover:scale-105 flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border border-sky-300 px-3 bg-sky-500 text-slate-50 hover:text-white" >
+                    <Link href={`/single-upload/${request?.id}/edit`} className="hover:scale-105 flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border border-sky-300 px-3 text-sky-600 hover:text-white" >
                       <PencilLine className="size-4" />
-                      Edit
                     </Link>
                     <Button variant="outline" className={` transition-all hover:scale-105 h-9 rounded-lg bg-red-400 text-slate-50 hover:text-white hover:bg-orange/80 px-3 `} onClick={() => { setId(Number(request.id)); setIsDialogOpen(true) }}>
                       <Trash className="size-4" />
-                      Delete
                     </Button>
                   </div>
                 </td>

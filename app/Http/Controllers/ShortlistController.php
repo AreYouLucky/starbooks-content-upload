@@ -103,6 +103,7 @@ class ShortlistController extends Controller
         ]);
         $batches = Batch::where('quarter', $req->quarter)
             ->where('year', $req->year)
+            ->where('status', 'for initial review')
             ->get();
         $batchIds = $batches->pluck('id'); 
         $records = ApprovalRequest::whereIn('batch_id', $batchIds)->get();

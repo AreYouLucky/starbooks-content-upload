@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
-import { RiBookShelfLine,RiFileList3Line  } from "react-icons/ri";
+import { RiBookShelfLine, RiFileList3Line } from "react-icons/ri";
 import { usePage } from '@inertiajs/react';
 import { SharedData } from '@/types';
 
@@ -17,7 +17,6 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { auth } = usePage<SharedData>().props;
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
@@ -68,6 +67,41 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
 
                         </>
 
+                    }
+                </SidebarMenu>
+            </div>
+            <div>
+                <SidebarGroupLabel >Configurations</SidebarGroupLabel>
+                <SidebarMenu>
+                    {
+                        (auth.user?.role == 'super_admin' || auth.user?.role == 'stii_admin') &&
+                        <>
+                            <SidebarMenuItem >
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={isCurrentUrl('/manage-users')}
+                                    tooltip={{ children: 'Manage Users' }}
+                                >
+                                    <Link href={'/manage-users'} prefetch>
+                                        <RiFileList3Line />
+                                        <span>Manage Users</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem >
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={isCurrentUrl('/manage-users')}
+                                    tooltip={{ children: 'Manage Users' }}
+                                >
+                                    <Link href={'/manage-users'} prefetch>
+                                        <RiFileList3Line />
+                                        <span>Working Days</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                        </>
                     }
                 </SidebarMenu>
             </div>

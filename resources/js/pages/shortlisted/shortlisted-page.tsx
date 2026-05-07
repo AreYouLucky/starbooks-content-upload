@@ -217,8 +217,7 @@ export default function ShortlistedPage() {
                                                 batch.status ===
                                                 'for initial review') && (
                                                     <Button
-                                                        variant="outline"
-                                                        className={`h-9 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                        className={`h-9 hover:text-gray-500 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
                                                         onClick={() => {
                                                             setOpen(true);
                                                             setId(batch.id);
