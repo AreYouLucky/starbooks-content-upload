@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import InputError from '@/components/input-error';
@@ -9,14 +15,28 @@ import { toast } from 'sonner';
 import { useCreateBatch, useUpdateBatch } from './batches-hooks';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { BatchModel } from '@/types/model';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, } from '@/components/ui/select';
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from '@/components/ui/select';
 import { generateYears } from './defaults';
 import { quarters } from '@/lib/default';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { PencilLine } from 'lucide-react';
-import { EditableDateField, normalizeDateValue, buildSchedulePreview, parseDateInput, formatDateInput, fullDateFormatter, weekdayFormatter, } from './utils';
+import {
+    EditableDateField,
+    normalizeDateValue,
+    buildSchedulePreview,
+    parseDateInput,
+    formatDateInput,
+    fullDateFormatter,
+    weekdayFormatter,
+} from './utils';
 
 type BatchFormProps = {
     show: boolean;
@@ -25,7 +45,8 @@ type BatchFormProps = {
 };
 
 function BatchForm(props: BatchFormProps) {
-    const [activeDateField, setActiveDateField] = useState<EditableDateField>('start_date');
+    const [activeDateField, setActiveDateField] =
+        useState<EditableDateField>('start_date');
     const { item, errors, setItem, handleChange, setErrors } = useHandleChange({
         id: props.data?.id || 0,
         batch_name: props.data?.batch_name || '',
@@ -34,10 +55,18 @@ function BatchForm(props: BatchFormProps) {
         batch_description: props.data?.batch_description || '',
         content_source: props.data?.content_source || '',
         start_date: normalizeDateValue(props.data?.start_date),
-        target_shortlist_date: normalizeDateValue(props.data?.target_shortlist_date,),
-        target_initial_review_date: normalizeDateValue(props.data?.target_initial_review_date,),
-        target_quality_approval_date: normalizeDateValue(props.data?.target_quality_approval_date),
-        target_published_date: normalizeDateValue(props.data?.target_published_date),
+        target_shortlist_date: normalizeDateValue(
+            props.data?.target_shortlist_date,
+        ),
+        target_initial_review_date: normalizeDateValue(
+            props.data?.target_initial_review_date,
+        ),
+        target_quality_approval_date: normalizeDateValue(
+            props.data?.target_quality_approval_date,
+        ),
+        target_published_date: normalizeDateValue(
+            props.data?.target_published_date,
+        ),
         is_dost: props.data?.is_dost || false,
     });
     const schedulePreview = useMemo(
@@ -74,35 +103,6 @@ function BatchForm(props: BatchFormProps) {
     const calendarMonth =
         selectedCalendarDate ?? schedulePreview?.milestones[0]?.date;
 
-    const resolveScheduleFieldValue = useCallback(
-        (field: EditableDateField): string => {
-            const currentValue = String(item[field] ?? '');
-
-            if (currentValue) {
-                return currentValue;
-            }
-
-            if (field === 'target_initial_review_date' && item.is_dost) {
-                return schedulePreview
-                    ? formatDateInput(
-                          schedulePreview.milestones.find(
-                              (milestone) =>
-                                  milestone.key ===
-                                  'target_quality_approval_date',
-                          )?.date ?? parseDateInput(String(item.start_date)) ?? new Date(),
-                      )
-                    : '';
-            }
-
-            const milestoneDate = schedulePreview?.milestones.find(
-                (milestone) => milestone.key === field,
-            )?.date;
-
-            return milestoneDate ? formatDateInput(milestoneDate) : '';
-        },
-        [item, schedulePreview],
-    );
-
     const createFormData = (): FormData => {
         const formData = new FormData();
         formData.append('batch_name', item.batch_name);
@@ -112,22 +112,16 @@ function BatchForm(props: BatchFormProps) {
         formData.append('year', item.year);
         formData.append('quarter', item.quarter);
         formData.append('is_dost', item.is_dost ? '1' : '0');
-        formData.append(
-            'target_shortlist_date',
-            resolveScheduleFieldValue('target_shortlist_date'),
-        );
+        formData.append('target_shortlist_date', item.target_shortlist_date);
         formData.append(
             'target_initial_review_date',
-            resolveScheduleFieldValue('target_initial_review_date'),
+            item.target_initial_review_date,
         );
         formData.append(
             'target_quality_approval_date',
-            resolveScheduleFieldValue('target_quality_approval_date'),
+            item.target_quality_approval_date,
         );
-        formData.append(
-            'target_published_date',
-            resolveScheduleFieldValue('target_published_date'),
-        );
+        formData.append('target_published_date', item.target_published_date);
         return formData;
     };
 
@@ -138,7 +132,7 @@ function BatchForm(props: BatchFormProps) {
             onSuccess: () => {
                 clearFields();
                 toast.success('Batch Successfully Created');
-                onClose();
+                props.onClose();
             },
             onError: (err) => {
                 if (err.response?.data?.errors) {
@@ -158,7 +152,7 @@ function BatchForm(props: BatchFormProps) {
                 onSuccess: () => {
                     clearFields();
                     toast.success('Batch Successfully Updated');
-                    onClose();
+                    props.onClose();
                 },
                 onError: (err) => {
                     if (err.response?.data?.errors) {
@@ -265,22 +259,18 @@ function BatchForm(props: BatchFormProps) {
 
     const years = generateYears();
 
-    const onClose = ()=>{
-        clearFields();
-        props.onClose();
-    };
-
     return (
-        <Dialog open={props.show} onOpenChange={() => { }}>
+        <Dialog open={props.show} onOpenChange={() => {}}>
             <DialogContent
-                className={`max-h-[92vh] max-w-[96vw] overflow-y-auto border-sky-100 bg-white p-6 text-gray-600 shadow-2xl sm:p-8 xl:p-10 ${schedulePreview
-                        ? 'w-[96vw] min-w-200 xl:max-w-450'
+                className={`max-h-[92vh] max-w-[96vw] overflow-y-auto border-sky-100 bg-white p-6 text-gray-600 shadow-2xl sm:p-8 xl:p-10 ${
+                    schedulePreview
+                        ? 'w-[96vw] min-w-425 xl:max-w-450'
                         : 'w-fit min-w-150'
-                    }`}
+                }`}
             >
                 <DialogHeader className="space-y-2 border-b border-slate-100 pb-5">
                     <DialogTitle className="poppins-bold text-center text-2xl text-sky-600 sm:text-left">
-                        {props.data?.id === 0 ? 'Add' : 'Edit '} Batch Form   {props.data?.id !== 0 && <span className="text-slate-500 italic text-xl">{`(${item.batch_name})`}</span>}
+                        {props.data?.id === 0 ? 'Add' : 'Edit'} Batch Form{' '}
                     </DialogTitle>
                     <DialogDescription className="text-center text-sm text-slate-500 sm:text-left">
                         Review the batch details on the left, then fine-tune the
@@ -288,15 +278,26 @@ function BatchForm(props: BatchFormProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <div
-                    className={`w-full gap-6  xl:items-start ${schedulePreview
+                    className={`w-full gap-6 pt-2 xl:items-start ${
+                        schedulePreview
                             ? 'xl:grid xl:grid-cols-[320px_minmax(0,1fr)]'
                             : 'flex flex-col'
-                        }`}
+                    }`}
                 >
                     <div
-                        className={`flex w-full flex-col gap-5 ${schedulePreview ? 'xl:max-w-[320px]' : ''
-                            }`}
+                        className={`flex w-full flex-col gap-5 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm ${
+                            schedulePreview ? 'xl:max-w-[320px]' : ''
+                        }`}
                     >
+                        <div className="space-y-1">
+                            <h3 className="text-base font-semibold text-slate-800">
+                                Batch Details
+                            </h3>
+                            <p className="text-xs leading-5 text-slate-500">
+                                Keep the core metadata tidy here before
+                                adjusting deadlines.
+                            </p>
+                        </div>
 
                         <div className="grid grid-cols-1 gap-3">
                             <div className="grid gap-1">
@@ -319,7 +320,7 @@ function BatchForm(props: BatchFormProps) {
                                         }));
                                     }}
                                 >
-                                    <SelectTrigger className="h-11 border-gray-400 bg-white shadow-none" disabled={item.id !== 0}>
+                                    <SelectTrigger className="h-11 border-sky-200 bg-white shadow-none">
                                         <SelectValue
                                             placeholder=""
                                             className="text-[12px]"
@@ -359,7 +360,7 @@ function BatchForm(props: BatchFormProps) {
                                         }));
                                     }}
                                 >
-                                    <SelectTrigger className="h-11  bg-white border-gray-400 shadow-none" disabled={item.id !== 0}>
+                                    <SelectTrigger className="h-11 border-sky-200 bg-white shadow-none">
                                         <SelectValue
                                             placeholder=""
                                             className="text-[12px]"
@@ -395,7 +396,7 @@ function BatchForm(props: BatchFormProps) {
                                 required
                                 onChange={handleChange}
                                 value={String(item.content_source)}
-                                className="h-11  bg-white text-gray-600 shadow-none"
+                                className="h-11 border-sky-200 bg-white text-gray-600 shadow-none"
                             />
                             <InputError
                                 message={errors.content_source as string}
@@ -415,7 +416,7 @@ function BatchForm(props: BatchFormProps) {
                                 required
                                 onChange={handleChange}
                                 value={String(item.start_date)}
-                                className="h-11  bg-white text-gray-600 shadow-none"
+                                className="h-11 border-sky-200 bg-white text-gray-600 shadow-none"
                             />
                             <InputError message={errors.start_date as string} />
                         </div>
@@ -432,13 +433,13 @@ function BatchForm(props: BatchFormProps) {
                                 required
                                 onChange={handleChange}
                                 value={String(item.batch_description)}
-                                className="min-h-20  bg-white text-gray-600 shadow-none"
+                                className="min-h-32 border-sky-200 bg-white text-gray-600 shadow-none"
                             />
                             <InputError
                                 message={errors.batch_description as string}
                             />
                         </div>
-                        <div className="rounded-2xl border border-slate-300 bg-white px-4 py-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                             <label
                                 htmlFor="showPassword"
                                 className="flex cursor-pointer items-start gap-3"
@@ -466,11 +467,11 @@ function BatchForm(props: BatchFormProps) {
                             </label>
                         </div>
                     </div>
-                    {schedulePreview && (
-                        <div className="w-full min-w-0 flex-1">
-                            <div className="">
+                    <div className="w-full min-w-0 flex-1">
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm">
+                            {schedulePreview && (
                                 <div className="space-y-4">
-                                    <div className="flex flex-col gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="space-y-1">
                                             <h3 className="text-base font-semibold text-slate-800">
                                                 Schedule Workspace
@@ -490,7 +491,7 @@ function BatchForm(props: BatchFormProps) {
                                                     'Start Date'}
                                             </span>
                                             {activeMilestone?.isOverride &&
-                                                activeDateField !== 'start_date' ? (
+                                            activeDateField !== 'start_date' ? (
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
@@ -508,7 +509,7 @@ function BatchForm(props: BatchFormProps) {
                                         </div>
                                     </div>
                                     <div className="w-full xl:grid xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)] xl:gap-4">
-                                        <div className="overflow-hidden rounded-2xl border-2 border-slate-300 bg-white p-6">
+                                        <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white p-6">
                                             <DayPicker
                                                 mode="single"
                                                 month={calendarMonth}
@@ -592,7 +593,7 @@ function BatchForm(props: BatchFormProps) {
                                                 }}
                                             />
                                         </div>
-                                        <div className="w-full flex flex-wrap gap-4">
+                                        <div className="mt-4 grid w-full gap-3 sm:grid-cols-2 xl:mt-0">
                                             {schedulePreview.milestones.map(
                                                 (milestone) => (
                                                     <button
@@ -603,11 +604,12 @@ function BatchForm(props: BatchFormProps) {
                                                                 milestone.key,
                                                             )
                                                         }
-                                                        className={` rounded-xl border basis-[calc(50%-0.5rem)] px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${milestone.accentClassName} ${activeDateField ===
-                                                                milestone.key
-                                                                ? 'ring-2 ring-sky-300'
+                                                        className={`w-full rounded-xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${milestone.accentClassName} ${
+                                                            activeDateField ===
+                                                            milestone.key
+                                                                ? 'ring-2 ring-sky-200'
                                                                 : ''
-                                                            }`}
+                                                        }`}
                                                     >
                                                         <div className="flex items-center justify-between gap-3">
                                                             <div className="flex items-center gap-2">
@@ -624,7 +626,7 @@ function BatchForm(props: BatchFormProps) {
                                                                     }
                                                                 </span>
                                                                 {milestone.isOverride &&
-                                                                    milestone.key !==
+                                                                milestone.key !==
                                                                     'start_date' ? (
                                                                     <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-600 uppercase">
                                                                         Manual
@@ -649,22 +651,35 @@ function BatchForm(props: BatchFormProps) {
                                         </div>
                                     </div>
                                 </div>
-
-                            </div>
+                            )}
+                            {!schedulePreview && (
+                                <div className="flex min-h-80 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 text-center">
+                                    <div className="space-y-2">
+                                        <h3 className="text-base font-semibold text-slate-700">
+                                            Schedule Preview
+                                        </h3>
+                                        <p className="text-sm leading-6 text-slate-500">
+                                            Add a start date to open the
+                                            calendar workspace and generated
+                                            milestone cards.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
                 <div className="flex w-full flex-wrap justify-end gap-2 border-t border-slate-100 pt-5">
                     <Button
                         className="border bg-gray-50 text-sm text-gray-800"
-                        onClick={onClose}
+                        onClick={props.onClose}
                     >
                         Close
                     </Button>
                     <Button
                         className="bg-sky-600"
                         onClick={() =>
-                            item.id === 0
+                            props.data?.id === 0
                                 ? createBatchFn()
                                 : updateBatchFn()
                         }
@@ -674,9 +689,9 @@ function BatchForm(props: BatchFormProps) {
                     >
                         {createBatch.isPending || updateBatch.isPending
                             ? 'Saving...'
-                            : item.id === 0
-                                ? 'Add'
-                                : 'Update'}
+                            : props.data?.id === 0
+                              ? 'Add'
+                              : 'Update'}
                     </Button>
                 </div>
             </DialogContent>

@@ -1,5 +1,10 @@
-import { BatchModel } from "@/types/model";
-import { CircleCheckBig, FileClock, TextSearch, BookOpenCheck, } from 'lucide-react';
+import { BatchModel } from '@/types/model';
+import {
+    CircleCheckBig,
+    FileClock,
+    TextSearch,
+    BookOpenCheck,
+} from 'lucide-react';
 
 export const getStats = (batches: BatchModel[]) => {
     return [
@@ -9,9 +14,8 @@ export const getStats = (batches: BatchModel[]) => {
                 (batch) => batch.status === 'for shortlisting',
             ).length,
             icon: FileClock,
-            cardTone:
-                'border-sky-300 bg-gradient-to-br from-white via-amber-100 to-orange-200',
-            tone: 'bg-white/80 text-amber-600 ring-amber-200',
+            cardTone: 'border-sky-200 bg-white',
+            tone: 'bg-white/80 text-sky-600 ring-sky-200',
         },
         {
             label: 'For Committee Review',
@@ -19,9 +23,8 @@ export const getStats = (batches: BatchModel[]) => {
                 (batch) => batch.status === 'for initial review',
             ).length,
             icon: FileClock,
-            cardTone:
-                'border-sky-300 bg-gradient-to-br from-white via-cyan-100 to-sky-200',
-            tone: 'bg-white/80 text-cyan-600 ring-cyan-200',
+            cardTone: 'border-sky-200 bg-white',
+            tone: 'bg-white/80 text-sky-700 ring-sky-200',
         },
         {
             label: 'For Quality Approval',
@@ -29,27 +32,24 @@ export const getStats = (batches: BatchModel[]) => {
                 (batch) => batch.status === 'for quality approval',
             ).length,
             icon: TextSearch,
-            cardTone:
-                'border-sky-300 bg-gradient-to-br from-white via-fuchsia-100 to-rose-200',
-            tone: 'bg-white/80 text-fuchsia-600 ring-fuchsia-200',
+            cardTone: 'border-sky-200 bg-white',
+            tone: 'bg-white/80 text-sky-800 ring-sky-200',
         },
         {
             label: 'Ready to publish',
             value: batches.filter((batch) => batch.status === 'for publishing')
                 .length,
             icon: CircleCheckBig,
-            cardTone:
-                'border-sky-300 bg-gradient-to-br from-white via-emerald-100 to-teal-200',
-            tone: 'bg-white/80 text-emerald-600 ring-emerald-200',
+            cardTone: 'border-sky-200 bg-white',
+            tone: 'bg-white/80 text-sky-700 ring-sky-200',
         },
         {
             label: 'Published',
             value: batches.filter((batch) => batch.status === 'published')
                 .length,
             icon: BookOpenCheck,
-            cardTone:
-                'border-sky-300 bg-gradient-to-br from-white via-lime-100 to-emerald-200',
-            tone: 'bg-white/80 text-lime-700 ring-lime-200',
+            cardTone: 'border-sky-200 bg-white',
+            tone: 'bg-white/80 text-sky-900 ring-sky-200',
         },
     ];
 };
@@ -57,15 +57,15 @@ export const getStats = (batches: BatchModel[]) => {
 export const getStatusTone = (status?: string) => {
     switch (status) {
         case 'published':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+            return 'border-sky-300 bg-sky-100 text-sky-900';
         case 'for publishing':
-            return 'border-teal-200 bg-teal-50 text-teal-700';
+            return 'border-sky-300 bg-sky-50 text-sky-800';
         case 'for quality approval':
-            return 'border-violet-200 bg-violet-50 text-violet-700';
+            return 'border-sky-200 bg-white text-sky-700';
         case 'for initial review':
-            return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+            return 'border-sky-200 bg-sky-50 text-sky-700';
         case 'for shortlisting':
-            return 'border-amber-200 bg-amber-50 text-amber-700';
+            return 'border-sky-200 bg-sky-50 text-sky-600';
         default:
             return 'border-slate-200 bg-slate-50 text-slate-600';
     }
@@ -88,4 +88,3 @@ export const generateYears = () => {
     }
     return years;
 };
-

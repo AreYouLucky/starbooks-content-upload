@@ -7,7 +7,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { useState } from 'react';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, LockKeyhole, ShieldCheck, UserCircle2 } from 'lucide-react';
+import {
+    Eye,
+    EyeOff,
+    LockKeyhole,
+    ShieldCheck,
+    UserCircle2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -43,16 +49,15 @@ function AuthPage() {
             }}
         >
             <div className="grid gap-5">
-
                 <div className="grid gap-2">
                     <Label
                         htmlFor="username"
-                        className="text-sm font-semibold text-slate-700"
+                        className="text-sm font-semibold text-sky-900"
                     >
                         Username
                     </Label>
                     <div className="group relative">
-                        <UserCircle2 className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-sky-600" />
+                        <UserCircle2 className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-sky-400 transition-colors group-focus-within:text-sky-600" />
                         <Input
                             id="username"
                             type="text"
@@ -62,7 +67,7 @@ function AuthPage() {
                             placeholder="Enter your username"
                             onChange={handleChange}
                             value={item.username ?? ''}
-                            className="h-13.5 rounded-2xl border-slate-200 bg-slate-50/80 pl-12 pr-4 text-slate-800 placeholder:text-slate-400 focus-visible:border-sky-400 focus-visible:bg-white focus-visible:ring-sky-100"
+                            className="h-13.5 rounded-2xl border-slate-300 bg-white pr-4 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
                         />
                     </div>
                     <InputError message={errors.username ?? ''} />
@@ -71,12 +76,12 @@ function AuthPage() {
                 <div className="grid gap-2">
                     <Label
                         htmlFor="password"
-                        className="text-sm font-semibold text-slate-700"
+                        className="text-sm font-semibold text-sky-900"
                     >
                         Password
                     </Label>
                     <div className="group relative">
-                        <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-sky-600" />
+                        <LockKeyhole className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-sky-400 transition-colors group-focus-within:text-sky-600" />
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
@@ -86,13 +91,17 @@ function AuthPage() {
                             placeholder="Enter your password"
                             onChange={handleChange}
                             value={item.password ?? ''}
-                            className="h-13.5 rounded-2xl border-slate-2x00 bg-slate-50/80 pl-12 pr-14 text-slate-800 placeholder:text-slate-400 focus-visible:border-sky-400 focus-visible:bg-white focus-visible:ring-sky-100"
+                            className="h-13.5 rounded-2xl border-slate-300 bg-white pr-14 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
                         />
                         <button
                             type="button"
-                            onClick={() => setShowPassword((current) => !current)}
-                            className="absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center justify-center text-slate-400 transition hover:text-sky-600"
-                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            onClick={() =>
+                                setShowPassword((current) => !current)
+                            }
+                            className="absolute top-1/2 right-4 inline-flex -translate-y-1/2 items-center justify-center text-sky-300 transition hover:text-sky-600"
+                            aria-label={
+                                showPassword ? 'Hide password' : 'Show password'
+                            }
                         >
                             {showPassword ? (
                                 <EyeOff className="h-5 w-5" />
@@ -115,14 +124,14 @@ function AuthPage() {
                             onCheckedChange={(checked: boolean) =>
                                 setShowPassword(Boolean(checked))
                             }
-                            className="size-5 rounded-md border-slate-300 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
+                            className="size-5 rounded-md border-sky-200 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
                         />
-                        <span className="text-sm font-medium text-slate-600">
+                        <span className="text-sm font-medium text-sky-800">
                             Show password
                         </span>
                     </label>
 
-                    <div className="hidden items-center gap-2 text-xs font-medium text-slate-500 sm:flex">
+                    <div className="hidden items-center gap-2 text-xs font-medium text-sky-700 sm:flex">
                         <ShieldCheck className="h-4 w-4 text-emerald-600" />
                         Protected login
                     </div>
@@ -130,19 +139,20 @@ function AuthPage() {
 
                 <Button
                     type="submit"
-                    className="h-12 w-full rounded-2xl bg-[#00aeef] text-sm font-bold tracking-[0.18em] uppercase text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#019ed7] disabled:translate-y-0 disabled:opacity-90"
+                    className="h-12 w-full rounded-2xl bg-sky-600 text-sm font-bold tracking-[0.18em] text-white uppercase shadow-md shadow-sky-200 transition-all hover:-translate-y-0.5 hover:bg-sky-700 disabled:translate-y-0 disabled:opacity-90"
                     disabled={loading}
                 >
                     {loading && <Spinner className="mr-2" />}
                     {loading ? 'Opening workspace...' : 'Sign in'}
                 </Button>
 
-                <div className="flex items-start gap-3 rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-sm leading-6 text-slate-600">
+                <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-800">
                     <div className="rounded-full bg-white p-1.5 text-sky-600 shadow-sm">
                         <ShieldCheck className="h-4 w-4" />
                     </div>
                     <p>
-                        Access is limited to authorized team members responsible for content uploads and workflow review.
+                        Access is limited to authorized team members responsible
+                        for content uploads and workflow review.
                     </p>
                 </div>
             </div>

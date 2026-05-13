@@ -57,6 +57,7 @@ export default function ViewBatches() {
         setBatchDialog(true);
         setBatch(batch);
     };
+    
 
     return (
         <div className="space-y-4 p-1">
@@ -125,7 +126,7 @@ export default function ViewBatches() {
             </section>
 
             <Card className="gap-0 overflow-hidden rounded-lg border-sky-300 bg-white py-0 shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-slate-200 bg-sky-200/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-slate-200 bg-sky-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative space-y-1">
                         <Search
                             className="absolute top-3 left-3 text-sky-500"

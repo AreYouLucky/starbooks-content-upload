@@ -150,7 +150,7 @@ function PaginatedSearchTableInner<T = unknown>({
           <tr>
             <td colSpan={headers.length} className="text-center py-6">
               <div className="flex justify-center items-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-sky-500 border-t-transparent"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-500 border-t-transparent"></div>
                 <span className="ml-3 text-gray-600">Loading...</span>
               </div>
             </td>
@@ -176,24 +176,24 @@ function PaginatedSearchTableInner<T = unknown>({
       {/* Pagination */}
       <div className="w-full flex justify-between pt-5 px-2 poppins-semibold">
         <div>
-          <span className="text-sm text-[#00aeef]">
-            Showing <span className="text-teal-700">{count.from}</span> to{" "}
-            <span className="text-teal-700">{count.to}</span> of{" "}
-            <span className="text-teal-700">{count.total}</span> Entries
+          <span className="text-sm text-sky-700">
+            Showing <span className="text-sky-900">{count.from}</span> to{" "}
+            <span className="text-sky-900">{count.to}</span> of{" "}
+            <span className="text-sky-900">{count.total}</span> Entries
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#00aeef]">
+          <span className="text-sm text-sky-700">
             Page {page} / {totalPages}
           </span>
 
           <Button
             onClick={prevPage}
             disabled={isPrevDisabled}
-            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-teal-800 ${
+            className={`flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium ${
               isPrevDisabled
-                ? "text-[#00aeef] bg-gray-200 cursor-not-allowed border-gray-50"
-                : "text-gray-50 bg-[#00aeef] hover:bg-gray-100 hover:text-gray-700 border-gray-50"
+                ? "cursor-not-allowed border-sky-100 bg-sky-50 text-sky-300"
+                : "border-sky-600 bg-sky-600 text-white hover:border-sky-700 hover:bg-sky-700 hover:text-white"
             }`}
             type="button"
           >
@@ -203,10 +203,10 @@ function PaginatedSearchTableInner<T = unknown>({
           <Button
             onClick={nextPage}
             disabled={isNextDisabled}
-            className={`flex items-center justify-center px-3 h-8 text-sm font-medium border rounded-lg hover:bg-teal-800 ${
+            className={`flex h-8 items-center justify-center rounded-lg border px-3 text-sm font-medium ${
               isNextDisabled
-                ? "text-[#00aeef] bg-gray-200 cursor-not-allowed border-gray-50"
-                : "text-gray-50 bg-[#00aeef] hover:bg-gray-100 hover:text-gray-700 border-gray-50"
+                ? "cursor-not-allowed border-sky-100 bg-sky-50 text-sky-300"
+                : "border-sky-600 bg-sky-600 text-white hover:border-sky-700 hover:bg-sky-700 hover:text-white"
             }`}
             type="button"
           >

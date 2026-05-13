@@ -1,6 +1,12 @@
 {
     "agents": [
-        "claude_code"
+        "codex"
     ],
-    "guidelines": true
+    "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "pest-testing",
+        "inertia-react-development",
+        "tailwindcss-development"
+    ]
 }

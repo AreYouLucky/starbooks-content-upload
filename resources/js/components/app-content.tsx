@@ -12,7 +12,7 @@ export function AppContent({ variant = 'header', children, ...props }: Props) {
 
     return (
         <main
-            className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-4 rounded-xl bg-[#c7efffb7] "
+            className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-4 rounded-2xl border border-sky-100 bg-sky-50/80 shadow-sm"
             {...props}
         >
             {children}
