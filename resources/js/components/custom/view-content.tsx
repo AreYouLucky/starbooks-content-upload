@@ -17,7 +17,7 @@ export default function ViewContent(props: BatchFormProps): JSX.Element {
             onOpenChange={()=>{}}
         >
             <DialogContent
-                className="max-h-[94vh] scroll-slim w-[96vw] max-w-[96vw] overflow-y-auto  text-gray-600 shadow-2xl xl:max-w-420 px-4 bg-white py-6"
+                className="max-h-[94vh] s scroll-slim w-[96vw] max-w-[96vw] overflow-y-auto  text-gray-600 shadow-2xl xl:max-w-420 px-4 bg-white py-6"
             >
                 <DialogHeader className="space-y-2 border-b border-slate-100 pb-5 sr-only">
                     <DialogTitle className="poppins-bold text-center text-2xl text-sky-600 sm:text-left">
