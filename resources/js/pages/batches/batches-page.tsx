@@ -5,7 +5,13 @@ import AppLayout from '@/layouts/app-layout';
 import { Input } from '@/components/ui/input';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import BatchForm from './partials/batch-form';
-import { CalendarDays, FolderSync, PencilLine, Plus, Search, } from 'lucide-react';
+import {
+    CalendarDays,
+    FolderSync,
+    PencilLine,
+    Plus,
+    Search,
+} from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import type { BatchModel } from '@/types/model';
@@ -13,6 +19,22 @@ import { useFetchBatches } from './partials/batches-hooks';
 import { displayDate } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getStats, getStatusTone, getStatusColor } from './partials/defaults';
+
+function getPageFromUrl(url: string | null): number | null {
+    if (!url) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        const page = Number(parsedUrl.searchParams.get('page'));
+
+        return Number.isFinite(page) && page > 0 ? page : null;
+    } catch {
+        return null;
+    }
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -52,12 +74,10 @@ export default function ViewBatches() {
 
     const stats = getStats(batches);
 
-
     const showUpdateDialog = (batch: BatchModel) => {
         setBatchDialog(true);
         setBatch(batch);
     };
-    
 
     return (
         <div className="space-y-4 p-1">
@@ -79,14 +99,14 @@ export default function ViewBatches() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none "
+                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none"
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
                             Refresh
                         </Button>
                         <Button
-                            className="flex h-10 gap-2 rounded-lg border border-white bg-sky-600 px-5 text-white shadow-none "
+                            className="flex h-10 gap-2 rounded-lg border border-white bg-sky-600 px-5 text-white shadow-none"
                             onClick={() => setBatchDialog(true)}
                         >
                             <Plus className="size-4" />
@@ -149,7 +169,7 @@ export default function ViewBatches() {
                     </div>
                 </div>
 
-                <CardContent className="overflow-x-auto p-4 sm:p-5 ">
+                <CardContent className="overflow-x-auto p-4 sm:p-5">
                     <PaginatedSearchTable<BatchModel>
                         items={batches}
                         headers={[
@@ -180,7 +200,7 @@ export default function ViewBatches() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 align-middle">
-                                        <div className="inline-flex rounded-full  px-3 py-1 text-xs font-semibold text-slate-600 uppercase">
+                                        <div className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-slate-600 uppercase">
                                             {batch.content_source}
                                         </div>
                                     </td>
@@ -299,12 +319,23 @@ export default function ViewBatches() {
                                 </tr>
                             );
                         }}
-                        itemsPerPage={5}
                         searchPlaceholder="Search batches"
                         onRefresh={() => refetch()}
                         isLoading={isFetching}
                         emptyText="No batches found yet."
-                        total={batches.length}
+                        currentPage={data?.current_page}
+                        totalPages={data?.last_page}
+                        nextPageUrl={data?.next_page_url}
+                        prevPageUrl={data?.prev_page_url}
+                        total={data?.total ?? 0}
+                        itemsPerPage={data?.per_page ?? 5}
+                        onPageChange={(url) => {
+                            const nextPage = getPageFromUrl(url);
+
+                            if (nextPage !== null) {
+                                setPage(nextPage);
+                            }
+                        }}
                     />
                 </CardContent>
             </Card>

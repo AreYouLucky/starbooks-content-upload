@@ -28,6 +28,7 @@ export interface PaginatedSearchTableProps<T = unknown> {
 
   /** ==== NEW: Server-side pagination props (Laravel paginate) ==== */
   currentPage?: number; // e.g. $paginator->currentPage()
+  totalPages?: number; // e.g. $paginator->lastPage()
   nextPageUrl?: string | null; // e.g. $paginator->nextPageUrl()
   prevPageUrl?: string | null; // e.g. $paginator->previousPageUrl()
   total?: number; // e.g. $paginator->total()
@@ -86,6 +87,7 @@ function PaginatedSearchTableInner<T = unknown>({
   isLoading = false,
   emptyText = "No Available Data",
   currentPage,
+  totalPages,
   nextPageUrl,
   prevPageUrl,
   total=0,
@@ -96,9 +98,12 @@ function PaginatedSearchTableInner<T = unknown>({
   const isServerPaginated =
     typeof currentPage === "number" && typeof total === "number";
   const page = isServerPaginated ? currentPage! : localPage;
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(total / itemsPerPage)),
-    [total, itemsPerPage]
+  const resolvedTotalPages = useMemo(
+    () =>
+      isServerPaginated
+        ? Math.max(1, totalPages ?? Math.ceil(total / itemsPerPage))
+        : Math.max(1, Math.ceil(total / itemsPerPage)),
+    [isServerPaginated, itemsPerPage, total, totalPages]
   );
   const count = useMemo(() => {
     if (total === 0) {
@@ -117,7 +122,7 @@ function PaginatedSearchTableInner<T = unknown>({
 
   const isNextDisabled = isServerPaginated
     ? !nextPageUrl
-    : page >= totalPages;
+    : page >= resolvedTotalPages;
 
   const nextPage = () => {
     if (isNextDisabled) return;
@@ -127,7 +132,7 @@ function PaginatedSearchTableInner<T = unknown>({
         onPageChange(nextPageUrl);
       }
     } else {
-      setLocalPage((p) => Math.min(p + 1, totalPages));
+      setLocalPage((p) => Math.min(p + 1, resolvedTotalPages));
     }
   };
 
@@ -184,7 +189,7 @@ function PaginatedSearchTableInner<T = unknown>({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-sky-700">
-            Page {page} / {totalPages}
+            Page {page} / {resolvedTotalPages}
           </span>
 
           <Button

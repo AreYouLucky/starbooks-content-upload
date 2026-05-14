@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\ViewerController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth')->group(function () {
+    Route::get('/viewer/{HoldingsID}', [ViewerController::class, 'getMediafiles']);
+});
 
 require __DIR__.'/authentication/authentication.php';
 require __DIR__.'/backend/dashboard.php';

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Batch;
-use App\Support\BatchSchedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -22,10 +21,10 @@ class BatchesController extends Controller
     public function index(Request $request)
     {
         $query = Batch::where('is_active', 1);
-        if ($request->filled('search')) {
-            $query->where('batch_name', 'LIKE', '%' . $request->search . '%')
-                ->orWhere('batch_description', 'LIKE', '%' . $request->search . '%');
-        }
+        // if ($request->filled('search')) {
+        //     $query->where('batch_name', 'LIKE', '%' . $request->search . '%')
+        //         ->orWhere('batch_description', 'LIKE', '%' . $request->search . '%');
+        // }
 
         return $query->orderBy('created_at', 'desc')->paginate(5);
     }

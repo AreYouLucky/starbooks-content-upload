@@ -26,7 +26,7 @@
     },
     "dependencies": {
         "@ckeditor/ckeditor5-react": "^11.0.0",
-        "@embedpdf/react-pdf-viewer": "^2.14.0",
+        "@embedpdf/react-pdf-viewer": "^2.14.2",
         "@headlessui/react": "^2.2.0",
         "@inertiajs/react": "^2.1.4",
         "@nivo/pie": "^0.99.0",

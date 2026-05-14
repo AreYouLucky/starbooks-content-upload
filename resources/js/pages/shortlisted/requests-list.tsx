@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { FolderSync, PencilLine, Trash } from 'lucide-react';
+import { FolderSync, PencilLine, Trash, Eye } from 'lucide-react';
 import { trimText, purifyDom } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { useDeleteSingleRequest } from './partials/upload-hooks';
 import { downloadShortlisted } from '@/lib/excel-download';
-import ContentViewer from '@/components/ui/content-viewer';
+import ViewContent from '@/components/custom/view-content';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -38,6 +38,8 @@ export default function RequestList() {
   const approvalRequests = props.approval_requests ?? [];
   const batch = props.batch;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewContentDialogOpen, setViewContentDialogOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<ApprovalRequestModel | null>(null);
   const [id, setId] = useState<number | null>(0);
   const deleteSingleRequest = useDeleteSingleRequest();
   const deleteSingleRequestFn = () => {
@@ -50,8 +52,9 @@ export default function RequestList() {
   }
 
 
-  const viewContent = () => {
-
+  const viewContent = (request: ApprovalRequestModel) => {
+    setSelectedContent(request);
+    setViewContentDialogOpen(true);
   }
 
   return (
@@ -140,6 +143,7 @@ export default function RequestList() {
                 </td>
                 <td className="px-6 py-4 text-center align-middle ">
                   <div className='flex justify-center items-center w-full gap-2'>
+                    <Button className='' onClick={()=>viewContent(request)}><Eye className="size-4" /></Button>
                     <Link href={`/single-upload/${request?.id}/edit`} className="hover:scale-105 flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border border-sky-300 px-3 text-sky-600 hover:text-white" >
                       <PencilLine className="size-4" />
                     </Link>
@@ -156,6 +160,7 @@ export default function RequestList() {
           />
         </CardContent>
       </Card>
+      <ViewContent show={viewContentDialogOpen} onClose={() => setViewContentDialogOpen(false)} data={selectedContent as ApprovalRequestModel} />
       <ConfirmationDialog show={isDialogOpen} onClose={() => setIsDialogOpen(false)} message='Are you sure you want to delete this request?' type={2} onConfirm={deleteSingleRequestFn} />
     </div>
   );

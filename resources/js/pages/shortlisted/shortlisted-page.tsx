@@ -27,6 +27,22 @@ import { Link } from '@inertiajs/react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { getStatusTone } from '../batches/partials/defaults';
 import GenerateReport from './partials/generate-report';
+
+function getPageFromUrl(url: string | null): number | null {
+    if (!url) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        const page = Number(parsedUrl.searchParams.get('page'));
+
+        return Number.isFinite(page) && page > 0 ? page : null;
+    } catch {
+        return null;
+    }
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -96,7 +112,7 @@ export default function ShortlistedPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none "
+                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none"
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
@@ -105,7 +121,7 @@ export default function ShortlistedPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none "
+                            className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none"
                             onClick={() => setReportDialog(true)}
                         >
                             <PiListBulletsFill className="size-4" />
@@ -116,18 +132,18 @@ export default function ShortlistedPage() {
             </section>
 
             <Card className="gap-0 overflow-hidden rounded-lg border-sky-300 bg-white py-0 shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-slate-200 bg-sky-50/70 px-5 py-4 sm:flex-row sm:items-center justify-between">
-                    <div className='flex gap-2'>
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 bg-sky-50/70 px-5 py-4 sm:flex-row sm:items-center">
+                    <div className="flex gap-2">
                         <Link
                             href={'/bulk-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-500  px-5 font-semibold text-sky-50 shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-500 px-5 font-semibold text-sky-50 shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <PiListPlusLight className="size-4" />
                             Bulk Upload
                         </Link>
                         <Link
                             href={'/single-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border bg-white border-sky-400 text-sky-600  px-5 font-semibold shadow-none hover:bg-white hover:text-slate-900"
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-white px-5 font-semibold text-sky-600 shadow-none hover:bg-white hover:text-slate-900"
                         >
                             <Plus className="size-4" />
                             Single Upload
@@ -170,7 +186,7 @@ export default function ShortlistedPage() {
                             return (
                                 <tr
                                     key={batch.id}
-                                    className="border-b border-slate-100 bg-white transition /50"
+                                    className="/50 border-b border-slate-100 bg-white transition"
                                 >
                                     <td className="px-6 py-4 align-top">
                                         <div className="space-y-1">
@@ -215,24 +231,24 @@ export default function ShortlistedPage() {
                                             {(batch.status ===
                                                 'for shortlisting' ||
                                                 batch.status ===
-                                                'for initial review') && (
-                                                    <Button
-                                                        className={`h-9 hover:text-gray-500 rounded-lg  w-full py-5 px-3 shadow-none ${batch.status === 'for shortlisting' ? ' bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                                                        onClick={() => {
-                                                            setOpen(true);
-                                                            setId(batch.id);
-                                                        }}
-                                                    >
-                                                        <PencilLine className="size-4" />
-                                                        {batch.status ===
-                                                            'for shortlisting'
-                                                            ? 'Shortlist'
-                                                            : 'Shortlisted'}
-                                                    </Button>
-                                                )}
+                                                    'for initial review') && (
+                                                <Button
+                                                    className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                    onClick={() => {
+                                                        setOpen(true);
+                                                        setId(batch.id);
+                                                    }}
+                                                >
+                                                    <PencilLine className="size-4" />
+                                                    {batch.status ===
+                                                    'for shortlisting'
+                                                        ? 'Shortlist'
+                                                        : 'Shortlisted'}
+                                                </Button>
+                                            )}
                                             <Link
                                                 href={`/shortlist/${batch.id}`}
-                                                className="flex h-9 items-center  justify-center gap-2 rounded-lg border py-5 border-sky-400 bg-sky-600 px-3 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
+                                                className="flex h-9 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-3 py-5 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />
                                             </Link>
@@ -241,12 +257,23 @@ export default function ShortlistedPage() {
                                 </tr>
                             );
                         }}
-                        itemsPerPage={5}
                         searchPlaceholder="Search batches"
                         onRefresh={() => refetch()}
                         isLoading={isFetching}
                         emptyText="No for shortlisting found yet."
-                        total={batches.length}
+                        currentPage={data?.current_page}
+                        totalPages={data?.last_page}
+                        nextPageUrl={data?.next_page_url}
+                        prevPageUrl={data?.prev_page_url}
+                        total={data?.total ?? 0}
+                        itemsPerPage={data?.per_page ?? 5}
+                        onPageChange={(url) => {
+                            const nextPage = getPageFromUrl(url);
+
+                            if (nextPage !== null) {
+                                setPage(nextPage);
+                            }
+                        }}
                     />
                 </CardContent>
             </Card>
@@ -257,7 +284,10 @@ export default function ShortlistedPage() {
                 onConfirm={toggleBatchShortlistFn}
                 message="Are you sure you want to proceed?"
             />
-            <GenerateReport show={reportDialog} onClose={() => setReportDialog(false)} />
+            <GenerateReport
+                show={reportDialog}
+                onClose={() => setReportDialog(false)}
+            />
         </div>
     );
 }
