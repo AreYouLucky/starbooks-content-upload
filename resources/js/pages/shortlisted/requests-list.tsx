@@ -13,7 +13,8 @@ import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { useDeleteSingleRequest } from './partials/upload-hooks';
 import { downloadShortlisted } from '@/lib/excel-download';
 import ViewContent from '@/components/custom/view-content';
-
+import ImageLoader from '@/components/custom/image-loader';
+import { isSinglePdfGroup, normalizeGroup } from '@/components/custom/content/utils/utils';
 const breadcrumbs: BreadcrumbItem[] = [
   {
     title: 'Dashboard',
@@ -57,6 +58,23 @@ export default function RequestList() {
     setViewContentDialogOpen(true);
   }
 
+  const processImage = (request: ApprovalRequestModel): string => {
+    const normalizedContents = normalizeGroup(request.Contents);
+
+    if (
+      (request.Type === "1" && isSinglePdfGroup(request.Type, normalizedContents)) ||
+      ["3", "5", "7"].includes(request.Type as string)
+    ) {
+      return `/assets/images/thumbs/${request.HoldingsID}.png`;
+    }
+
+    if (request.Type === "2") {
+      return `/assets/fullvideo/thumbs/${request.HoldingsID}.png`;
+    }
+
+    return "/storage/logos/fulltext_thumbnail.png";
+  };
+
   return (
     <div className="space-y-4">
       <section className="relative overflow-hidden rounded-2xl border border-sky-100 text-gray-50  p-5 shadow-sm md:px-8 py-6 bg-sky-500">
@@ -85,7 +103,7 @@ export default function RequestList() {
                   downloadShortlisted({
                     records: approvalRequests,
                     batch: batch,
-                    type:1
+                    type: 1
                   });
                 }}
               >
@@ -103,6 +121,7 @@ export default function RequestList() {
             items={approvalRequests}
             headers={[
               { name: 'Holdings ID', position: 'left' },
+              { name: 'Thumbnail', position: 'center' },
               { name: 'Title & Author', position: 'left' },
               { name: 'Abstract', position: 'left' },
               { name: 'Broad Class', position: 'center' },
@@ -119,6 +138,15 @@ export default function RequestList() {
                     <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
                       {request.MaterialType || 'Unspecified Type'}
                     </p>
+                  </div>
+                </td>
+                <td>
+                  <div className='flex justify-center'>
+                    <ImageLoader
+                      src={processImage(request)}
+                      alt="Program Banner"
+                      className="h-18 w-auto my-1 rounded"
+                    />
                   </div>
                 </td>
                 <td className="px-6 py-4 align-top">
@@ -143,7 +171,7 @@ export default function RequestList() {
                 </td>
                 <td className="px-6 py-4 text-center align-middle ">
                   <div className='flex justify-center items-center w-full gap-2'>
-                    <Button className='' onClick={()=>viewContent(request)}><Eye className="size-4" /></Button>
+                    <Button className='' onClick={() => viewContent(request)}><Eye className="size-4" /></Button>
                     <Link href={`/single-upload/${request?.id}/edit`} className="hover:scale-105 flex items-center justify-center gap-2 font-semibold h-9 rounded-lg border border-sky-300 px-3 text-sky-600 hover:text-white" >
                       <PencilLine className="size-4" />
                     </Link>
@@ -154,7 +182,7 @@ export default function RequestList() {
                 </td>
               </tr>
             )}
-            itemsPerPage={10}
+            itemsPerPage={5}
             searchPlaceholder="Search requests"
             emptyText="No requests found for this batch."
           />

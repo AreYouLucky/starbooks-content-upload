@@ -42,3 +42,18 @@ export function trimText(text: string, maxLength: number): string {
 export const displayDate = (date?: string) => {
   return date ? formatDate(date) : 'NA';
 };
+
+export function getPageFromUrl(url: string | null): number | null {
+    if (!url) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        const page = Number(parsedUrl.searchParams.get('page'));
+
+        return Number.isFinite(page) && page > 0 ? page : null;
+    } catch {
+        return null;
+    }
+}

@@ -21,27 +21,12 @@ import {
 } from './partials/shortlisted-hooks';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { useDebounce } from '@/hooks/use-debounce';
-import { displayDate } from '@/lib/utils';
+import { displayDate, getPageFromUrl } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Link } from '@inertiajs/react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { getStatusTone } from '../batches/partials/defaults';
 import GenerateReport from './partials/generate-report';
-
-function getPageFromUrl(url: string | null): number | null {
-    if (!url) {
-        return null;
-    }
-
-    try {
-        const parsedUrl = new URL(url);
-        const page = Number(parsedUrl.searchParams.get('page'));
-
-        return Number.isFinite(page) && page > 0 ? page : null;
-    } catch {
-        return null;
-    }
-}
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -50,7 +35,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'For Shortlisting',
-        href: '/shortlisted-page',
+        href: '/view-committee-review-batches',
     },
 ];
 
@@ -79,6 +64,10 @@ export default function ShortlistedPage() {
         queryFilters,
     );
     const batches = data?.data ?? [];
+    const analytics = data?.analytics ?? {
+        for_shortlisting: 0,
+        shortlisted: 0,
+    };
 
     const toggleBatchShortlist = useToggleBatchShortlist();
     const toggleBatchShortlistFn = () => {
@@ -94,8 +83,8 @@ export default function ShortlistedPage() {
     return (
         <div className="space-y-4 p-1">
             <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-sky-500 p-5 text-white shadow-sm md:p-7">
-                <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl space-y-4">
+                <div className="relative flex flex-col gap-4 lg:flex-row lg:justify-between items-center">
+                    <div className="max-w-2xl space-y-4 flex">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-bold">
                                 For Shortlisting
@@ -107,12 +96,81 @@ export default function ShortlistedPage() {
                             </p>
                         </div>
                     </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-white/20 bg-white/12 px-4 py-3 backdrop-blur-sm">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-sky-100 uppercase">
+                                For Shortlisting
+                            </p>
+                            <div className="mt-2 flex items-end gap-2">
+                                <span className="text-3xl font-bold">
+                                    {analytics.for_shortlisting}
+                                </span>
+                                <span className="pb-1 text-xs text-sky-100">
+                                    active batches
+                                </span>
+                            </div>
+                        </div>
 
-                    <div className="flex flex-wrap gap-2">
+                        <div className="rounded-xl border border-white/20 bg-white/12 px-4 py-3 backdrop-blur-sm">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-sky-100 uppercase">
+                                Shortlisted
+                            </p>
+                            <div className="mt-2 flex items-end gap-2">
+                                <span className="text-3xl font-bold">
+                                    {analytics.shortlisted}
+                                </span>
+                                <span className="pb-1 text-xs text-sky-100">
+                                    completed batches
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <Card className="gap-0 overflow-hidden rounded-lg border-sky-300 bg-white py-0 shadow-sm">
+                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 bg-sky-50/70 px-5 py-4 sm:flex-row sm:items-center">
+                    <div className="flex gap-2">
+                        <Link
+                            href={'/single-upload/create'}
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-5 font-semibold text-sky-50 shadow-none hover:bg-white hover:text-slate-900"
+                        >
+                            <Plus className="size-4" />
+                            Single Upload
+                        </Link>
+                        <Link
+                            href={'/bulk-upload/create'}
+                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-600 px-5 font-semibold text-sky-50 shadow-none hover:bg-white hover:text-slate-900"
+                        >
+                            <PiListPlusLight className="size-4" />
+                            Bulk Upload
+                        </Link>
+                    </div>
+                    <div className='flex gap-1'>
+                        <div className="relative space-y-1">
+                            <Search
+                                className="absolute top-3 left-3 text-sky-500"
+                                size={16}
+                            />
+                            <Input
+                                id="search"
+                                name="search"
+                                type="text"
+                                placeholder="Search any keyword..."
+                                className="h-10 min-w-62.5 border-sky-200 bg-white ps-9 shadow-none focus-visible:border-sky-400 focus-visible:ring-sky-100"
+                                onChange={(e) => {
+                                    setItem((prev) => ({
+                                        ...prev,
+                                        search: e.target.value,
+                                    }));
+                                    onFilterChange();
+                                }}
+                            />
+                        </div>
                         <Button
                             type="button"
                             variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-white px-4 text-slate-700 shadow-none"
+                            className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none"
                             onClick={() => refetch()}
                         >
                             <FolderSync className="size-4" />
@@ -127,47 +185,6 @@ export default function ShortlistedPage() {
                             <PiListBulletsFill className="size-4" />
                             Generate Report
                         </Button>
-                    </div>
-                </div>
-            </section>
-
-            <Card className="gap-0 overflow-hidden rounded-lg border-sky-300 bg-white py-0 shadow-sm">
-                <div className="flex flex-col justify-between gap-3 border-b border-slate-200 bg-sky-50/70 px-5 py-4 sm:flex-row sm:items-center">
-                    <div className="flex gap-2">
-                        <Link
-                            href={'/bulk-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white bg-sky-500 px-5 font-semibold text-sky-50 shadow-none hover:bg-white hover:text-slate-900"
-                        >
-                            <PiListPlusLight className="size-4" />
-                            Bulk Upload
-                        </Link>
-                        <Link
-                            href={'/single-upload/create'}
-                            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-white px-5 font-semibold text-sky-600 shadow-none hover:bg-white hover:text-slate-900"
-                        >
-                            <Plus className="size-4" />
-                            Single Upload
-                        </Link>
-                    </div>
-                    <div className="relative space-y-1">
-                        <Search
-                            className="absolute top-3 left-3 text-sky-500"
-                            size={16}
-                        />
-                        <Input
-                            id="search"
-                            name="search"
-                            type="text"
-                            placeholder="Search any keyword..."
-                            className="h-10 min-w-62.5 border-sky-200 bg-white ps-9 shadow-none focus-visible:border-sky-400 focus-visible:ring-sky-100"
-                            onChange={(e) => {
-                                setItem((prev) => ({
-                                    ...prev,
-                                    search: e.target.value,
-                                }));
-                                onFilterChange();
-                            }}
-                        />
                     </div>
                 </div>
 
@@ -231,21 +248,21 @@ export default function ShortlistedPage() {
                                             {(batch.status ===
                                                 'for shortlisting' ||
                                                 batch.status ===
-                                                    'for initial review') && (
-                                                <Button
-                                                    className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                                                    onClick={() => {
-                                                        setOpen(true);
-                                                        setId(batch.id);
-                                                    }}
-                                                >
-                                                    <PencilLine className="size-4" />
-                                                    {batch.status ===
-                                                    'for shortlisting'
-                                                        ? 'Shortlist'
-                                                        : 'Shortlisted'}
-                                                </Button>
-                                            )}
+                                                'for initial review') && (
+                                                    <Button
+                                                        className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                        onClick={() => {
+                                                            setOpen(true);
+                                                            setId(batch.id);
+                                                        }}
+                                                    >
+                                                        <PencilLine className="size-4" />
+                                                        {batch.status ===
+                                                            'for shortlisting'
+                                                            ? 'Shortlist'
+                                                            : 'Shortlisted'}
+                                                    </Button>
+                                                )}
                                             <Link
                                                 href={`/shortlist/${batch.id}`}
                                                 className="flex h-9 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-3 py-5 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"

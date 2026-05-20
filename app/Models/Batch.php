@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Batch extends Model
 {
     protected $table = 'content_batches';
+
     protected $fillable = [
         'batch_name',
         'content_source',
@@ -24,6 +26,11 @@ class Batch extends Model
         'quarter',
         'year',
         'is_dost',
-        'start_date'
+        'start_date',
     ];
+
+    public function approvalRequests(): HasMany
+    {
+        return $this->hasMany(ApprovalRequest::class, 'batch_id');
+    }
 }

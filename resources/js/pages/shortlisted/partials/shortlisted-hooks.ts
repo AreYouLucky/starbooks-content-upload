@@ -4,6 +4,11 @@ import axios from "axios";
 import { AxiosError } from "axios";
 import { use } from "react";
 
+type ShortlistedAnalytics = {
+  for_shortlisting: number;
+  shortlisted: number;
+};
+
 type PaginatedResponse<T> = {
   data: T[];
   current_page: number;
@@ -12,6 +17,7 @@ type PaginatedResponse<T> = {
   total: number;
   next_page_url: string | null;
   prev_page_url: string | null;
+  analytics: ShortlistedAnalytics;
 };
 
 type ApiOk = { status: string; batch?: BatchModel; errors: undefined, id?: number };

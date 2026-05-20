@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ApprovalRequest extends Model
 {
     protected $table = 'content_approval_requests';
+
     protected $fillable = [
         'approval_status',
         'HoldingsID',
@@ -30,6 +32,11 @@ class ApprovalRequest extends Model
         'EditDate',
         'uploaded_by',
         'batch_id',
-        'is_active'
+        'is_active',
     ];
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
+    }
 }
