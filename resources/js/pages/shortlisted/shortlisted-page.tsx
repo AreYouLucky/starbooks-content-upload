@@ -82,7 +82,7 @@ export default function ShortlistedPage() {
 
     return (
         <div className="space-y-4 p-1">
-            <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-sky-500 p-5 text-white shadow-sm md:p-7">
+            <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-linear-to-br from-sky-600 via-sky-500 to-cyan-500 p-5 text-white shadow-sm md:p-7">
                 <div className="relative flex flex-col gap-4 lg:flex-row lg:justify-between items-center">
                     <div className="max-w-2xl space-y-4 flex">
                         <div className="space-y-1">

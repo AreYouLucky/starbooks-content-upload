@@ -103,7 +103,7 @@ class ShortlistController extends Controller
             ], 400);
         }
         if ($batch->status == 'for shortlisting') {
-            $batch->status = 'for initial review';
+            $batch->status = $batch->is_dost ==  1 ? 'for quality approval' : 'for initial review';
             $batch->shortlisted_date = Carbon::today()->format('Y-m-d');
             ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 1]);
 

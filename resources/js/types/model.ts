@@ -41,6 +41,11 @@ export type BatchModel = TimestampFields & {
     quarter?: string;
     start_date?: string;
     is_dost?: boolean;
+    pending?: number;
+    reviewed?: number;
+    disapproved?: number;
+    rejected?: number;
+    approved?: number;
 };
 
 export type ApprovalRequestModel = TimestampFields & {
