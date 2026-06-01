@@ -66,10 +66,10 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             <SidebarMenuItem >
                                 <SidebarMenuButton
                                     asChild
-                                    isActive={isCurrentUrl('/view-committee-review-batches')}
+                                    isActive={isCurrentUrl('/committee-review-page')}
                                     tooltip={{ children: 'Committee Review' }}
                                 >
-                                    <Link href={'/view-committee-review-batches'} prefetch>
+                                    <Link href={'/committee-review-page'} prefetch>
                                         <RiFileList3Line />
                                         <span>For Committee Review</span>
                                     </Link>

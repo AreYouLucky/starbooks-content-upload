@@ -83,7 +83,7 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
   {
     title: 'Committee Review Batches',
-    href: '/view-shortlisted',
+    href: '/committee-review-page',
   },
   {
     title: 'Requests List',
@@ -241,7 +241,7 @@ export default function RequestList() {
                   </td>
                   <td className="px-6 py-4 text-center align-middle ">
                     <div className='flex justify-center items-center w-full gap-1'>
-                      <Link href={`/committee-review/${request.HoldingsID}`} className='flex flex-row font-semiboldflex items-center gap-2 text-sky-50 bg-sky-600 hover:bg-sky-600 px-3 py-2 rounded-md text-sm'><FileScan className="size-4" /> Review</Link>
+                      <Link href={`/committee-review-request/${request.HoldingsID}`} className='flex flex-row font-semiboldflex items-center gap-2 text-sky-50 bg-sky-600 hover:bg-sky-600 px-3 py-2 rounded-md text-sm'><FileScan className="size-4" /> Review</Link>
                       <Button className='' onClick={() => viewContent(request)} ><Eye className="size-4" /></Button>
                     </div>
                   </td>

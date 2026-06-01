@@ -36,7 +36,7 @@ export function useFetchCommitteeReview(page: number,
   return useQuery<PaginatedResponse<BatchModel>>({
     queryKey: ["committee-review", page, filters],
     queryFn: async () => {
-      const res = await axios.get("/committee-review", {
+      const res = await axios.get("/committee-review-batches", {
         params: {
           page,
           ...filters,

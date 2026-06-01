@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalRequest;
 use App\Models\Batch;
 use Illuminate\Http\Request;
-use App\Models\ApprovalRequest;
 use Inertia\Inertia;
 
 class CommitteeReviewController extends Controller
@@ -19,24 +19,24 @@ class CommitteeReviewController extends Controller
         );
     }
 
-    public function index(Request $request)
+    public function CommitteeReviewBatches(Request $request)
     {
 
         $query = Batch::select('id', 'batch_name', 'content_source', 'batch_description', 'target_initial_review_date', 'initial_reviewed_date', 'status')
             ->where('is_active', 1)
             ->where('status', 'for initial review')
             ->withCount([
-                'approvalRequests as pending' => fn($query) => $query->where('approval_status', 1),
-                'approvalRequests as approved' => fn($query) => $query->where('approval_status', 2),
-                'approvalRequests as disapproved' => fn($query) => $query->where('approval_status', 3),
-            ]); 
+                'approvalRequests as pending' => fn ($query) => $query->where('approval_status', 1),
+                'approvalRequests as approved' => fn ($query) => $query->where('approval_status', 2),
+                'approvalRequests as disapproved' => fn ($query) => $query->where('approval_status', 3),
+            ]);
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
 
             $query->where(function ($builder) use ($search) {
-                $builder->where('batch_name', 'LIKE', '%' . $search . '%')
-                    ->orWhere('batch_description', 'LIKE', '%' . $search . '%');
+                $builder->where('batch_name', 'LIKE', '%'.$search.'%')
+                    ->orWhere('batch_description', 'LIKE', '%'.$search.'%');
             });
         }
 
@@ -46,7 +46,7 @@ class CommitteeReviewController extends Controller
                 ->where('status', 'for initial review')
                 ->count(),
             'reviewed' => (clone $analyticsQuery)
-                ->where('initial_reviewed_date', '!=',null)
+                ->where('initial_reviewed_date', '!=', null)
                 ->count(),
         ];
 
@@ -58,24 +58,33 @@ class CommitteeReviewController extends Controller
         ]);
     }
 
-    public function viewApprovalRequests(String $name){
-        $batch = Batch::where('batch_name',$name)->first();
-        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->orderBy('approval_status','asc')->get();
+    public function viewApprovalRequests(string $name)
+    {
+        $batch = Batch::where('batch_name', $name)->first();
+        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->orderBy('approval_status', 'asc')->get();
+
         return Inertia::render(
             'committee-review/requests-list',
             [
                 'approval_requests' => $approval_requests,
-                'batch' => $batch
+                'batch' => $batch,
             ]
         );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function ReviewRequest(string $holdingsID)
     {
-        //
+        $request = ApprovalRequest::where('HoldingsID', $holdingsID)->first();
+
+        if (!$request) {
+            redirect()->route('/already-reviewed');
+        }
+        return Inertia::render(
+            'committee-review/partials/review-request-form',
+            [
+                'approval_request' => $request,
+            ]
+        );
     }
 
     /**
@@ -87,33 +96,9 @@ class CommitteeReviewController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
     {
         //
     }

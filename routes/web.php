@@ -2,9 +2,13 @@
 
 use App\Http\Controllers\ViewerController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
     Route::get('/viewer/{HoldingsID}', [ViewerController::class, 'getMediafiles']);
+    Route::get('/already-reviewed', function () {
+        return Inertia::render('already-reviewed');
+    });
 });
 
 require __DIR__.'/authentication/authentication.php';
