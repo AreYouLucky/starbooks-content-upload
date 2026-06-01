@@ -265,7 +265,7 @@ export default function CommitteeReviewPage() {
                                     <td className="px-6 py-2 align-middle">
                                         <div className="flex items-center justify-center">
                                             <Link
-                                                href={`/shortlist/${batch.id}`}
+                                                href={`/view-committee-review-batch/${batch.batch_name}`}
                                                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />

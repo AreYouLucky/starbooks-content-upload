@@ -250,7 +250,7 @@ export default function ShortlistedPage() {
                                                 batch.status ===
                                                 'for initial review') && (
                                                     <Button
-                                                        className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-400 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                        className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-500 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
                                                         onClick={() => {
                                                             setOpen(true);
                                                             setId(batch.id);
@@ -264,7 +264,7 @@ export default function ShortlistedPage() {
                                                     </Button>
                                                 )}
                                             <Link
-                                                href={`/shortlist/${batch.id}`}
+                                                href={`/shortlist/${batch.batch_name}`}
                                                 className="flex h-9 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-3 py-5 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />

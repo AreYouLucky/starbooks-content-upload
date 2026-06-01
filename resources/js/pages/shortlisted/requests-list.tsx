@@ -77,7 +77,7 @@ export default function RequestList() {
 
   return (
     <div className="space-y-4">
-      <section className="relative overflow-hidden rounded-2xl border border-sky-100 text-gray-50  p-5 shadow-sm md:px-8 py-6 bg-sky-500">
+      <section className="relative overflow-hidden rounded-2xl border border-sky-100 text-gray-50  p-5 shadow-sm md:px-8 py-6 bg-linear-to-br from-sky-600 via-sky-500 to-cyan-500">
         <div className="relative flex flex-col gap-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-4xl space-y-4">

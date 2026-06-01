@@ -62,10 +62,10 @@ class ShortlistController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $name)
     {
-        $batch = Batch::find($id);
-        $approval_requests = ApprovalRequest::where('batch_id', $id)->get();
+        $batch = Batch::where('batch_name',$name)->first();
+        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->get();
 
         return Inertia::render(
             'shortlisted/requests-list',

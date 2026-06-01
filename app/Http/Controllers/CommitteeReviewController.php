@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Batch;
 use Illuminate\Http\Request;
+use App\Models\ApprovalRequest;
 use Inertia\Inertia;
 
 class CommitteeReviewController extends Controller
@@ -55,6 +56,18 @@ class CommitteeReviewController extends Controller
             ...$paginatedBatches->toArray(),
             'analytics' => $analytics,
         ]);
+    }
+
+    public function viewApprovalRequests(String $name){
+        $batch = Batch::where('batch_name',$name)->first();
+        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->orderBy('approval_status','asc')->get();
+        return Inertia::render(
+            'committee-review/requests-list',
+            [
+                'approval_requests' => $approval_requests,
+                'batch' => $batch
+            ]
+        );
     }
 
     /**
