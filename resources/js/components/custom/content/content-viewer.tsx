@@ -291,14 +291,14 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
                         </div>
                     </div>
                     <div className=" h-fit">
-                        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                            <div className="border-b border-slate-200 bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-800 uppercase">
+                        <div className="overflow-hidden rounded-lg border border-sky-200 bg-white">
+                            <div className="border-b border-slate-200 bg-sky-500 px-4 py-3 text-center text-sm font-semibold text-slate-50 uppercase">
                                 Additional Information
                             </div>
                             <div className="divide-y divide-slate-200">
                                 {journalTitleDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Journal Title
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -309,7 +309,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {volumeNoDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Volume No
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -320,7 +320,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {issueNoDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Serial No
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -331,7 +331,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {issueDateDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Issue Date
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -342,7 +342,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {holdingsIdDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Holdings ID
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -353,7 +353,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {materialTypeDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Material Type
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -364,7 +364,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {agencyCodeDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Agency Code
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -375,7 +375,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {subjectDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Subject
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -386,7 +386,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
 
                                 {broadClassDisplay ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Broad Class
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -396,7 +396,7 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
                                 ) : null}
                                 {tags.length > 0 ? (
                                     <div className="grid grid-cols-[140px_minmax(0,1fr)]">
-                                        <div className="border-r border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                                        <div className="border-r border-slate-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-slate-700">
                                             Tags
                                         </div>
                                         <div className="px-4 py-3 text-sm text-slate-600">
@@ -418,12 +418,12 @@ export default function ContentViewer({ fields }: Props): JSX.Element {
             <div className="">
                 {abstractDisplay ? (
                     <div className="gap-0 rounded-[28px]">
-                        <div className="space-y-3">
-                            <p className="text-base font-bold text-slate-700 px-2">
+                        <div className="space rounded-2xl border border-slate-200 bg-sky-50 p-4 ">
+                            <p className="text-base font-bold text-slate-700 mb-1">
                                 ABSTRACT:
                             </p>
                             <div
-                                className={cn('rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600 text-justify')}
+                                className={cn('text-sm leading-7 text-slate-600 text-justify px-1')}
                                 dangerouslySetInnerHTML={{ __html: purifyDom(abstractDisplay) }}
                             />
                         </div>

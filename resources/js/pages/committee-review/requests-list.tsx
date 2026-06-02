@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { CheckCircle2, Clock3, Eye, ShieldX,FileScan} from 'lucide-react';
 import { trimText, purifyDom } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
@@ -11,7 +11,6 @@ import { ApprovalRequestModel, BatchModel } from '@/types/model';
 import ViewContent from '@/components/custom/view-content';
 import ImageLoader from '@/components/custom/image-loader';
 import { isSinglePdfGroup, normalizeGroup } from '@/components/custom/content/utils/utils';
-import { Link } from '@inertiajs/react';
 
 type StatusMeta = {
   label: string;
@@ -241,7 +240,14 @@ export default function RequestList() {
                   </td>
                   <td className="px-6 py-4 text-center align-middle ">
                     <div className='flex justify-center items-center w-full gap-1'>
-                      <Link href={`/committee-review-request/${request.HoldingsID}`} className='flex flex-row font-semiboldflex items-center gap-2 text-sky-50 bg-sky-600 hover:bg-sky-600 px-3 py-2 rounded-md text-sm'><FileScan className="size-4" /> Review</Link>
+                      <a
+                        href={`/committee-review-request/${request.HoldingsID}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-row font-semiboldflex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm text-sky-50 hover:bg-sky-600"
+                      >
+                        <FileScan className="size-4" /> Review
+                      </a>
                       <Button className='' onClick={() => viewContent(request)} ><Eye className="size-4" /></Button>
                     </div>
                   </td>

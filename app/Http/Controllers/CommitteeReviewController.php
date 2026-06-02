@@ -74,15 +74,17 @@ class CommitteeReviewController extends Controller
 
     public function ReviewRequest(string $holdingsID)
     {
-        $request = ApprovalRequest::where('HoldingsID', $holdingsID)->first();
+        $request = ApprovalRequest::with('batch')->where('HoldingsID', $holdingsID)->first();
 
-        if (!$request) {
-            redirect()->route('/already-reviewed');
+        if (! $request) {
+            return redirect('/already-reviewed');
         }
+
         return Inertia::render(
             'committee-review/partials/review-request-form',
             [
                 'approval_request' => $request,
+                'batch' => $request->batch,
             ]
         );
     }
@@ -90,7 +92,7 @@ class CommitteeReviewController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function submitReview(Request $request)
     {
         //
     }

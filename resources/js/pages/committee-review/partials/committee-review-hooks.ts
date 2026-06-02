@@ -2,7 +2,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { BatchModel, ApprovalRequestModel } from "@/types/model";
 import axios from "axios";
 import { AxiosError } from "axios";
-import { use } from "react";
+
 
 type ForCommitteeReviewAnalytics = {
   for_committee_review: number;
@@ -46,5 +46,17 @@ export function useFetchCommitteeReview(page: number,
     },
     staleTime: 1000 * 60,
     refetchOnWindowFocus: false
+  });
+}
+
+
+export function useSubmitCommittee() {
+  const queryClient = useQueryClient();
+  return useMutation<ApiOk, AxiosError<ApiError>, FormData>({
+    mutationFn: (payload) =>
+      axios.post<ApiOk>("/batches", payload).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+    },
   });
 }
