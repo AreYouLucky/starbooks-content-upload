@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { BatchModel, ApprovalRequestModel } from "@/types/model";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BatchModel } from "@/types/model";
 import axios from "axios";
 import { AxiosError } from "axios";
 
@@ -20,19 +20,20 @@ type PaginatedResponse<T> = {
   analytics: ForCommitteeReviewAnalytics;
 };
 
-type ApiOk = { status: string; batch?: BatchModel; errors: undefined, id?: number };
-type ApiValidationErrors = Record<string, string[]>;
-type ApiError = {
+type ApiOk = { message: string; batch?: BatchModel; id?: number };
+export type ApiValidationErrors = Record<string, string[]>;
+export type ApiError = {
   message?: string;
+  error?: string;
   errors?: ApiValidationErrors;
 };
 
-type filters = {
+type Filters = {
   search: string | '';
   batch_id: number | '';
 }
 export function useFetchCommitteeReview(page: number,
-  filters: filters) {
+  filters: Filters) {
   return useQuery<PaginatedResponse<BatchModel>>({
     queryKey: ["committee-review", page, filters],
     queryFn: async () => {
@@ -50,13 +51,19 @@ export function useFetchCommitteeReview(page: number,
 }
 
 
-export function useSubmitCommittee() {
+export function useSubmitCommitteeReview() {
   const queryClient = useQueryClient();
   return useMutation<ApiOk, AxiosError<ApiError>, FormData>({
     mutationFn: (payload) =>
-      axios.post<ApiOk>("/batches", payload).then((res) => res.data),
+      axios.post<ApiOk>("/submit-committee-review", payload).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["batches"] });
+      queryClient.invalidateQueries({ queryKey: ["committee-review"] });
     },
   });
+}
+
+export function getCommitteeReviewErrorMessage(error: AxiosError<ApiError>): string {
+  return error.response?.data?.message
+    ?? error.response?.data?.error
+    ?? "Failed to submit review. Please try again.";
 }

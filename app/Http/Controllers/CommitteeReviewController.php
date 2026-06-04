@@ -2,9 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\LogDetail;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class CommitteeReviewController extends Controller
@@ -28,7 +35,7 @@ class CommitteeReviewController extends Controller
             ->withCount([
                 'approvalRequests as pending' => fn ($query) => $query->where('approval_status', 1),
                 'approvalRequests as approved' => fn ($query) => $query->where('approval_status', 2),
-                'approvalRequests as disapproved' => fn ($query) => $query->where('approval_status', 3),
+                'approvalRequests as rejected' => fn ($query) => $query->where('approval_status', 3),
             ]);
 
         if ($request->filled('search')) {
@@ -92,9 +99,63 @@ class CommitteeReviewController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function submitReview(Request $request)
+    public function submitReview(Request $request): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'holdings_id' => ['required', 'string', 'max:50', Rule::exists('content_approval_requests', 'HoldingsID')],
+            'review_decision' => ['required', 'string', Rule::in(['approved', 'disapproved'])],
+            'remarks' => ['nullable', 'string', 'max:1000'],
+            'disapproval_reasons' => ['required_if:review_decision,disapproved', 'array', 'min:1'],
+            'disapproval_reasons.*' => [
+                'string',
+                Rule::in([
+                    'Accuracy',
+                    'Authority/Credibility',
+                    'Coverage and Relevance',
+                    'Purpose and Objectivity',
+                    'Recency',
+                ]),
+            ],
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated): void {
+                $approvalRequest = ApprovalRequest::where('HoldingsID', $validated['holdings_id'])->firstOrFail();
+                $approvalStatus = $validated['review_decision'] === 'disapproved' ? 3 : 2;
+
+                $approvalRequest->forceFill([
+                    'approval_status' => $approvalStatus,
+                ])->save();
+
+                $log = ApprovalLog::create([
+                    'approval_request_id' => $approvalRequest->id,
+                    'content_reviewer_id' => Auth::id(),
+                    'batch_id' => $approvalRequest->batch_id,
+                    'progress_status' => $approvalStatus,
+                    'remarks' => $validated['remarks'] ?? '',
+                ]);
+
+                $disapprovalReasons = $approvalStatus === 3 ? $validated['disapproval_reasons'] ?? [] : [];
+
+                foreach ($disapprovalReasons as $reason) {
+                    LogDetail::create([
+                        'approval_request_id' => $approvalRequest->id,
+                        'content_reviewer_id' => Auth::id(),
+                        'content_log_id' => $log->id,
+                        'remarks' => $reason,
+                    ]);
+                }
+            });
+
+            return response()->json(['message' => 'Review successfully saved.']);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Failed to submit review. Please try again.',
+                'error' => $exception->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,13 @@ import type { ApprovalRequestModel, BatchModel } from '@/types/model';
 import ContentViewer from '@/components/custom/content/content-viewer';
 import { useState } from 'react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
+import { toast } from 'sonner';
+import InputError from '@/components/input-error';
+import {
+  getCommitteeReviewErrorMessage,
+  type ApiValidationErrors,
+  useSubmitCommitteeReview,
+} from './committee-review-hooks';
 
 const disapprovalReasons = ['Accuracy', 'Authority/Credibility', 'Coverage and Relevance', 'Purpose and Objectivity', 'Recency'];
 
@@ -27,13 +34,26 @@ type ReviewRequestPageProps = {
   batch?: BatchModel;
 };
 
+type ReviewFormErrors = Partial<Record<keyof ReviewFormValues, string>>;
+
+const getReviewFormErrors = (validationErrors: ApiValidationErrors): ReviewFormErrors => {
+  const disapprovalReasonMessage = validationErrors.disapproval_reasons?.[0]
+    ?? Object.entries(validationErrors).find(([key]) => key.startsWith('disapproval_reasons.'))?.[1][0];
+
+  return {
+    review_decision: validationErrors.review_decision?.[0],
+    disapproval_reasons: disapprovalReasonMessage,
+    remarks: validationErrors.remarks?.[0],
+  };
+};
+
 export default function ReviewRequestForm() {
   const { props } = usePage<ReviewRequestPageProps>();
   const batch = props.batch;
   const [open, setOpen] = useState(false);
   const holdingsID = props.approval_request?.HoldingsID ?? '';
   const request = props.approval_request;
-  const { item, handleChange, handleArrayChange, setItem } = useHandleChange<ReviewFormValues>({
+  const { item, errors, handleChange, handleArrayChange, setItem, setErrors } = useHandleChange<ReviewFormValues>({
     review_decision: '',
     disapproval_reasons: [],
     remarks: '',
@@ -68,6 +88,10 @@ export default function ReviewRequestForm() {
         ...currentItem,
         disapproval_reasons: [],
       }));
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        disapproval_reasons: undefined,
+      }));
     }
   };
 
@@ -79,9 +103,69 @@ export default function ReviewRequestForm() {
     handleArrayChange('disapproval_reasons', selectedReasons);
   };
 
-  const handleSubmit = (): void => {
+  const submitCommitteeReview = useSubmitCommitteeReview();
+  const createFormData = (): FormData => {
+    const formData = new FormData();
 
-    console.log('doje')
+    formData.append('holdings_id', holdingsID);
+    formData.append('review_decision', item.review_decision);
+    formData.append('remarks', item.remarks);
+    item.disapproval_reasons.forEach((reason) => formData.append('disapproval_reasons[]', reason));
+
+    return formData;
+  };
+
+  const validateBeforeConfirm = (): boolean => {
+    const nextErrors: ReviewFormErrors = {};
+
+    if (!holdingsID) {
+      toast.error('Unable to submit review for this record.');
+
+      return false;
+    }
+
+    if (!item.review_decision) {
+      nextErrors.review_decision = 'Select a review decision.';
+    }
+
+    if (isDisapproved && item.disapproval_reasons.length === 0) {
+      nextErrors.disapproval_reasons = 'Select at least one disapproval reason.';
+    }
+
+    setErrors(nextErrors);
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleOpenConfirm = (): void => {
+    if (validateBeforeConfirm()) {
+      setOpen(true);
+    }
+  };
+
+  const handleSubmit = (): void => {
+    const formData = createFormData();
+
+    submitCommitteeReview.mutate(formData, {
+      onSuccess: (response) => {
+        setOpen(false);
+        setErrors({});
+        toast.success(response.message);
+        router.visit(`/view-committee-review-batch/${batch?.batch_name}`);
+      },
+      onError: (error) => {
+        setOpen(false);
+
+        if (error.response?.data?.errors) {
+          setErrors(getReviewFormErrors(error.response.data.errors));
+          toast.error('Check input fields for errors.');
+
+          return;
+        }
+
+        toast.error(getCommitteeReviewErrorMessage(error));
+      }
+    });
   };
 
   return (
@@ -92,11 +176,11 @@ export default function ReviewRequestForm() {
             <ContentViewer fields={request} />
           ) : (
             <div className="flex min-h-80 items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-500">
-              Select a record to preview its content.
+              Select a record to preview its content. 
             </div>
           )}
         </section>
-        <section className="relative h-fit w-220 overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-700 shadow-sm">
+        <section className="relative h-fit w-280 overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-700 shadow-sm">
           <div className='p-6 space-y-2'>
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-slate-900">Committee Review</h2>
@@ -113,8 +197,8 @@ export default function ReviewRequestForm() {
                   <Label
                     key={option.value}
                     className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${isSelected
-                        ? 'border-sky-400 bg-sky-50 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/50'
+                      ? 'border-sky-400 bg-sky-50 shadow-sm'
+                      : 'border-slate-200 bg-white hover:border-sky-200 hover:bg-sky-50/50'
                       }`}
                   >
                     <input
@@ -132,6 +216,7 @@ export default function ReviewRequestForm() {
                   </Label>
                 );
               })}
+              <InputError message={errors.review_decision} />
             </div>
 
             {isDisapproved ? (
@@ -153,6 +238,7 @@ export default function ReviewRequestForm() {
                     </Label>
                   ))}
                 </div>
+                <InputError message={errors.disapproval_reasons} />
               </div>
             ) : null}
 
@@ -168,15 +254,16 @@ export default function ReviewRequestForm() {
                 placeholder="Add committee remarks"
                 className="min-h-32 resize-none border-slate-200 text-sm focus-visible:ring-sky-500"
               />
+              <InputError message={errors.remarks} />
             </div>
 
-            <Button className="w-full bg-sky-600 text-white hover:bg-sky-700">
-              Submit review
+            <Button className="w-full bg-sky-600 text-white hover:bg-sky-700" onClick={handleOpenConfirm} disabled={submitCommitteeReview.isPending}>
+              {submitCommitteeReview.isPending ? 'Submitting...' : 'Submit review'}
             </Button>
           </div>
         </section>
       </div>
-      <ConfirmationDialog show={open} type={1} onClose={() => setOpen(false)} message="Are you sure yow want to submit this review?" onConfirm={handleSubmit} />
+      <ConfirmationDialog show={open} type={2} onClose={() => setOpen(false)} message="Are you sure you want to submit this review?" onConfirm={handleSubmit} />
     </AppLayout>
   );
 }

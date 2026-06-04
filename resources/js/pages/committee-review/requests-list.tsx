@@ -240,14 +240,16 @@ export default function RequestList() {
                   </td>
                   <td className="px-6 py-4 text-center align-middle ">
                     <div className='flex justify-center items-center w-full gap-1'>
-                      <a
-                        href={`/committee-review-request/${request.HoldingsID}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-row font-semiboldflex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm text-sky-50 hover:bg-sky-600"
-                      >
-                        <FileScan className="size-4" /> Review
-                      </a>
+                      {
+                        request.approval_status === 1 && (
+                          <Link
+                            href={`/committee-review-request/${request.HoldingsID}`}
+                            className="flex flex-row font-semiboldflex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm text-sky-50 hover:bg-sky-600"
+                          >
+                            <FileScan className="size-4" /> Review
+                          </Link>
+                        )
+                      }
                       <Button className='' onClick={() => viewContent(request)} ><Eye className="size-4" /></Button>
                     </div>
                   </td>

@@ -14,5 +14,6 @@ class ApprovalLog extends Model
         'batch_id',
         'is_approved',
         'remarks',
+        'approval_status',
     ];
 }
