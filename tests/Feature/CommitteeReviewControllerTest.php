@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\LogDetail;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,6 +112,55 @@ test('committee review index filters batches without changing their request coun
         ->assertJsonPath('data.0.batch_name', 'Science Committee Batch')
         ->assertJsonPath('data.0.approved', 1)
         ->assertJsonPath('data.0.rejected', 0);
+});
+
+test('committee report returns reviewed requests with their logs and details', function () {
+    $batch = createCommitteeBatch([
+        'batch_name' => 'Reviewed Committee Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
+    ]);
+    $approvedRequest = createApprovalRequestForBatch($batch, 2);
+    createApprovalRequestForBatch($batch, 1);
+    createCommitteeBatch([
+        'batch_name' => 'Different Quarter Batch',
+        'quarter' => 'Q4',
+        'year' => '2026',
+    ]);
+    $user = createCommitteeUser();
+
+    $approvalLog = ApprovalLog::query()->create([
+        'approval_request_id' => $approvedRequest->id,
+        'content_reviewer_id' => $user->id,
+        'batch_id' => $batch->id,
+        'is_approved' => true,
+        'approval_status' => 2,
+        'remarks' => 'Approved by the committee.',
+    ]);
+
+    LogDetail::query()->create([
+        'approval_status' => 2,
+        'approval_request_id' => $approvedRequest->id,
+        'content_log_id' => $approvalLog->id,
+        'content_reviewer_id' => $user->id,
+        'is_passed' => true,
+        'description' => 'Accuracy',
+        'remarks' => 'Passed.',
+    ]);
+
+    $this->actingAs($user)
+        ->getJson('/generate-committee-report?quarter=Q3&year=2026')
+        ->assertOk()
+        ->assertJsonCount(1, 'batches')
+        ->assertJsonCount(1, 'batches.0.approval_requests')
+        ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs')
+        ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs.0.log_details')
+        ->assertJsonPath(
+            'batches.0.approval_requests.0.approval_logs.0.reviewer.full_name',
+            $user->full_name
+        )
+        ->assertJsonCount(1, 'records')
+        ->assertJsonPath('records.0.id', $approvedRequest->id);
 });
 
 test('committee review submission updates request and stores disapproval reasons', function () {

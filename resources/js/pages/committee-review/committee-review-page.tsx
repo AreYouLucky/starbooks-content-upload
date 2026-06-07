@@ -20,6 +20,7 @@ import PaginatedSearchTable from '@/components/ui/data-table-server';
 import { BatchModel } from '@/types/model';
 import { displayDate, getPageFromUrl } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
+import GenerateReport from './partials/generate-report';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -58,7 +59,7 @@ const reviewSummaryItems = [
 
 export default function CommitteeReviewPage() {
     const [page, setPage] = useState(1);
-
+    const [generateReportDialog,setGenerateReportDialog] = useState(false);
     const { item, setItem } = useHandleChange({ search: '', batch_id: 0 });
 
     const onFilterChange = () => {
@@ -169,6 +170,7 @@ export default function CommitteeReviewPage() {
                         <Button
                             type="button"
                             variant="outline"
+                            onClick={() => setGenerateReportDialog(true)}
                             className="h-10 rounded-lg border-sky-500 bg-sky-600 px-4 text-slate-50 shadow-none hover:bg-sky-700"
                         >
                             <PiListBulletsFill className="size-4" />
@@ -296,6 +298,7 @@ export default function CommitteeReviewPage() {
                     />
                 </div>
             </section>
+            <GenerateReport show={generateReportDialog} onClose={() => setGenerateReportDialog(false)} />
         </div>
     );
 }

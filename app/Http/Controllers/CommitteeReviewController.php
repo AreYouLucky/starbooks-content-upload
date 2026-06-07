@@ -131,7 +131,8 @@ class CommitteeReviewController extends Controller
                     'approval_request_id' => $approvalRequest->id,
                     'content_reviewer_id' => Auth::id(),
                     'batch_id' => $approvalRequest->batch_id,
-                    'progress_status' => $approvalStatus,
+                    'is_approved' => $approvalStatus === 2,
+                    'approval_status' => $approvalStatus,
                     'remarks' => $validated['remarks'] ?? '',
                 ]);
 
@@ -139,6 +140,7 @@ class CommitteeReviewController extends Controller
 
                 foreach ($disapprovalReasons as $reason) {
                     LogDetail::create([
+                        'is_approved' => $approvalStatus == 2 ? 1 : 0,
                         'approval_request_id' => $approvalRequest->id,
                         'content_reviewer_id' => Auth::id(),
                         'content_log_id' => $log->id,
@@ -153,16 +155,37 @@ class CommitteeReviewController extends Controller
 
             return response()->json([
                 'message' => 'Failed to submit review. Please try again.',
-                'error' => $exception->getMessage()
+                'error' => $exception->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function generateCommitteeReport(Request $request): JsonResponse
     {
-        //
+        $validated = $request->validate([
+            'quarter' => ['required', 'string', 'max:50'],
+            'year' => ['required', 'string', 'max:50'],
+        ]);
+
+        $batches = Batch::query()
+            ->where('quarter', $validated['quarter'])
+            ->where('year', $validated['year'])
+            ->where('status', 'for initial review')
+            ->with([
+                'approvalRequests' => fn ($query) => $query
+                    ->whereIn('approval_status', [2, 3])
+                    ->with([
+                        'approvalLogs.logDetails',
+                        'approvalLogs.reviewer:id,full_name',
+                    ]),
+            ])
+            ->get();
+
+        return response()->json([
+            'batches' => $batches,
+            'records' => $batches
+                ->flatMap(fn (Batch $batch) => $batch->approvalRequests)
+                ->values(),
+        ]);
     }
 }
