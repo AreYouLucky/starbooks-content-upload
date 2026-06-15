@@ -1,6 +1,9 @@
-
-export default function AppLogoIcon({className}: {className?: string}) {
+export default function AppLogoIcon({ className }: { className?: string }) {
     return (
-       <img src="/storage/logos/logo.png" alt=""  className={className}/>
+        <img
+            src="/storage/logos/logo.png"
+            alt="STARBOOKS"
+            className={className}
+        />
     );
 }

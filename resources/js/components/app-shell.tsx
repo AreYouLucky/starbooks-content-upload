@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import type { SharedData } from '@/types';
 
@@ -17,5 +17,17 @@ export function AppShell({ children, variant = 'header' }: Props) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider
+            defaultOpen={isOpen}
+            style={
+                {
+                    '--sidebar-width': '15rem',
+                    '--sidebar-width-icon': '3rem',
+                } as CSSProperties
+            }
+        >
+            {children}
+        </SidebarProvider>
+    );
 }

@@ -13,7 +13,7 @@ export default function AppSidebarLayout({
             <AppSidebar />
             <AppContent
                 variant="sidebar"
-                className="max-h-screen overflow-x-hidden overflow-y-auto bg-sky-200"
+                className="max-h-screen overflow-x-hidden overflow-y-auto bg-slate-50"
             >
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}

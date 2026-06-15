@@ -190,4 +190,24 @@ class CommitteeReviewController extends Controller
                 ->values(),
         ]);
     }
+
+    public function forwardToQA(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'batchName' => ['required', 'string', 'max:255'],
+        ]);
+
+        $batch = Batch::where('batch_name', $validated['batchName'])->firstOrFail();
+
+        if ($batch->status !== 'for initial review') {
+            return response()->json(['message' => 'Batch is not eligible for forwarding.'], 400);
+        }
+
+        $batch->update([
+            'status' => 'for quality approval',
+            'initial_reviewed_date' => now(),
+        ]);
+
+        return response()->json(['message' => 'Batch successfully forwarded to Quality Assurance Approval.']);
+    }
 }

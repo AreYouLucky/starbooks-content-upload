@@ -1,19 +1,11 @@
 import { ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
-import { useFetchCommitteeReview } from './partials/committee-review-hooks';
+import { useFetchCommitteeReview, useForwardToQualityApproval } from './partials/committee-review-hooks';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useHandleChange } from '@/hooks/use-handle-change';
-import {
-    CalendarDays,
-    CheckCircle2,
-    Clock3,
-    Eye,
-    FolderSync,
-    Search,
-    ShieldX,
-    
-} from 'lucide-react';
+import { toast } from 'sonner';
+import {CalendarDays,CheckCircle2,Clock3,Eye,FolderSync,Forward,Search,ShieldX} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PiListBulletsFill } from 'react-icons/pi';
@@ -22,7 +14,7 @@ import { BatchModel } from '@/types/model';
 import { displayDate, getPageFromUrl } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import GenerateReport from './partials/generate-report';
-
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -60,8 +52,10 @@ const reviewSummaryItems = [
 
 export default function CommitteeReviewPage() {
     const [page, setPage] = useState(1);
-    const [generateReportDialog,setGenerateReportDialog] = useState(false);
+    const [generateReportDialog, setGenerateReportDialog] = useState(false);
     const { item, setItem } = useHandleChange({ search: '', batch_id: 0 });
+    const [batchName, setBatchName] = useState('');
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     const onFilterChange = () => {
         setPage(1);
@@ -82,6 +76,23 @@ export default function CommitteeReviewPage() {
         for_committee_review: 0,
         reviewed: 0,
     };
+
+    const forwardToQA = useForwardToQualityApproval();
+    const forwardToQAFn = () => {
+        forwardToQA.mutate({ batchName }, {
+            onSuccess: (res) => {
+                if(res.message) {   
+                toast.success(res.message);
+                }
+            },
+            onError: (error) => {
+                const message = error.response?.data?.message
+                    ?? error.response?.data?.error
+                    ?? "Failed to forward batch to Quality Assurance. Please try again.";
+                alert(message);
+            }
+        });
+    } 
 
     return (
         <div className="space-y-5 p-1">
@@ -265,7 +276,8 @@ export default function CommitteeReviewPage() {
                                                 <Eye className="size-4" />
                                                 View Requests
                                             </Link>
-                                            <Button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800" onClick={() => setItem((prev) => ({ ...prev, batch_id: batch.id }))}>
+                                            <Button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800" onClick={() => { setBatchName(batch.batch_name); setShowConfirmation(true);}}>
+                                                <Forward className="size-4" />
                                                 Forward to QA
                                             </Button>
                                         </div>
@@ -294,6 +306,7 @@ export default function CommitteeReviewPage() {
                 </div>
             </section>
             <GenerateReport show={generateReportDialog} onClose={() => setGenerateReportDialog(false)} />
+                <ConfirmationDialog show={showConfirmation} onClose={() => setShowConfirmation(false)} message={`Are you sure you want to forward this batch to Quality Assurance?`} onConfirm={forwardToQAFn} type={2}/>
         </div>
     );
 }

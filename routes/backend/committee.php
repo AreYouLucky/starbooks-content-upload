@@ -10,4 +10,5 @@ Route::middleware(['auth', 'committee'])->group(function () {
     Route::get('/committee-review-request/{holdingsID}', [CommitteeReviewController::class, 'ReviewRequest']);
     Route::post('/submit-committee-review', [CommitteeReviewController::class, 'submitReview']);
     Route::get('/generate-committee-report', [CommitteeReviewController::class, 'generateCommitteeReport']);
+    Route::post('/forward-to-quality-assurance', [CommitteeReviewController::class, 'forwardToQA']);
 });

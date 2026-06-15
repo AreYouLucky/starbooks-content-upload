@@ -67,3 +67,14 @@ export function getCommitteeReviewErrorMessage(error: AxiosError<ApiError>): str
     ?? error.response?.data?.error
     ?? "Failed to submit review. Please try again.";
 }
+
+export function useForwardToQualityApproval() {
+  const queryClient = useQueryClient();
+  return useMutation<ApiOk, AxiosError<ApiError>, { batchName: string }>({
+    mutationFn: ({ batchName }) =>
+      axios.post<ApiOk>("/forward-to-quality-assurance", { batchName }).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["committee-review"] });
+    },
+  });
+}
