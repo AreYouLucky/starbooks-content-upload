@@ -8,7 +8,6 @@ use App\Models\Batch;
 use App\Models\LogDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -132,7 +131,7 @@ class CommitteeReviewController extends Controller
                     'content_reviewer_id' => Auth::id(),
                     'batch_id' => $approvalRequest->batch_id,
                     'is_approved' => $approvalStatus === 2,
-                    'approval_status' => $approvalStatus,
+                    'progress_status' => $approvalStatus,
                     'remarks' => $validated['remarks'] ?? '',
                 ]);
 
@@ -173,7 +172,10 @@ class CommitteeReviewController extends Controller
             ->where('status', 'for initial review')
             ->with([
                 'approvalRequests' => fn ($query) => $query
-                    ->whereIn('approval_status', [2, 3])
+                    ->whereHas(
+                        'approvalLogs',
+                        fn ($query) => $query->whereIn('progress_status', [2, 3])
+                    )
                     ->with([
                         'approvalLogs.logDetails',
                         'approvalLogs.reviewer:id,full_name',

@@ -12,6 +12,7 @@ import {
     FolderSync,
     Search,
     ShieldX,
+    
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,7 +187,6 @@ export default function CommitteeReviewPage() {
                             { name: 'Batch', position: 'left' },
                             { name: 'Source', position: 'left' },
                             { name: 'Target Date', position: 'left' },
-                            { name: 'Date Accomplished', position: 'left' },
                             { name: 'Review Summary', position: 'center' },
                             { name: 'Actions', position: 'center' },
                         ]}
@@ -216,14 +216,6 @@ export default function CommitteeReviewPage() {
                                             <CalendarDays className="size-4 text-cyan-500" />
                                             {displayDate(
                                                 batch.target_initial_review_date,
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 align-middle">
-                                        <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                                            <CalendarDays className="size-4 text-cyan-500" />
-                                            {displayDate(
-                                                batch.initial_reviewed_date,
                                             )}
                                         </div>
                                     </td>
@@ -265,7 +257,7 @@ export default function CommitteeReviewPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-2 align-middle">
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center gap-2">
                                             <Link
                                                 href={`/view-committee-review-batch/${batch.batch_name}`}
                                                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
@@ -273,6 +265,9 @@ export default function CommitteeReviewPage() {
                                                 <Eye className="size-4" />
                                                 View Requests
                                             </Link>
+                                            <Button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800" onClick={() => setItem((prev) => ({ ...prev, batch_id: batch.id }))}>
+                                                Forward to QA
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>

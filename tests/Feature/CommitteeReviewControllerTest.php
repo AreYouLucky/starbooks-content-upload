@@ -21,6 +21,10 @@ beforeEach(function () {
         $table->string('status')->default('for shortlisting');
         $table->boolean('is_active')->default(1);
     });
+
+    Schema::table('content_approval_logs', function (Blueprint $table) {
+        $table->integer('progress_status')->default(0);
+    });
 });
 
 function createCommitteeUser(): User
@@ -120,8 +124,8 @@ test('committee report returns reviewed requests with their logs and details', f
         'quarter' => 'Q3',
         'year' => '2026',
     ]);
-    $approvedRequest = createApprovalRequestForBatch($batch, 2);
-    createApprovalRequestForBatch($batch, 1);
+    $reviewedRequest = createApprovalRequestForBatch($batch, 1);
+    $unreviewedRequest = createApprovalRequestForBatch($batch, 2);
     createCommitteeBatch([
         'batch_name' => 'Different Quarter Batch',
         'quarter' => 'Q4',
@@ -130,17 +134,26 @@ test('committee report returns reviewed requests with their logs and details', f
     $user = createCommitteeUser();
 
     $approvalLog = ApprovalLog::query()->create([
-        'approval_request_id' => $approvedRequest->id,
+        'approval_request_id' => $reviewedRequest->id,
         'content_reviewer_id' => $user->id,
         'batch_id' => $batch->id,
         'is_approved' => true,
-        'approval_status' => 2,
+        'progress_status' => 2,
         'remarks' => 'Approved by the committee.',
     ]);
 
-    LogDetail::query()->create([
+    ApprovalLog::query()->create([
+        'approval_request_id' => $unreviewedRequest->id,
+        'content_reviewer_id' => $user->id,
+        'batch_id' => $batch->id,
+        'is_approved' => false,
+        'progress_status' => 1,
+        'remarks' => 'Still awaiting committee review.',
+    ]);
+
+    LogDetail::query()->forceCreate([
         'approval_status' => 2,
-        'approval_request_id' => $approvedRequest->id,
+        'approval_request_id' => $reviewedRequest->id,
         'content_log_id' => $approvalLog->id,
         'content_reviewer_id' => $user->id,
         'is_passed' => true,
@@ -160,7 +173,7 @@ test('committee report returns reviewed requests with their logs and details', f
             $user->full_name
         )
         ->assertJsonCount(1, 'records')
-        ->assertJsonPath('records.0.id', $approvedRequest->id);
+        ->assertJsonPath('records.0.id', $reviewedRequest->id);
 });
 
 test('committee review submission updates request and stores disapproval reasons', function () {

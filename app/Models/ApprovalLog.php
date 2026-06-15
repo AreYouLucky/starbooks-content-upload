@@ -16,6 +16,7 @@ class ApprovalLog extends Model
         'batch_id',
         'is_approved',
         'remarks',
+        'progress_status',
     ];
 
     public function approvalRequest(): BelongsTo

@@ -95,7 +95,6 @@ const getText = (
 const isFilled = (value: string | null | undefined): value is string => {
     return typeof value === 'string' && value.trim() !== '';
 };
-
 const formatManilaDate = (value: string | null | undefined): string => {
     if (!value) {
         return '';
@@ -109,7 +108,6 @@ const formatManilaDate = (value: string | null | undefined): string => {
 
     return new Intl.DateTimeFormat('en-PH', {
         dateStyle: 'medium',
-        timeStyle: 'short',
         timeZone: 'Asia/Manila',
     }).format(date);
 };
