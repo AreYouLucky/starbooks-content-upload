@@ -67,7 +67,7 @@ function AuthPage() {
                             placeholder="Enter your username"
                             onChange={handleChange}
                             value={item.username ?? ''}
-                            className="h-13.5 rounded-2xl border-slate-300 bg-white pr-4 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
+                            className="h-13.5 rounded-2xl border-sky-200 bg-white pr-4 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
                         />
                     </div>
                     <InputError message={errors.username ?? ''} />
@@ -91,7 +91,7 @@ function AuthPage() {
                             placeholder="Enter your password"
                             onChange={handleChange}
                             value={item.password ?? ''}
-                            className="h-13.5 rounded-2xl border-slate-300 bg-white pr-14 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
+                            className="h-13.5 rounded-2xl border-sky-200 bg-white pr-14 pl-12 text-sky-950 shadow-none focus-visible:border-sky-500 focus-visible:ring-sky-100"
                         />
                         <button
                             type="button"
@@ -124,7 +124,7 @@ function AuthPage() {
                             onCheckedChange={(checked: boolean) =>
                                 setShowPassword(Boolean(checked))
                             }
-                            className="size-5 rounded-md border-sky-200 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
+                            className="size-5 rounded-md border-sky-300 data-[state=checked]:border-sky-600 data-[state=checked]:bg-sky-500"
                         />
                         <span className="text-sm font-medium text-sky-800">
                             Show password

@@ -233,3 +233,18 @@ test('committee review submission requires reasons when disapproved', function (
     $approvalRequest->refresh();
     expect($approvalRequest->approval_status)->toBe(1);
 });
+
+test('forwarding to quality assurance resets approved requests for the next review stage', function () {
+    $batch = createCommitteeBatch(['batch_name' => 'Ready for QA Batch']);
+    $approvedRequest = createApprovalRequestForBatch($batch, 2);
+    $disapprovedRequest = createApprovalRequestForBatch($batch, 3);
+    $user = createCommitteeUser();
+
+    $this->actingAs($user)
+        ->postJson('/forward-to-quality-assurance', ['batchName' => $batch->batch_name])
+        ->assertOk();
+
+    expect($batch->refresh()->status)->toBe('for quality approval')
+        ->and($approvedRequest->refresh()->approval_status)->toBe(1)
+        ->and($disapprovedRequest->refresh()->approval_status)->toBe(3);
+});

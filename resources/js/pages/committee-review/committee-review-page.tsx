@@ -207,7 +207,7 @@ export default function CommitteeReviewPage() {
                                     key={batch.id}
                                     className="border-b border-slate-100 bg-white transition"
                                 >
-                                    <td className="px-6 py-4 align-top">
+                                    <td className="px-6 py-4 align-center">
                                         <div className="space-y-1">
                                             <div className="font-semibold text-slate-900">
                                                 {batch.batch_name}

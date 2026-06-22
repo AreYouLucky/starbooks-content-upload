@@ -18,3 +18,4 @@ require __DIR__.'/backend/shortlist.php';
 require __DIR__.'/backend/single_upload.php';
 require __DIR__.'/backend/bulk_upload.php';
 require __DIR__.'/backend/committee.php';
+require __DIR__.'/backend/quality-assurance.php';

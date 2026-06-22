@@ -13,7 +13,6 @@ class LogDetail extends Model
         'approval_request_id',
         'content_reviewer_id',
         'content_log_id',
-        'description',
         'remarks',
     ];
 

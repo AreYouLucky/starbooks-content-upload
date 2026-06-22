@@ -124,9 +124,10 @@ class CommitteeReviewController extends Controller
 
                 $approvalRequest->forceFill([
                     'approval_status' => $approvalStatus,
+                    'committee_reviewed_date' => today()->toDateString(),
                 ])->save();
 
-                $log = ApprovalLog::create([
+                $log = ApprovalLog::query()->forceCreate([
                     'approval_request_id' => $approvalRequest->id,
                     'content_reviewer_id' => Auth::id(),
                     'batch_id' => $approvalRequest->batch_id,
@@ -138,8 +139,7 @@ class CommitteeReviewController extends Controller
                 $disapprovalReasons = $approvalStatus === 3 ? $validated['disapproval_reasons'] ?? [] : [];
 
                 foreach ($disapprovalReasons as $reason) {
-                    LogDetail::create([
-                        'is_approved' => $approvalStatus == 2 ? 1 : 0,
+                    LogDetail::query()->forceCreate([
                         'approval_request_id' => $approvalRequest->id,
                         'content_reviewer_id' => Auth::id(),
                         'content_log_id' => $log->id,
@@ -197,16 +197,27 @@ class CommitteeReviewController extends Controller
             'batchName' => ['required', 'string', 'max:255'],
         ]);
 
-        $batch = Batch::where('batch_name', $validated['batchName'])->firstOrFail();
+        $batch = Batch::query()
+            ->where('batch_name', $validated['batchName'])
+            ->where('status', 'for initial review')
+            ->firstOrFail();
 
-        if ($batch->status !== 'for initial review') {
-            return response()->json(['message' => 'Batch is not eligible for forwarding.'], 400);
+        if ($batch->approvalRequests()->where('approval_status', 1)->exists()) {
+            return response()->json([
+                'message' => 'Complete all pending committee reviews before forwarding.',
+            ], 422);
         }
 
-        $batch->update([
-            'status' => 'for quality approval',
-            'initial_reviewed_date' => now(),
-        ]);
+        DB::transaction(function () use ($batch): void {
+            $batch->approvalRequests()
+                ->where('approval_status', 2)
+                ->update(['approval_status' => 1]);
+
+            $batch->update([
+                'status' => 'for quality approval',
+                'initial_reviewed_date' => now(),
+            ]);
+        });
 
         return response()->json(['message' => 'Batch successfully forwarded to Quality Assurance Approval.']);
     }
