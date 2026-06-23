@@ -2,104 +2,132 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\ApprovalRequest;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Validator;
-use Inertia\Inertia;
 use App\Models\Batch;
 use App\Models\LkContent;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BulkUploadController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): void
     {
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        $batches = Batch::orderBy('created_at', 'desc')->get();
-        $lkcontent = LkContent::all();
+        $batches = Batch::query()->latest()->get();
+        $contentGroups = LkContent::all();
+
         return Inertia::render('shortlisted/partials/bulk-upload', [
             'batches' => $batches,
-            'content_group' => $lkcontent
+            'content_group' => $contentGroups,
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $rules = [
-            'Type' => 'required|string',
-            'Contents' => 'required|string|max:255',
-            'batch_id' => 'required|string|max:255',
-            'record_file' => 'required|file|mimetypes:text/plain,text/csv|max:5000',
-            'multimedia_file' => 'required|file|mimetypes:text/plain,text/csv|max:5000',
+        $validator = Validator::make($request->all(), [
+            'Type' => ['required', 'string'],
+            'Contents' => ['required', 'string', 'max:255'],
+            'batch_id' => ['required', 'string', 'max:255'],
+            'record_file' => ['required', 'file', 'mimetypes:text/plain,text/csv', 'max:5000'],
+            'multimedia_file' => ['required', 'file', 'mimetypes:text/plain,text/csv', 'max:5000'],
+        ]);
 
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $record_file = $request->file('record_file');
-        $record_fileHandle = fopen($record_file->getRealPath(), 'r');
+        $recordFile = $request->file('record_file');
+        $recordFilePath = $recordFile->getRealPath();
 
-        $record_headers = fgetcsv($record_fileHandle);
-        $record_headers = array_map(function ($h) {
-            return preg_replace('/^\xEF\xBB\xBF/', '', $h);
-        }, $record_headers);
-
-        $record_data = [];
-
-        while (($row = fgetcsv($record_fileHandle)) !== false) {
-            $rowData = array_combine($record_headers, $row);
-
-            $rowData['Abstracts'] = str_replace(['Â¤', '?', 'Ã±'], [''], $rowData['Abstracts']);
-            $rowData['Abstracts'] = str_replace(['Ã±', 'Ã‘'], ['n', 'N'], $rowData['Abstracts']);
-            $rowData['Abstracts'] = mb_convert_encoding($rowData['Abstracts'], 'UTF-8', 'auto');
-
-            $record_data[] = $rowData;
+        if ($recordFilePath === false || ($recordFileHandle = fopen($recordFilePath, 'r')) === false) {
+            return response()->json([
+                'errors' => ['record_file' => ['The record CSV could not be opened.']],
+            ], 422);
         }
 
-        fclose($record_fileHandle);
+        $recordHeaders = fgetcsv($recordFileHandle);
+
+        if ($recordHeaders === false) {
+            fclose($recordFileHandle);
+
+            return response()->json([
+                'errors' => ['record_file' => ['The record CSV is empty.']],
+            ], 422);
+        }
+
+        $recordHeaders = array_map(function (?string $header): string {
+            return preg_replace('/^\xEF\xBB\xBF/', '', $this->normalizeCsvValue($header)) ?? '';
+        }, $recordHeaders);
+
+        $recordData = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($recordFileHandle)) !== false) {
+            $rowNumber++;
+
+            if ($row === [null]) {
+                continue;
+            }
+
+            if (count($recordHeaders) !== count($row)) {
+                fclose($recordFileHandle);
+
+                return response()->json([
+                    'errors' => [
+                        'record_file' => ["CSV row {$rowNumber} does not match the header column count."],
+                    ],
+                ], 422);
+            }
+
+            $normalizedRow = array_map(
+                fn (?string $value): string => $this->normalizeCsvValue($value),
+                $row
+            );
+            $recordData[] = array_combine($recordHeaders, $normalizedRow);
+        }
+
+        fclose($recordFileHandle);
 
         try {
             DB::beginTransaction();
-            foreach ($record_data as $record) {
-                if (DB::table('tblrecord')->where('HoldingsID', $record['HoldingsID'])->exists() || ApprovalRequest::where('HoldingsID', $record['HoldingsID'])->exists()) {
+
+            foreach ($recordData as $record) {
+                $holdingsId = $record['HoldingsID'] ?? '';
+
+                if (DB::table('tblrecord')->where('HoldingsID', $holdingsId)->exists()
+                    || ApprovalRequest::where('HoldingsID', $holdingsId)->exists()) {
                     DB::rollBack();
+
                     return response()->json([
                         'status' => 'Duplicate HoldingsID found in the database',
-                        'error' => "HoldingsID already exists in the record: {$record['HoldingsID']}",
+                        'error' => "HoldingsID already exists in the record: {$holdingsId}",
                     ], 422);
                 }
-                if ($record['HoldingsID']) {
+
+                if ($holdingsId !== '') {
                     ApprovalRequest::create([
-                        'HoldingsID' => $record['HoldingsID'],
-                        'MaterialType' => $record['MaterialType']??"",
-                        'Title' => $record['Title']??"",
-                        'Subtitle' => $record['Subtitle']??"",
-                        'Abstracts' => $record['Abstracts']??"",
-                        'AgencyCode' => $record['AgencyCode']??"",
-                        'JournalTitle' => $record['JournalTitle']??"",
-                        'VolumeNo' => $record['VolumeNo']??"",
-                        'IssueNo' => $record['IssueNo']??"",
-                        'IssueDate' => $record['IssueDate']??"",
-                        'Author' => $record['Author']??"",
-                        'Subject' => $record['Subject']??"",
-                        'BroadClass' => $record['BroadClass']??"",
+                        'HoldingsID' => $holdingsId,
+                        'MaterialType' => $record['MaterialType'] ?? '',
+                        'Title' => $record['Title'] ?? '',
+                        'Subtitle' => $record['Subtitle'] ?? '',
+                        'Abstracts' => $record['Abstracts'] ?? '',
+                        'AgencyCode' => $record['AgencyCode'] ?? '',
+                        'JournalTitle' => $record['JournalTitle'] ?? '',
+                        'VolumeNo' => $record['VolumeNo'] ?? '',
+                        'IssueNo' => $record['IssueNo'] ?? '',
+                        'IssueDate' => $record['IssueDate'] ?? '',
+                        'Author' => $record['Author'] ?? '',
+                        'Subject' => $record['Subject'] ?? '',
+                        'BroadClass' => $record['BroadClass'] ?? '',
                         'url' => $record['URL'] ?? '',
                         'Contents' => $request->Contents,
                         'Type' => $request->Type,
@@ -110,45 +138,49 @@ class BulkUploadController extends Controller
             }
 
             DB::commit();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
             DB::rollBack();
+
             return response()->json([
                 'status' => 'Failed to save content',
-                'error' => $e->getMessage(),
+                'error' => $exception->getMessage(),
             ], 500);
         }
 
-        return response()->json(['status' => 'Content saved successfully'], 200);
+        return response()->json(['status' => 'Content saved successfully']);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    private function normalizeCsvValue(?string $value): string
+    {
+        if ($value === null || $value === '' || mb_check_encoding($value, 'UTF-8')) {
+            return $value ?? '';
+        }
+
+        $sourceEncoding = mb_detect_encoding(
+            $value,
+            ['Windows-1252', 'ISO-8859-1'],
+            true
+        ) ?: 'Windows-1252';
+
+        return mb_convert_encoding($value, 'UTF-8', $sourceEncoding);
+    }
+
+    public function show(string $id): void
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit(string $id): void
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): void
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(string $id): void
     {
         //
     }

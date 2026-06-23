@@ -162,11 +162,15 @@ export default function QualityAssurancePage(): JSX.Element {
                             { name: 'Review Summary', position: 'center' },
                             { name: 'Actions', position: 'center' },
                         ]}
-                        renderRow={(batch) => (
+                        renderRow={(batch) => {
+                            const isCurrentQualityBatch =
+                                batch.status === 'for quality approval';
+
+                            return (
                             <tr
-                                key={batch.id}
-                                className="border-b border-slate-100 bg-white"
-                            >
+                                    key={batch.id}
+                                    className="border-b border-slate-100 bg-white"
+                                >
                                 <td className="px-6 py-4 align-center">
                                     <p className="font-semibold text-slate-900">
                                         {batch.batch_name}
@@ -222,20 +226,26 @@ export default function QualityAssurancePage(): JSX.Element {
                                         </Link>
                                         <Button
                                             type="button"
-                                            disabled={(batch.pending ?? 0) > 0}
+                                            disabled={
+                                                !isCurrentQualityBatch ||
+                                                (batch.pending ?? 0) > 0
+                                            }
                                             onClick={() => {
                                                 setBatchName(batch.batch_name);
                                                 setIsConfirmationOpen(true);
                                             }}
-                                            className="h-10 bg-sky-700 text-white hover:bg-sky-800"
+                                            className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                                         >
                                             <Forward className="size-4" />{' '}
-                                            Forward to Publishing
+                                            {isCurrentQualityBatch
+                                                ? 'Forward to Publishing'
+                                                : 'Reviewed'}
                                         </Button>
                                     </div>
                                 </td>
                             </tr>
-                        )}
+                            );
+                        }}
                         searchPlaceholder="Search batches"
                         onRefresh={() => refetch()}
                         isLoading={isFetching}

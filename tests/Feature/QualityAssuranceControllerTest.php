@@ -105,6 +105,36 @@ test('quality assurance index returns stage-specific request counts', function (
         ->assertJsonPath('analytics.for_quality_assurance', 1);
 });
 
+test('quality assurance index includes reviewed batches after unreviewed batches', function () {
+    $reviewedBatch = createQualityBatch([
+        'batch_name' => 'Already Reviewed QA Batch',
+        'status' => 'for publishing',
+        'quality_approval_date' => '2026-06-30 08:00:00',
+        'created_at' => now(),
+    ]);
+    $unreviewedBatch = createQualityBatch([
+        'batch_name' => 'Current QA Batch',
+        'status' => 'for quality approval',
+        'created_at' => now()->subDay(),
+    ]);
+    createQualityRequest($reviewedBatch, 4);
+    createQualityRequest($unreviewedBatch, 2);
+    createQualityBatch([
+        'batch_name' => 'Committee Batch',
+        'status' => 'for initial review',
+    ]);
+    $user = createQualityUser();
+
+    $this->actingAs($user)
+        ->getJson('/quality-assurance-batches')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.batch_name', 'Current QA Batch')
+        ->assertJsonPath('data.1.batch_name', 'Already Reviewed QA Batch')
+        ->assertJsonPath('analytics.for_quality_assurance', 1)
+        ->assertJsonPath('analytics.reviewed', 1);
+});
+
 test('quality assurance request list excludes committee-disapproved requests', function () {
     $batch = createQualityBatch(['batch_name' => 'Filtered QA Batch']);
     $user = createQualityUser();

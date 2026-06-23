@@ -4,6 +4,7 @@ import {
     ClipboardCheck,
     Layers3,
     ListChecks,
+    SendToBack,
     Settings2,
     ShieldCheck,
     UsersRound,
@@ -44,6 +45,11 @@ const workflowItems: NavItem[] = [
         title: 'For Quality Assurance',
         href: '/quality-assurance-page',
         icon: ShieldCheck,
+    },
+    {
+        title: 'For Publishing',
+        href: '/publishing-page',
+        icon: SendToBack,
     },
 ];
 

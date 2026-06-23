@@ -30,7 +30,10 @@ class CommitteeReviewController extends Controller
 
         $query = Batch::select('id', 'batch_name', 'content_source', 'batch_description', 'target_initial_review_date', 'initial_reviewed_date', 'status')
             ->where('is_active', 1)
-            ->where('status', 'for initial review')
+            ->where(function ($query): void {
+                $query->where('status', 'for initial review')
+                    ->orWhereNotNull('initial_reviewed_date');
+            })
             ->withCount([
                 'approvalRequests as pending' => fn ($query) => $query->where('approval_status', 1),
                 'approvalRequests as approved' => fn ($query) => $query->where('approval_status', 2),
@@ -46,17 +49,21 @@ class CommitteeReviewController extends Controller
             });
         }
 
-        $analyticsQuery = clone $query;
         $analytics = [
-            'for_committee_review' => (clone $analyticsQuery)
+            'for_committee_review' => Batch::query()
+                ->where('is_active', 1)
                 ->where('status', 'for initial review')
                 ->count(),
-            'reviewed' => (clone $analyticsQuery)
-                ->where('initial_reviewed_date', '!=', null)
+            'reviewed' => Batch::query()
+                ->where('is_active', 1)
+                ->whereNotNull('initial_reviewed_date')
                 ->count(),
         ];
 
-        $paginatedBatches = $query->orderBy('created_at', 'desc')->paginate(5);
+        $paginatedBatches = $query
+            ->orderByRaw("case when status = 'for initial review' then 0 else 1 end")
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
 
         return response()->json([
             ...$paginatedBatches->toArray(),
@@ -118,38 +125,37 @@ class CommitteeReviewController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($validated): void {
-                $approvalRequest = ApprovalRequest::where('HoldingsID', $validated['holdings_id'])->firstOrFail();
-                $approvalStatus = $validated['review_decision'] === 'disapproved' ? 3 : 2;
+            DB::beginTransaction();
+            $approvalRequest = ApprovalRequest::where('HoldingsID', $validated['holdings_id'])->firstOrFail();
+            $approvalStatus = $validated['review_decision'] === 'disapproved' ? 3 : 2;
+            $approvalRequest->forceFill([
+                'approval_status' => $approvalStatus,
+            ])->save();
 
-                $approvalRequest->forceFill([
-                    'approval_status' => $approvalStatus,
-                    'committee_reviewed_date' => today()->toDateString(),
-                ])->save();
+            $log = ApprovalLog::query()->forceCreate([
+                'approval_request_id' => $approvalRequest->id,
+                'content_reviewer_id' => Auth::id(),
+                'batch_id' => $approvalRequest->batch_id,
+                'is_approved' => $approvalStatus === 2,
+                'progress_status' => $approvalStatus,
+                'remarks' => $validated['remarks'] ?? '',
+            ]);
 
-                $log = ApprovalLog::query()->forceCreate([
+            $disapprovalReasons = $approvalStatus === 3 ? $validated['disapproval_reasons'] ?? [] : [];
+
+            foreach ($disapprovalReasons as $reason) {
+                LogDetail::query()->forceCreate([
                     'approval_request_id' => $approvalRequest->id,
                     'content_reviewer_id' => Auth::id(),
-                    'batch_id' => $approvalRequest->batch_id,
-                    'is_approved' => $approvalStatus === 2,
-                    'progress_status' => $approvalStatus,
-                    'remarks' => $validated['remarks'] ?? '',
+                    'content_log_id' => $log->id,
+                    'remarks' => $reason,
                 ]);
-
-                $disapprovalReasons = $approvalStatus === 3 ? $validated['disapproval_reasons'] ?? [] : [];
-
-                foreach ($disapprovalReasons as $reason) {
-                    LogDetail::query()->forceCreate([
-                        'approval_request_id' => $approvalRequest->id,
-                        'content_reviewer_id' => Auth::id(),
-                        'content_log_id' => $log->id,
-                        'remarks' => $reason,
-                    ]);
-                }
-            });
+            }
+            DB::commit();
 
             return response()->json(['message' => 'Review successfully saved.']);
         } catch (\Throwable $exception) {
+            DB::rollBack();
             report($exception);
 
             return response()->json([
@@ -169,7 +175,11 @@ class CommitteeReviewController extends Controller
         $batches = Batch::query()
             ->where('quarter', $validated['quarter'])
             ->where('year', $validated['year'])
-            ->where('status', 'for initial review')
+            ->where('status', '!=', 'for initial review')
+            ->whereHas(
+                'approvalRequests.approvalLogs',
+                fn ($query) => $query->whereIn('progress_status', [2, 3])
+            )
             ->with([
                 'approvalRequests' => fn ($query) => $query
                     ->whereHas(
@@ -208,16 +218,10 @@ class CommitteeReviewController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($batch): void {
-            $batch->approvalRequests()
-                ->where('approval_status', 2)
-                ->update(['approval_status' => 1]);
-
-            $batch->update([
-                'status' => 'for quality approval',
-                'initial_reviewed_date' => now(),
-            ]);
-        });
+        $batch->update([
+            'status' => 'for quality approval',
+            'initial_reviewed_date' => now(),
+        ]);
 
         return response()->json(['message' => 'Batch successfully forwarded to Quality Assurance Approval.']);
     }

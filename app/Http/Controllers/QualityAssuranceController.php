@@ -26,16 +26,19 @@ class QualityAssuranceController extends Controller
         $query = Batch::query()
             ->select('id', 'batch_name', 'content_source', 'batch_description', 'target_quality_approval_date', 'quality_approval_date', 'status')
             ->where('is_active', 1)
-            ->where('status', 'for quality approval')
+            ->where(function ($query): void {
+                $query->where('status', 'for quality approval')
+                    ->orWhereNotNull('quality_approval_date');
+            })
             ->withCount([
-                'approvalRequests as pending' => fn($query) => $query->where('approval_status', 2),
-                'approvalRequests as approved' => fn($query) => $query->whereHas(
+                'approvalRequests as pending' => fn ($query) => $query->where('approval_status', 2),
+                'approvalRequests as approved' => fn ($query) => $query->whereHas(
                     'approvalLogs',
-                    fn($query) => $query->where('progress_status', 4)
+                    fn ($query) => $query->where('progress_status', 4)
                 ),
-                'approvalRequests as rejected' => fn($query) => $query->whereHas(
+                'approvalRequests as rejected' => fn ($query) => $query->whereHas(
                     'approvalLogs',
-                    fn($query) => $query->where('progress_status', 5)
+                    fn ($query) => $query->where('progress_status', 5)
                 ),
             ]);
 
@@ -43,20 +46,26 @@ class QualityAssuranceController extends Controller
             $search = $request->string('search')->toString();
 
             $query->where(function ($builder) use ($search): void {
-                $builder->where('batch_name', 'like', '%' . $search . '%')
-                    ->orWhere('batch_description', 'like', '%' . $search . '%');
+                $builder->where('batch_name', 'like', '%'.$search.'%')
+                    ->orWhere('batch_description', 'like', '%'.$search.'%');
             });
         }
 
         $analytics = [
-            'for_quality_assurance' => (clone $query)->count(),
+            'for_quality_assurance' => Batch::query()
+                ->where('is_active', 1)
+                ->where('status', 'for quality approval')
+                ->count(),
             'reviewed' => Batch::query()
                 ->where('is_active', 1)
                 ->whereNotNull('quality_approval_date')
                 ->count(),
         ];
 
-        $paginatedBatches = $query->latest()->paginate(5);
+        $paginatedBatches = $query
+            ->orderByRaw("case when status = 'for quality approval' then 0 else 1 end")
+            ->latest()
+            ->paginate(5);
 
         return response()->json([
             ...$paginatedBatches->toArray(),
@@ -68,7 +77,10 @@ class QualityAssuranceController extends Controller
     {
         $batch = Batch::query()
             ->where('batch_name', $name)
-            ->where('status', 'for quality approval')
+            ->where(function ($query): void {
+                $query->where('status', 'for quality approval')
+                    ->orWhereNotNull('quality_approval_date');
+            })
             ->firstOrFail();
 
         $approvalRequests = $batch->approvalRequests()
@@ -76,7 +88,7 @@ class QualityAssuranceController extends Controller
                 $query->where('approval_status', 2)
                     ->orWhereHas(
                         'approvalLogs',
-                        fn($query) => $query->whereIn('progress_status', [4, 5])
+                        fn ($query) => $query->whereIn('progress_status', [4, 5])
                     );
             })
             ->orderBy('approval_status')
@@ -94,7 +106,7 @@ class QualityAssuranceController extends Controller
             ->with('batch')
             ->where('HoldingsID', $holdingsID)
             ->where('approval_status', 2)
-            ->whereHas('batch', fn($query) => $query->where('status', 'for quality approval'))
+            ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
             ->firstOrFail();
 
         return Inertia::render('quality-assurance/partials/review-request-form', [
@@ -118,38 +130,37 @@ class QualityAssuranceController extends Controller
             ])],
         ]);
 
-        DB::transaction(function () use ($validated): void {
-            $approvalRequest = ApprovalRequest::query()
-                ->where('HoldingsID', $validated['holdings_id'])
-                ->where('approval_status', 2)
-                ->whereHas('batch', fn($query) => $query->where('status', 'for quality approval'))
-                ->lockForUpdate()
-                ->firstOrFail();
-            $approvalStatus = $validated['review_decision'] === 'approved' ? 4 : 5;
+        DB::beginTransaction();
+        $approvalRequest = ApprovalRequest::query()
+            ->where('HoldingsID', $validated['holdings_id'])
+            ->where('approval_status', 2)
+            ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
+            ->lockForUpdate()
+            ->firstOrFail();
+        $approvalStatus = $validated['review_decision'] === 'approved' ? 4 : 5;
 
-            $approvalRequest->update(['approval_status' => $approvalStatus]);
+        $approvalRequest->update(['approval_status' => $approvalStatus]);
 
-            $approvalLog = ApprovalLog::query()->forceCreate([
+        $approvalLog = ApprovalLog::query()->forceCreate([
+            'approval_request_id' => $approvalRequest->id,
+            'content_reviewer_id' => Auth::id(),
+            'batch_id' => $approvalRequest->batch_id,
+            'is_approved' => $approvalStatus === 4,
+            'progress_status' => $approvalStatus,
+            'remarks' => $validated['remarks'] ?? '',
+        ]);
+
+        $disapprovalReasons = $approvalStatus === 5 ? $validated['disapproval_reasons'] ?? [] : [];
+
+        foreach ($disapprovalReasons as $reason) {
+            LogDetail::query()->forceCreate([
                 'approval_request_id' => $approvalRequest->id,
                 'content_reviewer_id' => Auth::id(),
-                'batch_id' => $approvalRequest->batch_id,
-                'is_approved' => $approvalStatus === 4,
-                'progress_status' => $approvalStatus,
-                'remarks' => $validated['remarks'] ?? '',
+                'content_log_id' => $approvalLog->id,
+                'remarks' => $reason,
             ]);
-
-
-            $disapprovalReasons = $approvalStatus === 5 ? $validated['disapproval_reasons'] ?? [] : [];
-
-            foreach ($disapprovalReasons as $reason) {
-                LogDetail::query()->forceCreate([
-                    'approval_request_id' => $approvalRequest->id,
-                    'content_reviewer_id' => Auth::id(),
-                    'content_log_id' => $approvalLog->id,
-                    'remarks' => $reason,
-                ]);
-            }
-        });
+        }
+        DB::commit();
 
         return response()->json(['message' => 'Quality assurance review successfully saved.']);
     }
@@ -166,16 +177,16 @@ class QualityAssuranceController extends Controller
             ->where('year', $validated['year'])
             ->whereHas(
                 'approvalRequests.approvalLogs',
-                fn($query) => $query->whereIn('progress_status', [4, 5])
+                fn ($query) => $query->whereIn('progress_status', [4, 5])
             )
             ->with([
-                'approvalRequests' => fn($query) => $query
+                'approvalRequests' => fn ($query) => $query
                     ->whereHas(
                         'approvalLogs',
-                        fn($query) => $query->whereIn('progress_status', [4, 5])
+                        fn ($query) => $query->whereIn('progress_status', [4, 5])
                     )
                     ->with([
-                        'approvalLogs' => fn($query) => $query
+                        'approvalLogs' => fn ($query) => $query
                             ->whereIn('progress_status', [4, 5])
                             ->with([
                                 'logDetails',
@@ -188,7 +199,7 @@ class QualityAssuranceController extends Controller
         return response()->json([
             'batches' => $batches,
             'records' => $batches
-                ->flatMap(fn(Batch $batch) => $batch->approvalRequests)
+                ->flatMap(fn (Batch $batch) => $batch->approvalRequests)
                 ->values(),
         ]);
     }

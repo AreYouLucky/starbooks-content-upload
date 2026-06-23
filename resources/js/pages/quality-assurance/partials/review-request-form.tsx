@@ -141,8 +141,8 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <div className="flex flex-col gap-4 xl:flex-row">
-                <section className="min-w-0 flex-1 rounded-2xl border border-sky-200 bg-white p-6 shadow-sm">
+            <div className="grid grid-cols-4 gap-4">
+                <section className="min-w-0 flex-1 rounded-2xl border border-sky-200 bg-white p-6 shadow-sm col-span-3">
                     {request ? (
                         <ContentViewer fields={request} />
                     ) : (
@@ -151,7 +151,7 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
                         </div>
                     )}
                 </section>
-                <section className="h-fit w-full rounded-2xl border border-sky-200 bg-white p-6 shadow-sm xl:w-96">
+                <section className="h-fit w-full rounded-2xl border border-sky-200 bg-white p-6 shadow-sm ">
                     <h1 className="text-lg font-semibold text-slate-900">
                         Quality Assurance Review
                     </h1>

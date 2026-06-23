@@ -83,6 +83,7 @@ export default function CommitteeReviewPage() {
             onSuccess: (res) => {
                 if(res.message) {   
                 toast.success(res.message);
+                setShowConfirmation(false);
                 }
             },
             onError: (error) => {
@@ -202,6 +203,9 @@ export default function CommitteeReviewPage() {
                             { name: 'Actions', position: 'center' },
                         ]}
                         renderRow={(batch) => {
+                            const isCurrentReviewBatch =
+                                batch.status === 'for initial review';
+
                             return (
                                 <tr
                                     key={batch.id}
@@ -276,9 +280,20 @@ export default function CommitteeReviewPage() {
                                                 <Eye className="size-4" />
                                                 View Requests
                                             </Link>
-                                            <Button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800" onClick={() => { setBatchName(batch.batch_name); setShowConfirmation(true);}}>
+                                            <Button
+                                                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                                disabled={!isCurrentReviewBatch}
+                                                onClick={() => {
+                                                    setBatchName(
+                                                        batch.batch_name,
+                                                    );
+                                                    setShowConfirmation(true);
+                                                }}
+                                            >
                                                 <Forward className="size-4" />
-                                                Forward to QA
+                                                {isCurrentReviewBatch
+                                                    ? 'Forward to QA'
+                                                    : 'Reviewed'}
                                             </Button>
                                         </div>
                                     </td>

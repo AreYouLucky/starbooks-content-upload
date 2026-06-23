@@ -170,8 +170,8 @@ export default function ReviewRequestForm() {
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <div className="space-y-4 flex flex-row gap-4">
-        <section className="relative overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-500 shadow-sm p-6">
+      <div className="space-y-4 grid grid-cols-5 gap-4">
+        <section className="relative overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-500 shadow-sm p-6 col-span-4">
           {request ? (
             <ContentViewer fields={request} />
           ) : (
@@ -180,7 +180,7 @@ export default function ReviewRequestForm() {
             </div>
           )}
         </section>
-        <section className="relative h-fit w-280 overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-700 shadow-sm">
+        <section className="relative h-fit col-span-1 overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-700 shadow-sm">
           <div className='p-6 space-y-2'>
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-slate-900">Committee Review</h2>

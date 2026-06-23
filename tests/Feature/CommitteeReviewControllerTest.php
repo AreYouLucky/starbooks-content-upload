@@ -118,10 +118,41 @@ test('committee review index filters batches without changing their request coun
         ->assertJsonPath('data.0.rejected', 0);
 });
 
+test('committee review index includes reviewed batches after unreviewed batches', function () {
+    $reviewedBatch = createCommitteeBatch([
+        'batch_name' => 'Already Reviewed Committee Batch',
+        'status' => 'for quality approval',
+        'initial_reviewed_date' => '2026-06-20 08:00:00',
+        'created_at' => now(),
+    ]);
+    $unreviewedBatch = createCommitteeBatch([
+        'batch_name' => 'Current Committee Batch',
+        'status' => 'for initial review',
+        'created_at' => now()->subDay(),
+    ]);
+    createApprovalRequestForBatch($reviewedBatch, 2);
+    createApprovalRequestForBatch($unreviewedBatch, 1);
+    createCommitteeBatch([
+        'batch_name' => 'Shortlisting Batch',
+        'status' => 'for shortlisting',
+    ]);
+    $user = createCommitteeUser();
+
+    $this->actingAs($user)
+        ->getJson('/committee-review-batches')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.batch_name', 'Current Committee Batch')
+        ->assertJsonPath('data.1.batch_name', 'Already Reviewed Committee Batch')
+        ->assertJsonPath('analytics.for_committee_review', 1)
+        ->assertJsonPath('analytics.reviewed', 1);
+});
+
 test('committee report returns reviewed requests with their logs and details', function () {
     $batch = createCommitteeBatch([
         'batch_name' => 'Reviewed Committee Batch',
         'quarter' => 'Q3',
+        'status' => 'for quality approval',
         'year' => '2026',
     ]);
     $reviewedRequest = createApprovalRequestForBatch($batch, 1);
@@ -129,8 +160,16 @@ test('committee report returns reviewed requests with their logs and details', f
     createCommitteeBatch([
         'batch_name' => 'Different Quarter Batch',
         'quarter' => 'Q4',
+        'status' => 'for quality approval',
         'year' => '2026',
     ]);
+    $batchWithoutReviewedLogs = createCommitteeBatch([
+        'batch_name' => 'No Reviewed Logs Batch',
+        'quarter' => 'Q3',
+        'status' => 'for quality approval',
+        'year' => '2026',
+    ]);
+    createApprovalRequestForBatch($batchWithoutReviewedLogs, 2);
     $user = createCommitteeUser();
 
     $approvalLog = ApprovalLog::query()->create([
@@ -165,6 +204,7 @@ test('committee report returns reviewed requests with their logs and details', f
         ->getJson('/generate-committee-report?quarter=Q3&year=2026')
         ->assertOk()
         ->assertJsonCount(1, 'batches')
+        ->assertJsonMissingPath('batches.1')
         ->assertJsonCount(1, 'batches.0.approval_requests')
         ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs')
         ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs.0.log_details')
