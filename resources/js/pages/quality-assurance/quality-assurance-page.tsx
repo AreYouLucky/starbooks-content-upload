@@ -215,6 +215,7 @@ export default function QualityAssurancePage(): JSX.Element {
                                         )}
                                     </div>
                                 </td>
+                                {/* Action Tab  */}
                                 <td className="px-6 py-4 align-middle">
                                     <div className="flex flex-wrap justify-center gap-2">
                                         <Link
