@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const buttonVariants = cva(
   "inline-flex hover:scale-[1.1] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow,transform] hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
@@ -39,19 +40,45 @@ function Button({
   variant,
   size,
   asChild = false,
+  popover,
+  popoverSide = "top",
+  title,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    popover?: React.ReactNode
+    popoverSide?: React.ComponentProps<typeof TooltipContent>["side"]
   }) {
   const Comp = asChild ? Slot : "button"
+  const popoverContent = popover
 
-  return (
+  const button = (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      title={title}
       {...props}
-    />
+    >
+      {children}
+    </Comp>
+  )
+
+  if (!popoverContent) {
+    return button
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent
+        side={popoverSide}
+        className="bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-sky-950/10 [&_svg]:fill-sky-600"
+      >
+        {popoverContent}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

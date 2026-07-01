@@ -381,7 +381,7 @@ export default function Dashboard(): JSX.Element {
                     </div>
                 )}
 
-                <section className="rounded-lg border border-sky-100 bg-linear-to-br from-red-400 via-orange-300 to-orange-100 shadow-sm">
+                <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
                     <div className="flex flex-col gap-2  px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 className="flex items-center gap-2 text-base font-bold text-slate-50">

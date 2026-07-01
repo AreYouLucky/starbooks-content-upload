@@ -30,26 +30,31 @@ const workflowItems: NavItem[] = [
         title: 'Batches',
         href: '/view-batches',
         icon: Layers3,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
     {
         title: 'For Shortlisting',
         href: '/view-shortlisted',
         icon: ListChecks,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
     {
         title: 'For Committee Review',
         href: '/committee-review-page',
         icon: ClipboardCheck,
+        allowedRoles: ['admin', 'super_admin', 'committee'],
     },
     {
         title: 'For Quality Assurance',
         href: '/quality-assurance-page',
         icon: ShieldCheck,
+        allowedRoles: ['admin', 'super_admin',  'quality'],
     },
     {
         title: 'For Publishing',
         href: '/publishing-page',
         icon: SendToBack,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
 ];
 
@@ -58,6 +63,7 @@ const configurationItems: NavItem[] = [
         title: 'Manage Users',
         href: '/manage-users',
         icon: UsersRound,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
 ];
 
@@ -67,27 +73,27 @@ const menuButtonClassName =
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage<SharedData>().props;
-    const canManageContent =
-        auth.user?.role === 'super_admin' || auth.user?.role === 'stii_admin';
+    const userRole = auth.user?.role;
 
-    const sections: NavigationSection[] = canManageContent
-        ? [
-              {
-                  label: 'Content Management',
-                  icon: BookOpenCheck,
-                  items: workflowItems,
-              },
-              {
-                  label: 'Configurations',
-                  icon: Settings2,
-                  items: configurationItems,
-              },
-          ]
-        : [];
+    const sections: NavigationSection[] = [
+        {
+            label: 'Content Management',
+            icon: BookOpenCheck,
+            items: filterNavigationItems(workflowItems, userRole),
+        },
+        {
+            label: 'Configurations',
+            icon: Settings2,
+            items: filterNavigationItems(configurationItems, userRole),
+        },
+    ].filter((section) => section.items.length > 0);
 
     return (
         <SidebarGroup className="gap-5 p-0 group-data-[collapsible=icon]:gap-1.5">
-            <NavigationMenu items={items} isCurrentUrl={isCurrentUrl} />
+            <NavigationMenu
+                items={filterNavigationItems(items, userRole)}
+                isCurrentUrl={isCurrentUrl}
+            />
 
             {sections.map((section) => (
                 <div
@@ -106,6 +112,16 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
             ))}
         </SidebarGroup>
     );
+}
+
+function filterNavigationItems(items: NavItem[], userRole?: string): NavItem[] {
+    return items.filter((item) => {
+        if (!item.allowedRoles || item.allowedRoles.length === 0) {
+            return true;
+        }
+
+        return Boolean(userRole && item.allowedRoles.includes(userRole));
+    });
 }
 
 function NavigationMenu({
