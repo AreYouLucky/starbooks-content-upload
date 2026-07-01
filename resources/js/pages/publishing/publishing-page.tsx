@@ -5,13 +5,17 @@ import {
     CalendarDays,
     CheckCircle2,
     Clock3,
+    FileSpreadsheet,
     FolderSync,
     PackageCheck,
+    Send,
     Search,
     type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -19,9 +23,12 @@ import { useHandleChange } from '@/hooks/use-handle-change';
 import { displayDate, getPageFromUrl } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import {
+    getPublishingErrorMessage,
     useFetchPublishingBatches,
+    usePublishBatch,
     type PublishingBatch,
 } from './partials/publishing-hooks';
+import GenerateReport from './partials/generate-report';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -30,15 +37,35 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function PublishingPage(): JSX.Element {
     const [page, setPage] = useState(1);
+    const [batchName, setBatchName] = useState('');
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [isGenerateReportOpen, setIsGenerateReportOpen] = useState(false);
     const { item, setItem } = useHandleChange({ search: '' });
     const debouncedSearch = useDebounce(item.search, 1000);
     const { data, isFetching, refetch } = useFetchPublishingBatches(page, {
         search: debouncedSearch,
     });
+    const publishBatch = usePublishBatch();
     const analytics = data?.analytics ?? {
         for_publishing: 0,
         published: 0,
         total_batches: 0,
+    };
+
+    const handlePublish = (): void => {
+        publishBatch.mutate(
+            { batchName },
+            {
+                onSuccess: (response) => {
+                    setIsConfirmationOpen(false);
+                    toast.success(response.message);
+                },
+                onError: (error) => {
+                    setIsConfirmationOpen(false);
+                    toast.error(getPublishingErrorMessage(error));
+                },
+            },
+        );
     };
 
     return (
@@ -97,10 +124,18 @@ export default function PublishingPage(): JSX.Element {
                             <FolderSync className="size-4" /> Refresh
                         </Button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <p className="text-sm text-slate-600">
                             Total Batches: {analytics.total_batches}
                         </p>
+                        <Button
+                            type="button"
+                            onClick={() => setIsGenerateReportOpen(true)}
+                            className="h-10 bg-sky-600 text-white hover:bg-sky-700"
+                        >
+                            <FileSpreadsheet className="size-4" /> Generate
+                            Report
+                        </Button>
                     </div>
                 </div>
 
@@ -116,56 +151,83 @@ export default function PublishingPage(): JSX.Element {
                             { name: 'Status', position: 'center' },
                             { name: 'Actions', position: 'center' },
                         ]}
-                        renderRow={(batch) => (
-                            <tr
-                                key={batch.id}
-                                className="border-b border-slate-100 bg-white"
-                            >
-                                <td className="px-6 py-4 align-middle">
-                                    <p className="font-semibold text-slate-900">
-                                        {batch.batch_name}
-                                    </p>
-                                    <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
-                                        {batch.batch_description}
-                                    </p>
-                                </td>
-                                <td className="px-6 py-4 align-middle text-sm font-semibold text-slate-600">
-                                    {batch.content_source}
-                                </td>
-                                <td className="px-6 py-4 align-middle">
-                                    <span className="flex items-center gap-2 text-sm text-slate-600">
-                                        <CalendarDays className="size-4 text-cyan-500" />
-                                        {displayDate(batch.target_published_date)}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 align-middle">
-                                    <span className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Clock3 className="size-4 text-emerald-500" />
-                                        {displayDate(
-                                            batch.quality_approval_date ?? '',
-                                        )}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 align-middle text-center">
-                                    <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
-                                        <Archive className="size-3.5" />
-                                        {batch.records_count ?? 0}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 align-middle text-center">
-                                    <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
-                                        <PackageCheck className="size-3.5" />
-                                        Ready
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 align-middle text-center">
-                                    <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
-                                        <PackageCheck className="size-3.5" />
-                                        Ready
-                                    </span>
-                                </td>
-                            </tr>
-                        )}
+                        renderRow={(batch) => {
+                            const isPublished = batch.status === 'published';
+                            const isPublishingCurrentBatch =
+                                publishBatch.isPending &&
+                                batchName === batch.batch_name;
+
+                            return (
+                                <tr
+                                    key={batch.id}
+                                    className="border-b border-slate-100 bg-white"
+                                >
+                                    <td className="px-6 py-4 align-middle">
+                                        <p className="font-semibold text-slate-900">
+                                            {batch.batch_name}
+                                        </p>
+                                        <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
+                                            {batch.batch_description}
+                                        </p>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle text-sm font-semibold text-slate-600">
+                                        {batch.content_source}
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <span className="flex items-center gap-2 text-sm text-slate-600">
+                                            <CalendarDays className="size-4 text-cyan-500" />
+                                            {displayDate(
+                                                batch.target_published_date,
+                                            )}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <span className="flex items-center gap-2 text-sm text-slate-600">
+                                            <Clock3 className="size-4 text-emerald-500" />
+                                            {displayDate(
+                                                batch.quality_approval_date ??
+                                                    '',
+                                            )}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center align-middle">
+                                        <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
+                                            <Archive className="size-3.5" />
+                                            {batch.records_count ?? 0}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center align-middle">
+                                        <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                                            <PackageCheck className="size-3.5" />
+                                            {isPublished
+                                                ? 'Published'
+                                                : 'Ready'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center align-middle">
+                                        <Button
+                                            type="button"
+                                            disabled={
+                                                isPublished ||
+                                                isPublishingCurrentBatch
+                                            }
+                                            onClick={() => {
+                                                setBatchName(batch.batch_name);
+                                                setIsConfirmationOpen(true);
+                                            }}
+                                            className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                        >
+                                            <Send className="size-4" />
+                                            {isPublishingCurrentBatch
+                                                ? 'Publishing...'
+                                                : isPublished
+                                                  ? 'Published'
+                                                  : 'Publish'}
+                                        </Button>
+                                    </td>
+                                </tr>
+                            );
+                        }}
                         searchPlaceholder="Search batches"
                         onRefresh={() => refetch()}
                         isLoading={isFetching}
@@ -183,6 +245,18 @@ export default function PublishingPage(): JSX.Element {
                     />
                 </div>
             </section>
+
+            <ConfirmationDialog
+                show={isConfirmationOpen}
+                type={2}
+                onClose={() => setIsConfirmationOpen(false)}
+                message="Are you sure you want to publish this batch?"
+                onConfirm={handlePublish}
+            />
+            <GenerateReport
+                show={isGenerateReportOpen}
+                onClose={() => setIsGenerateReportOpen(false)}
+            />
         </div>
     );
 }

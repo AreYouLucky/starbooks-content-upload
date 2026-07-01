@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -10,7 +11,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
+
     protected $table = 'content_reviewers';
+
     protected $fillable = [
         'username',
         'full_name',
@@ -21,6 +24,7 @@ class User extends Authenticatable
         'task_description',
         'password',
     ];
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -31,5 +35,10 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
         ];
+    }
+
+    public function approvalLogs(): HasMany
+    {
+        return $this->hasMany(ApprovalLog::class, 'content_reviewer_id');
     }
 }

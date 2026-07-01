@@ -1,5 +1,11 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import axios from 'axios';
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+    type UseMutationResult,
+    type UseQueryResult,
+} from '@tanstack/react-query';
+import axios, { type AxiosError } from 'axios';
 import type { BatchModel } from '@/types/model';
 
 type PublishingAnalytics = {
@@ -27,8 +33,20 @@ type Filters = {
     search: string;
 };
 
-export type PublishingPaginatedResponse =
-    PaginatedResponse<PublishingBatch>;
+type ApiResponse = {
+    message: string;
+};
+
+export type PublishingApiError = {
+    message?: string;
+    error?: string;
+};
+
+type PublishBatchVariables = {
+    batchName: string;
+};
+
+export type PublishingPaginatedResponse = PaginatedResponse<PublishingBatch>;
 
 export type { PublishingBatch };
 
@@ -49,4 +67,36 @@ export function useFetchPublishingBatches(
         staleTime: 60_000,
         refetchOnWindowFocus: false,
     });
+}
+
+export function usePublishBatch(): UseMutationResult<
+    ApiResponse,
+    AxiosError<PublishingApiError>,
+    PublishBatchVariables
+> {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        ApiResponse,
+        AxiosError<PublishingApiError>,
+        PublishBatchVariables
+    >({
+        mutationFn: ({ batchName }) =>
+            axios
+                .post<ApiResponse>('/publish-batch', { batchName })
+                .then((response) => response.data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['publishing-batches'] });
+        },
+    });
+}
+
+export function getPublishingErrorMessage(
+    error: AxiosError<PublishingApiError>,
+): string {
+    return (
+        error.response?.data?.message ??
+        error.response?.data?.error ??
+        'The batch could not be published.'
+    );
 }
