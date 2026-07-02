@@ -400,8 +400,8 @@ export default function Dashboard(): JSX.Element {
                     </div>
                     <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
                         {data.urgent_batches.length === 0 ? (
-                            <div className="rounded-lg border border-dashed border-sky-200 bg-sky-50/60 px-4 py-6 text-center text-sm text-slate-500 lg:col-span-2 xl:col-span-4">
-                                No late review batches in this scope.
+                            <div className="rounded-lg border border-dashed border-sky-200 bg-sky-50/90 px-4 py-6 text-center text-sm text-slate-700 lg:col-span-2 xl:col-span-4">
+                                No late review batches.
                             </div>
                         ) : (
                             data.urgent_batches.map((batch) => (
@@ -645,7 +645,7 @@ export default function Dashboard(): JSX.Element {
                                 Recent Batches
                             </h2>
                             <p className="text-sm text-slate-500">
-                                Latest batch activity in the selected scope.
+                                Latest batch activity.
                             </p>
                         </div>
                         <div className="divide-y divide-sky-50">
