@@ -23,6 +23,8 @@ import { useHandleChange } from '@/hooks/use-handle-change';
 import { displayDate, getPageFromUrl } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { BatchModel } from '@/types/model';
+import { usePage } from '@inertiajs/react';
+import { SharedData } from '@/types';
 import {
     getQualityAssuranceErrorMessage,
     useFetchQualityAssurance,
@@ -58,6 +60,7 @@ const summaryItems = [
 
 export default function QualityAssurancePage(): JSX.Element {
     const [page, setPage] = useState(1);
+    const { auth } = usePage<SharedData>().props;
     const [batchName, setBatchName] = useState('');
     const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [isGenerateReportOpen, setIsGenerateReportOpen] = useState(false);
@@ -167,84 +170,89 @@ export default function QualityAssurancePage(): JSX.Element {
                                 batch.status === 'for quality approval';
 
                             return (
-                            <tr
+                                <tr
                                     key={batch.id}
                                     className="border-b border-slate-100 bg-white"
                                 >
-                                <td className="px-6 py-4 align-center">
-                                    <p className="font-semibold text-slate-900">
-                                        {batch.batch_name}
-                                    </p>
-                                    <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
-                                        {batch.batch_description}
-                                    </p>
-                                </td>
-                                <td className="px-6 py-4 align-middle text-sm font-semibold text-slate-600">
-                                    {batch.content_source}
-                                </td>
-                                <td className="px-6 py-4 align-middle">
-                                    <span className="flex items-center gap-2 text-sm text-slate-600">
-                                        <CalendarDays className="size-4 text-cyan-500" />
-                                        {displayDate(
-                                            batch.target_quality_approval_date,
-                                        )}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 align-middle">
-                                    <div className="grid gap-1.5 sm:min-w-44">
-                                        {summaryItems.map(
-                                            ({
-                                                key,
-                                                label,
-                                                icon: Icon,
-                                                tone,
-                                            }) => (
-                                                <div
-                                                    key={key}
-                                                    className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${tone}`}
-                                                >
-                                                    <span className="flex items-center gap-2">
-                                                        <Icon className="size-3.5" />
-                                                        {label}
-                                                    </span>
-                                                    <span className="text-xs font-bold">
-                                                        {batch[key] ?? 0}
-                                                    </span>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                </td>
-                                {/* Action Tab  */}
-                                <td className="px-6 py-4 align-middle">
-                                    <div className="flex flex-wrap justify-center gap-2">
-                                        <Link
-                                            href={`/view-quality-assurance-batch/${batch.batch_name}`}
-                                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
-                                        >
-                                            <Eye className="size-4" /> View
-                                            Requests
-                                        </Link>
-                                        <Button
-                                            type="button"
-                                            disabled={
-                                                !isCurrentQualityBatch ||
-                                                (batch.pending ?? 0) > 0
+                                    <td className="px-6 py-4 align-center">
+                                        <p className="font-semibold text-slate-900">
+                                            {batch.batch_name}
+                                        </p>
+                                        <p className="mt-1 max-w-md text-sm leading-6 text-slate-500">
+                                            {batch.batch_description}
+                                        </p>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle text-sm font-semibold text-slate-600">
+                                        {batch.content_source}
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <span className="flex items-center gap-2 text-sm text-slate-600">
+                                            <CalendarDays className="size-4 text-cyan-500" />
+                                            {displayDate(
+                                                batch.target_quality_approval_date,
+                                            )}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="grid gap-1.5 sm:min-w-44">
+                                            {summaryItems.map(
+                                                ({
+                                                    key,
+                                                    label,
+                                                    icon: Icon,
+                                                    tone,
+                                                }) => (
+                                                    <div
+                                                        key={key}
+                                                        className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ${tone}`}
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <Icon className="size-3.5" />
+                                                            {label}
+                                                        </span>
+                                                        <span className="text-xs font-bold">
+                                                            {batch[key] ?? 0}
+                                                        </span>
+                                                    </div>
+                                                ),
+                                            )}
+                                        </div>
+                                    </td>
+                                    {/* Action Tab  */}
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="flex flex-wrap justify-center gap-2">
+                                            <Link
+                                                href={`/view-quality-assurance-batch/${batch.batch_name}`}
+                                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+                                            >
+                                                <Eye className="size-4" /> View
+                                                Requests
+                                            </Link>
+                                            {
+                                                ['stii_admin', 'super_admin'].includes(auth.user.role) && (
+
+                                                    <Button
+                                                        type="button"
+                                                        disabled={
+                                                            !isCurrentQualityBatch ||
+                                                            (batch.pending ?? 0) > 0
+                                                        }
+                                                        onClick={() => {
+                                                            setBatchName(batch.batch_name);
+                                                            setIsConfirmationOpen(true);
+                                                        }}
+                                                        className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                                    >
+                                                        <Forward className="size-4" />{' '}
+                                                        {isCurrentQualityBatch
+                                                            ? 'Forward to Publishing'
+                                                            : 'Reviewed'}
+                                                    </Button>
+                                                )
                                             }
-                                            onClick={() => {
-                                                setBatchName(batch.batch_name);
-                                                setIsConfirmationOpen(true);
-                                            }}
-                                            className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                                        >
-                                            <Forward className="size-4" />{' '}
-                                            {isCurrentQualityBatch
-                                                ? 'Forward to Publishing'
-                                                : 'Reviewed'}
-                                        </Button>
-                                    </div>
-                                </td>
-                            </tr>
+                                        </div>
+                                    </td>
+                                </tr>
                             );
                         }}
                         searchPlaceholder="Search batches"

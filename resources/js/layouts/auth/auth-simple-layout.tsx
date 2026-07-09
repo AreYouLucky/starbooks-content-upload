@@ -14,8 +14,8 @@ export default function AuthSimpleLayout({ children }: AuthLayoutProps) {
                         </div>
 
                         <div className="space-y-1 text-center">
-                            <h1 className="mb-2 text-base font-bold tracking-[0.18em] text-sky-900 uppercase">
-                                Content Management
+                            <h1 className="mb-2 text-base font-bold tracking-[0.15em] text-sky-900 uppercase">
+                                 Content Review and Approval Portal
                             </h1>
                            
                         </div>

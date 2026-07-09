@@ -122,8 +122,7 @@ class PublishedRequestController extends Controller
     public function reportReviewers(): JsonResponse
     {
         $reviewers = User::query()
-            ->select('id', 'full_name')
-            ->whereHas('approvalLogs')
+            ->select('id', 'full_name', 'role')
             ->orderBy('full_name')
             ->get();
 
@@ -184,28 +183,49 @@ class PublishedRequestController extends Controller
             'year' => ['required', 'string', 'max:50'],
         ]);
 
+        $reviewerId = $validated['reviewer_id'];
+        $reviewLogFilter = fn ($query) => $query
+            ->where('content_reviewer_id', $reviewerId)
+            ->whereIn('progress_status', [2, 3, 4, 5]);
+
         $records = ApprovalRequest::query()
             ->select('id', 'Title', 'HoldingsID', 'batch_id')
             ->whereHas('batch', fn ($query) => $query
                 ->where('quarter', $validated['quarter'])
                 ->where('year', $validated['year']))
-            ->whereHas('approvalLogs', fn ($query) => $query
-                ->where('content_reviewer_id', $validated['reviewer_id'])
-                ->whereIn('progress_status', [2, 3, 4, 5]))
+            ->whereHas('approvalLogs', $reviewLogFilter)
             ->with([
+                'batch:id,batch_name,content_source,start_date,shortlisted_date,initial_reviewed_date,target_initial_review_date,target_quality_approval_date,target_published_date',
                 'approvalLogs' => fn ($query) => $query
-                    ->where('content_reviewer_id', $validated['reviewer_id'])
+                    ->where('content_reviewer_id', $reviewerId)
                     ->whereIn('progress_status', [2, 3, 4, 5])
                     ->orderBy('created_at')
-                    ->with('logDetails'),
+                    ->with([
+                        'logDetails',
+                        'reviewer:id,full_name,role',
+                    ]),
             ])
             ->orderBy('Title')
             ->get()
             ->flatMap(function (ApprovalRequest $approvalRequest) {
                 return $approvalRequest->approvalLogs->map(fn ($approvalLog) => [
+                    'batch_name' => $approvalRequest->batch?->batch_name,
+                    'content_source' => $approvalRequest->batch?->content_source,
                     'title' => $approvalRequest->Title,
                     'holdings_id' => $approvalRequest->HoldingsID,
+                    'reviewer_name' => $approvalLog->reviewer?->full_name,
+                    'reviewer_role' => $approvalLog->reviewer?->role,
                     'status' => $this->formatReviewStatus((int) $approvalLog->progress_status),
+                    'date_forwarded' => $this->forwardedDateForReview(
+                        $approvalRequest,
+                        (int) $approvalLog->progress_status,
+                        $approvalLog->reviewer?->role
+                    ),
+                    'target_deadline' => $this->targetDeadlineForReview(
+                        $approvalRequest,
+                        (int) $approvalLog->progress_status,
+                        $approvalLog->reviewer?->role
+                    ),
                     'review_date' => $approvalLog->created_at?->toISOString(),
                     'reason_of_disapproval' => $approvalLog->logDetails
                         ->pluck('remarks')
@@ -217,6 +237,48 @@ class PublishedRequestController extends Controller
             ->values();
 
         return response()->json(['records' => $records]);
+    }
+
+    private function forwardedDateForReview(ApprovalRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
+    {
+        if ($reviewerRole === 'quality') {
+            return $approvalRequest->batch?->initial_reviewed_date;
+        }
+
+        if ($reviewerRole === 'committee') {
+            return $approvalRequest->batch?->shortlisted_date;
+        }
+
+        if ($reviewerRole === 'stii_admin') {
+            return $approvalRequest->batch?->start_date;
+        }
+
+        return match ($progressStatus) {
+            2, 3 => $approvalRequest->batch?->shortlisted_date,
+            4, 5 => $approvalRequest->batch?->initial_reviewed_date,
+            default => $approvalRequest->batch?->start_date,
+        };
+    }
+
+    private function targetDeadlineForReview(ApprovalRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
+    {
+        if ($reviewerRole === 'quality') {
+            return $approvalRequest->batch?->target_quality_approval_date;
+        }
+
+        if ($reviewerRole === 'committee') {
+            return $approvalRequest->batch?->target_initial_review_date;
+        }
+
+        if ($reviewerRole === 'stii_admin') {
+            return $approvalRequest->batch?->target_published_date;
+        }
+
+        return match ($progressStatus) {
+            2, 3 => $approvalRequest->batch?->target_initial_review_date,
+            4, 5 => $approvalRequest->batch?->target_quality_approval_date,
+            default => $approvalRequest->batch?->target_published_date,
+        };
     }
 
     private function formatReviewStatus(int $progressStatus): string

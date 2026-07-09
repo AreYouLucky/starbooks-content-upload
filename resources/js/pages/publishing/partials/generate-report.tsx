@@ -31,6 +31,7 @@ type ReportTab = 'summary' | 'reviewer';
 type ReviewerOption = {
     id: number;
     full_name: string;
+    role: string;
 };
 
 type PublishingSummaryBatch = {
@@ -52,9 +53,15 @@ type PublishingReviewerResponse = {
 };
 
 type PublishingReviewerRecord = {
+    batch_name: string | null;
+    content_source: string | null;
     title: string | null;
     holdings_id: string | null;
+    reviewer_name: string | null;
+    reviewer_role: string | null;
     status: string;
+    date_forwarded: string | null;
+    target_deadline: string | null;
     review_date: string | null;
     reason_of_disapproval: string | null;
     remarks: string | null;
@@ -75,12 +82,14 @@ const SUMMARY_HEADERS = [
 ] as const;
 
 const REVIEWER_HEADERS = [
-    'Title',
-    'Holding ID',
-    'Status',
+    'Batch Name',
+    'Content Source',
+    'Holdings ID',
+    'Date Forwarded',
+    'Target Deadline',
     'Review Date',
-    'Reason of Disapproval',
-    'Remarks',
+    'Timeliness',
+    'Score',
 ] as const;
 
 const getQuarterLabel = (quarter: string): string => {
@@ -103,6 +112,68 @@ const formatManilaDate = (value: string | null): string => {
         dateStyle: 'medium',
         timeZone: 'Asia/Manila',
     }).format(date);
+};
+
+const getManilaDateKey = (value: string | null): string => {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'Asia/Manila',
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    const day = parts.find((part) => part.type === 'day')?.value;
+
+    return year && month && day ? `${year}-${month}-${day}` : '';
+};
+
+const getTimeliness = (
+    reviewDate: string | null,
+    targetDeadline: string | null,
+): { label: 'BTD' | 'OTD' | 'ATD' | ''; score: number } => {
+    const reviewDateKey = getManilaDateKey(reviewDate);
+    const deadlineKey = getManilaDateKey(targetDeadline);
+
+    if (!reviewDateKey || !deadlineKey) {
+        return { label: '', score: 0 };
+    }
+
+    if (reviewDateKey < deadlineKey) {
+        return { label: 'BTD', score: 5 };
+    }
+
+    if (reviewDateKey === deadlineKey) {
+        return { label: 'OTD', score: 3 };
+    }
+
+    return { label: 'ATD', score: 1 };
+};
+
+const getAverageTimelinessLabel = (
+    average: number,
+): 'BTD' | 'OTD' | 'ATD' | '' => {
+    if (average >= 5) return 'BTD';
+    if (average >= 3) return 'OTD';
+    if (average > 0) return 'ATD';
+
+    return '';
+};
+
+const getRoleLabel = (role: string): string => {
+    const labels: Record<string, string> = {
+        committee: 'Committee Reviewer',
+        quality: 'Quality Assurance',
+        stii_admin: 'STII Admin',
+    };
+
+    return labels[role] ?? role;
 };
 
 const applyBorder = (cell: Cell): void => {
@@ -229,47 +300,128 @@ const downloadSummaryReport = async ({
 
 const downloadReviewerReport = async ({
     records,
-    reviewerName,
+    reviewer,
     quarter,
     year,
 }: {
     records: PublishingReviewerRecord[];
-    reviewerName: string;
+    reviewer: ReviewerOption;
     quarter: string;
     year: string;
 }): Promise<void> => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reviewer Details');
 
-    worksheet.columns = [42, 20, 26, 18, 34, 40].map((width) => ({ width }));
+    worksheet.columns = [30, 26, 20, 18, 18, 18, 14, 18].map((width) => ({
+        width,
+    }));
 
     styleMergedTitle(
         worksheet,
-        'A1:F1',
+        'A1:H1',
         'STARBOOKS CONTENT PUBLISHING REVIEWER REPORT',
     );
     styleMergedTitle(
         worksheet,
-        'A2:F2',
-        `${reviewerName} - ${getQuarterLabel(quarter)} ${year}`,
+        'A2:H2',
+        `${getQuarterLabel(quarter)} ${year}`,
         false,
     );
 
-    const headerRow = worksheet.getRow(4);
-    headerRow.values = [...REVIEWER_HEADERS];
-    styleHeaderRow(worksheet, 4);
+    let currentRow = 4;
 
-    records.forEach((record, index) => {
-        const row = worksheet.getRow(index + 5);
-        row.values = [
-            getText(record.title),
-            getText(record.holdings_id),
-            record.status,
-            formatManilaDate(record.review_date),
-            getText(record.reason_of_disapproval),
-            getText(record.remarks),
+    [reviewer].forEach((reviewer) => {
+        const reviewerRecords = records.filter(
+            (record) => record.reviewer_name === reviewer.full_name,
+        );
+
+        worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+        const reviewerCell = worksheet.getCell(`A${currentRow}`);
+        reviewerCell.value = `${reviewer.full_name} - ${getRoleLabel(reviewer.role)}`;
+        reviewerCell.font = { bold: true };
+        reviewerCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0F2FE' },
+        };
+        reviewerCell.alignment = {
+            horizontal: 'left',
+            vertical: 'middle',
+            wrapText: true,
+        };
+        worksheet.getRow(currentRow).eachCell(applyBorder);
+        currentRow += 1;
+
+        const headerRow = worksheet.getRow(currentRow);
+        headerRow.values = [...REVIEWER_HEADERS];
+        styleHeaderRow(worksheet, currentRow);
+        currentRow += 1;
+
+        let totalScore = 0;
+        let scoredRecords = 0;
+
+        if (reviewerRecords.length === 0) {
+            worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+            const emptyCell = worksheet.getCell(`A${currentRow}`);
+            emptyCell.value = 'No reviewed content for this period.';
+            emptyCell.alignment = {
+                horizontal: 'center',
+                vertical: 'middle',
+                wrapText: true,
+            };
+            worksheet.getRow(currentRow).eachCell(applyBorder);
+            currentRow += 1;
+        } else {
+            reviewerRecords.forEach((record) => {
+                const timeliness = getTimeliness(
+                    record.review_date,
+                    record.target_deadline,
+                );
+                const row = worksheet.getRow(currentRow);
+                row.values = [
+                    getText(record.batch_name),
+                    getText(record.content_source),
+                    getText(record.holdings_id),
+                    formatManilaDate(record.date_forwarded),
+                    formatManilaDate(record.target_deadline),
+                    formatManilaDate(record.review_date),
+                    timeliness.label,
+                    timeliness.score || '',
+                ];
+                row.eachCell((cell) => {
+                    cell.alignment = {
+                        horizontal: 'center',
+                        vertical: 'middle',
+                        wrapText: true,
+                    };
+                    applyBorder(cell);
+                });
+
+                if (timeliness.score > 0) {
+                    totalScore += timeliness.score;
+                    scoredRecords += 1;
+                }
+
+                currentRow += 1;
+            });
+        }
+
+        const average = scoredRecords > 0 ? totalScore / scoredRecords : 0;
+        const summaryRow = worksheet.getRow(currentRow);
+        summaryRow.values = [
+            'Total Average',
+            '',
+            '',
+            '',
+            '',
+            '',
+            getAverageTimelinessLabel(average),
+            scoredRecords > 0
+                ? `${totalScore} / ${scoredRecords} = ${average.toFixed(2)}`
+                : '',
         ];
-        row.eachCell((cell) => {
+        summaryRow.eachCell((cell) => {
+            cell.font = { bold: true };
             cell.alignment = {
                 horizontal: 'center',
                 vertical: 'middle',
@@ -277,11 +429,12 @@ const downloadReviewerReport = async ({
             };
             applyBorder(cell);
         });
+        currentRow += 2;
     });
 
     await downloadWorkbook(
         workbook,
-        `STARBOOKS-Publishing-Reviewer-${reviewerName}-${quarter}-${year}.xlsx`,
+        `STARBOOKS-Publishing-Reviewer-${reviewer.full_name}-${quarter}-${year}.xlsx`,
     );
 };
 
@@ -360,6 +513,12 @@ export default function GenerateReport({ show, onClose }: Props): JSX.Element {
         const selectedReviewer = reviewers.find(
             (reviewer) => String(reviewer.id) === reviewerId,
         );
+        if (!selectedReviewer) {
+            setReviewerError('Select a valid reviewer.');
+            setIsGenerating(false);
+            return;
+        }
+
         const params = new URLSearchParams({
             reviewer_id: reviewerId,
             quarter: reviewerQuarter,
@@ -377,7 +536,7 @@ export default function GenerateReport({ show, onClose }: Props): JSX.Element {
                 (await response.json()) as PublishingReviewerResponse;
             await downloadReviewerReport({
                 records: result.records,
-                reviewerName: selectedReviewer?.full_name ?? 'Reviewer',
+                reviewer: selectedReviewer,
                 quarter: reviewerQuarter,
                 year: reviewerYear,
             });

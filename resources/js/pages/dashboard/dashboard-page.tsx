@@ -294,7 +294,7 @@ export default function Dashboard(): JSX.Element {
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-bold tracking-tight text-slate-50">
-                                Content Dashboard
+                                Content Review and Approval Dashboard
                             </h1>
                             <p className="max-w-2xl text-sm text-slate-100">
                                 Monitor all STARBOOKS content records across

@@ -35,3 +35,4 @@ require __DIR__.'/backend/bulk_upload.php';
 require __DIR__.'/backend/committee.php';
 require __DIR__.'/backend/quality-assurance.php';
 require __DIR__.'/backend/publishing.php';
+require __DIR__.'/backend/existing_records.php';

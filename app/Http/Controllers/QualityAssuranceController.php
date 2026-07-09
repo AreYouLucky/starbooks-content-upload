@@ -120,7 +120,7 @@ class QualityAssuranceController extends Controller
         $validated = $request->validate([
             'holdings_id' => ['required', 'string', 'max:50', Rule::exists('content_approval_requests', 'HoldingsID')],
             'review_decision' => ['required', 'string', Rule::in(['approved', 'disapproved'])],
-            'remarks' => ['nullable', 'string', 'max:1000'],
+            'remarks' => ['required_if:review_decision,disapproved', 'nullable', 'string', 'max:1000'],
             'disapproval_reasons' => ['required_if:review_decision,disapproved', 'array', 'min:1'],
             'disapproval_reasons.*' => ['string', Rule::in([
                 'Completeness',
@@ -146,6 +146,7 @@ class QualityAssuranceController extends Controller
             'content_reviewer_id' => Auth::id(),
             'batch_id' => $approvalRequest->batch_id,
             'is_approved' => $approvalStatus === 4,
+            'approval_status' => $approvalStatus,
             'progress_status' => $approvalStatus,
             'remarks' => $validated['remarks'] ?? '',
         ]);
@@ -154,9 +155,12 @@ class QualityAssuranceController extends Controller
 
         foreach ($disapprovalReasons as $reason) {
             LogDetail::query()->forceCreate([
+                'approval_status' => $approvalStatus,
                 'approval_request_id' => $approvalRequest->id,
                 'content_reviewer_id' => Auth::id(),
                 'content_log_id' => $approvalLog->id,
+                'is_passed' => false,
+                'description' => $reason,
                 'remarks' => $reason,
             ]);
         }

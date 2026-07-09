@@ -15,9 +15,12 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Schema::table('content_batches', function (Blueprint $table) {
+        $table->date('start_date')->nullable();
         $table->dateTime('quality_approval_date')->nullable();
         $table->dateTime('published_date')->nullable();
         $table->dateTime('shortlisted_date')->nullable();
+        $table->dateTime('initial_reviewed_date')->nullable();
+        $table->string('target_quality_approval_date')->nullable();
         $table->string('status')->default('for shortlisting');
         $table->boolean('is_active')->default(1);
     });
@@ -47,9 +50,9 @@ beforeEach(function () {
     }
 });
 
-function createPublishingUser(): User
+function createPublishingUser(array $attributes = []): User
 {
-    return User::query()->create([
+    return User::query()->create(array_merge([
         'username' => 'publishing_'.Str::lower(Str::random(8)),
         'full_name' => 'Publishing User '.Str::random(6),
         'delivery_unit' => 'Publishing',
@@ -57,7 +60,7 @@ function createPublishingUser(): User
         'designation' => 'Publisher',
         'task_description' => 'Publishing test',
         'password' => Hash::make('password'),
-    ]);
+    ], $attributes));
 }
 
 function createPublishingBatch(array $attributes = []): Batch
@@ -68,9 +71,13 @@ function createPublishingBatch(array $attributes = []): Batch
         'year' => '2026',
         'content_source' => 'DOST',
         'batch_description' => 'Publishing test batch',
+        'start_date' => '2026-06-01',
+        'shortlisted_date' => '2026-06-10',
         'target_published_date' => '2026-07-15',
         'target_initial_review_date' => '2026-06-15',
+        'target_quality_approval_date' => '2026-06-30',
         'target_committee_review_date' => '2026-06-22',
+        'initial_reviewed_date' => '2026-06-20 08:00:00',
         'quality_approval_date' => '2026-06-30 08:00:00',
         'status' => 'for publishing',
         'is_active' => 1,
@@ -216,9 +223,14 @@ test('publishing summary report returns batch workflow counts', function () {
         ->assertJsonPath('batches.0.published_content_count', 1);
 });
 
-test('publishing reviewer report returns selected reviewer rows', function () {
-    $reviewer = createPublishingUser();
+test('publishing reviewer report returns selected reviewer rows and lists every reviewer account', function () {
+    $admin = createPublishingUser();
+    $reviewer = createPublishingUser(['role' => 'quality']);
     $otherReviewer = createPublishingUser();
+    $reviewerWithoutLogs = createPublishingUser([
+        'full_name' => 'Reviewer Without Logs',
+        'role' => 'committee',
+    ]);
     $batch = createPublishingBatch([
         'batch_name' => 'Reviewer Publishing Report Batch',
         'quarter' => 'Q3',
@@ -247,19 +259,26 @@ test('publishing reviewer report returns selected reviewer rows', function () {
         'remarks' => 'Completeness',
     ]);
 
-    $this->actingAs($reviewer)
+    $this->actingAs($admin)
         ->getJson("/generate-publishing-reviewer-report?reviewer_id={$reviewer->id}&quarter=Q3&year=2026")
         ->assertOk()
         ->assertJsonCount(1, 'records')
         ->assertJsonPath('records.0.title', 'Reviewer Report Request')
+        ->assertJsonPath('records.0.batch_name', 'Reviewer Publishing Report Batch')
+        ->assertJsonPath('records.0.content_source', 'DOST')
         ->assertJsonPath('records.0.holdings_id', 'PUB-REPORT-001')
+        ->assertJsonPath('records.0.reviewer_name', $reviewer->full_name)
+        ->assertJsonPath('records.0.reviewer_role', 'quality')
         ->assertJsonPath('records.0.status', 'Quality Assurance - Disapproved')
+        ->assertJsonPath('records.0.date_forwarded', '2026-06-20 08:00:00')
+        ->assertJsonPath('records.0.target_deadline', '2026-06-30')
         ->assertJsonPath('records.0.reason_of_disapproval', 'Completeness')
         ->assertJsonPath('records.0.remarks', 'Needs QA correction.');
 
-    $this->actingAs($reviewer)
+    $this->actingAs($admin)
         ->getJson('/publishing-report-reviewers')
         ->assertOk()
-        ->assertJsonFragment(['full_name' => $reviewer->full_name])
-        ->assertJsonFragment(['full_name' => $otherReviewer->full_name]);
+        ->assertJsonFragment(['full_name' => $reviewer->full_name, 'role' => 'quality'])
+        ->assertJsonFragment(['full_name' => $otherReviewer->full_name, 'role' => 'stii_admin'])
+        ->assertJsonFragment(['full_name' => $reviewerWithoutLogs->full_name, 'role' => 'committee']);
 });

@@ -131,6 +131,10 @@ export default function ReviewRequestForm() {
     if (isDisapproved && item.disapproval_reasons.length === 0) {
       nextErrors.disapproval_reasons = 'Select at least one disapproval reason.';
     }
+    if (isDisapproved && item.remarks.trim() === '') {
+      nextErrors.remarks =
+        'Remarks are required for disapproved decisions.';
+    }
 
     setErrors(nextErrors);
 
@@ -176,7 +180,7 @@ export default function ReviewRequestForm() {
             <ContentViewer fields={request} />
           ) : (
             <div className="flex min-h-80 items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-500">
-              Select a record to preview its content. 
+              Select a record to preview its content.
             </div>
           )}
         </section>

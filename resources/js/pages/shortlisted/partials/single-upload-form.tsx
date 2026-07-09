@@ -9,12 +9,13 @@ import { FaUpload } from "react-icons/fa";
 import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { LkContentModel, ApprovalRequestModel, BatchModel } from '@/types/model';
+import { LkContentModel, ApprovalRequestModel, BatchModel, RecordModel } from '@/types/model';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, } from "@/components/ui/select"
 import { content_type, material_type } from '@/lib/default';
 import { Button } from '@/components/ui/button';
 import TextField from '@/components/ui/text-field';
 import { useUploadSingleRequest, useUpdateSingleRequest } from './upload-hooks';
+import { useUpdateExistingRecord } from '@/pages/existing-records/partials/existing-record-hooks';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { toast } from 'sonner';
 
@@ -33,29 +34,33 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 export default function SingleUpload() {
-    const { props } = usePage<{ content_group?: LkContentModel[], approval_request?: ApprovalRequestModel, batches?: BatchModel[] }>();
+    const { props } = usePage<{ content_group?: LkContentModel[], approval_request?: ApprovalRequestModel, existing_record?: RecordModel, record_status?: string, batches?: BatchModel[] }>();
     const content_group = props.content_group ?? []
     const batches = props.batches ?? []
     const approval_request = props.approval_request
+    const existing_record = props.existing_record
+    const record_status = props.record_status ?? 'published'
+    const editableRecord = approval_request ?? existing_record
+    const isExistingRecord = Boolean(existing_record)
     const [open, setOpen] = useState(false);
     const { item, handleChange, setItem, errors, setErrors } = useHandleChange({
-        id: approval_request?.id ?? 0,
-        Title: approval_request?.Title ?? '',
-        Author: approval_request?.Author ?? '',
-        HoldingsID: approval_request?.HoldingsID ?? '',
-        Contents: approval_request?.Contents ?? '',
-        MaterialType: approval_request?.MaterialType ?? '',
-        JournalTitle: approval_request?.JournalTitle ?? '',
-        Subject: approval_request?.Subject ?? '',
-        SubTitle: approval_request?.SubTitle ?? '',
-        VolumeNo: approval_request?.VolumeNo ?? '',
-        IssueNo: approval_request?.IssueNo ?? '',
-        IssueDate: approval_request?.IssueDate ?? '',
-        BroadClass: approval_request?.BroadClass ?? '',
-        AgencyCode: approval_request?.AgencyCode ?? '',
-        Type: approval_request?.Type ?? '',
+        id: editableRecord?.id ?? 0,
+        Title: editableRecord?.Title ?? '',
+        Author: editableRecord?.Author ?? '',
+        HoldingsID: editableRecord?.HoldingsID ?? '',
+        Contents: editableRecord?.Contents ?? '',
+        MaterialType: editableRecord?.MaterialType ?? '',
+        JournalTitle: editableRecord?.JournalTitle ?? '',
+        Subject: editableRecord?.Subject ?? '',
+        SubTitle: editableRecord?.SubTitle ?? '',
+        VolumeNo: editableRecord?.VolumeNo ?? '',
+        IssueNo: editableRecord?.IssueNo ?? '',
+        IssueDate: editableRecord?.IssueDate ?? '',
+        BroadClass: editableRecord?.BroadClass ?? '',
+        AgencyCode: editableRecord?.AgencyCode ?? '',
+        Type: editableRecord?.Type ?? '',
         batch_id: approval_request?.batch_id ?? '',
-        Abstracts: approval_request?.Abstracts ?? '',
+        Abstracts: editableRecord?.Abstracts ?? '',
     })
 
     const createFormData = () => {
@@ -103,6 +108,23 @@ export default function SingleUpload() {
     }
 
     const updateSingleRequest = useUpdateSingleRequest()
+    const updateExistingRecord = useUpdateExistingRecord()
+    const updateExistingRecordFn = () => {
+        const formData = createFormData();
+        updateExistingRecord.mutate({ id: item.id as number, status: record_status, payload: formData }, {
+            onSuccess: () => {
+                toast.success("Record Successfully Updated");
+                setOpen(false);
+            },
+            onError: (err) => {
+                if (err.response?.data?.errors) {
+                    setErrors(err.response.data.errors);
+                    setOpen(false);
+                    toast.error("Check input fields for errors");
+                }
+            },
+        });
+    }
     const updateSingleRequestFn = () => {
         const formData = createFormData();
         updateSingleRequest.mutate({ id: item.id as number, payload: formData }, {
@@ -123,7 +145,7 @@ export default function SingleUpload() {
     return (
         <div className="space-y-3">
             <section className="relative overflow-hidden rounded-xl p-4 border border-sky-100 md:p-8 bg-sky-500 text-white text-xl font-bold uppercase">
-                Upload new content for Shortlisting
+                {isExistingRecord ? 'Edit existing record' : 'Upload new content for Shortlisting'}
             </section>
             <Card className="gap-3 rounded-xl border-sky-100 grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 p-8">
                 <div className="grid gap-1 md:col-span-2">
@@ -189,7 +211,7 @@ export default function SingleUpload() {
                     />
                     <InputError message={errors.HoldingsID} />
                 </div>
-                <div className="grid gap-1">
+                {!isExistingRecord && <div className="grid gap-1">
                     <Label htmlFor="batch_id" className="text-gray-600 poppins-semibold text-[13px]">Batch </Label>
                     <Select
                         value={String(item.batch_id)}
@@ -212,7 +234,7 @@ export default function SingleUpload() {
                     </Select>
 
                     <InputError message={errors.batch_id} />
-                </div>
+                </div>}
                 <div className="grid gap-1">
                     <Label htmlFor="Contents" className="text-gray-600 poppins-semibold text-[13px]">Content Group </Label>
                     <Select
@@ -343,7 +365,7 @@ export default function SingleUpload() {
                     <Label htmlFor="IssueDate" className="text-gray-600 poppins-semibold text-[13px]">Issue Date</Label>
                     <Input
                         id="IssueDate"
-                        type="date"
+                        type="text"
                         name="IssueDate"
                         required
                         onChange={handleChange}
@@ -381,13 +403,13 @@ export default function SingleUpload() {
                     <div className=" pt-4">
                         <Button className="bg-sky-500 text-white w-fit poppins-bold flex flex-row items-center justify-center"
                             onClick={() => setOpen(true)}
-                        > {uploadSingleRequest.isPending || updateSingleRequest.isPending ? <Spinner className="mr-1" /> : <FaUpload className="mr-1" />}
-                            {item.id == 0 ? 'Add' : 'Update'} Post
+                        > {uploadSingleRequest.isPending || updateSingleRequest.isPending || updateExistingRecord.isPending ? <Spinner className="mr-1" /> : <FaUpload className="mr-1" />}
+                            {item.id == 0 ? 'Add' : 'Update'} {isExistingRecord ? 'Record' : 'Post'}
                         </Button>
                     </div>
                 </div>
             </Card>
-            <ConfirmationDialog show={open} onClose={()=>setOpen(false)} message={item.id === 0 ? "Are you sure you want to add this request?" : "Are you sure you want to update this request?"} type={2} onConfirm={()=>{item.id === 0 ? uploadSingleRequestFn() : updateSingleRequestFn()}}/>
+            <ConfirmationDialog show={open} onClose={()=>setOpen(false)} message={item.id === 0 ? "Are you sure you want to add this request?" : isExistingRecord ? "Are you sure you want to update this record?" : "Are you sure you want to update this request?"} type={2} onConfirm={()=>{item.id === 0 ? uploadSingleRequestFn() : isExistingRecord ? updateExistingRecordFn() : updateSingleRequestFn()}}/>
         </div>
     )
 }

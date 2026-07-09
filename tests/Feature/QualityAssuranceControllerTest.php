@@ -186,6 +186,22 @@ test('quality assurance submission stores a separate quality-stage decision', fu
     ]);
 });
 
+test('quality assurance disapproval requires remarks', function () {
+    $batch = createQualityBatch();
+    $approvalRequest = createQualityRequest($batch, 2);
+    $user = createQualityUser();
+
+    $this->actingAs($user)
+        ->postJson('/submit-quality-assurance-review', [
+            'holdings_id' => $approvalRequest->HoldingsID,
+            'review_decision' => 'disapproved',
+            'disapproval_reasons' => ['Completeness'],
+            'remarks' => '',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['remarks']);
+});
+
 test('quality assurance batch can only be forwarded after pending reviews are complete', function () {
     $batch = createQualityBatch(['batch_name' => 'Publishing QA Batch']);
     $approvalRequest = createQualityRequest($batch, 2);

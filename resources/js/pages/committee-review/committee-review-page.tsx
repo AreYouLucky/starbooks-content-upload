@@ -5,7 +5,7 @@ import { useFetchCommitteeReview, useForwardToQualityApproval } from './partials
 import { useDebounce } from '@/hooks/use-debounce';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { toast } from 'sonner';
-import {CalendarDays,CheckCircle2,Clock3,Eye,FolderSync,Forward,Search,ShieldX} from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock3, Eye, FolderSync, Forward, Search, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PiListBulletsFill } from 'react-icons/pi';
@@ -15,6 +15,8 @@ import { displayDate, getPageFromUrl } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 import GenerateReport from './partials/generate-report';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
+import { usePage } from '@inertiajs/react';
+import { SharedData } from '@/types';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
@@ -51,6 +53,7 @@ const reviewSummaryItems = [
 ] as const;
 
 export default function CommitteeReviewPage() {
+    const { auth } = usePage<SharedData>().props;
     const [page, setPage] = useState(1);
     const [generateReportDialog, setGenerateReportDialog] = useState(false);
     const { item, setItem } = useHandleChange({ search: '', batch_id: 0 });
@@ -81,9 +84,9 @@ export default function CommitteeReviewPage() {
     const forwardToQAFn = () => {
         forwardToQA.mutate({ batchName }, {
             onSuccess: (res) => {
-                if(res.message) {   
-                toast.success(res.message);
-                setShowConfirmation(false);
+                if (res.message) {
+                    toast.success(res.message);
+                    setShowConfirmation(false);
                 }
             },
             onError: (error) => {
@@ -93,7 +96,7 @@ export default function CommitteeReviewPage() {
                 alert(message);
             }
         });
-    } 
+    }
 
     return (
         <div className="space-y-5 p-1">
@@ -280,21 +283,26 @@ export default function CommitteeReviewPage() {
                                                 <Eye className="size-4" />
                                                 View Requests
                                             </Link>
-                                            <Button
-                                                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                                                disabled={!isCurrentReviewBatch}
-                                                onClick={() => {
-                                                    setBatchName(
-                                                        batch.batch_name,
-                                                    );
-                                                    setShowConfirmation(true);
-                                                }}
-                                            >
-                                                <Forward className="size-4" />
-                                                {isCurrentReviewBatch
-                                                    ? 'Forward to QA'
-                                                    : 'Reviewed'}
-                                            </Button>
+                                            {
+                                                ['stii_admin', 'super_admin'].includes(auth.user.role) && (
+
+                                                    <Button
+                                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                                        disabled={!isCurrentReviewBatch}
+                                                        onClick={() => {
+                                                            setBatchName(
+                                                                batch.batch_name,
+                                                            );
+                                                            setShowConfirmation(true);
+                                                        }}
+                                                    >
+                                                        <Forward className="size-4" />
+                                                        {isCurrentReviewBatch
+                                                            ? 'Forward to QA'
+                                                            : 'Reviewed'}
+                                                    </Button>
+                                                )
+                                            }
                                         </div>
                                     </td>
                                 </tr>
@@ -321,7 +329,7 @@ export default function CommitteeReviewPage() {
                 </div>
             </section>
             <GenerateReport show={generateReportDialog} onClose={() => setGenerateReportDialog(false)} />
-                <ConfirmationDialog show={showConfirmation} onClose={() => setShowConfirmation(false)} message={`Are you sure you want to forward this batch to Quality Assurance?`} onConfirm={forwardToQAFn} type={2}/>
+            <ConfirmationDialog show={showConfirmation} onClose={() => setShowConfirmation(false)} message={`Are you sure you want to forward this batch to Quality Assurance?`} onConfirm={forwardToQAFn} type={2} />
         </div>
     );
 }

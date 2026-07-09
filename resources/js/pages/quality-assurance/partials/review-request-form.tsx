@@ -99,18 +99,40 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
         }
     };
 
-    const handleConfirm = (): void => {
+    const validateReviewForm = (): boolean => {
         const nextErrors: ReviewFormErrors = {};
-        if (!item.review_decision)
+
+        if (!item.review_decision) {
             nextErrors.review_decision = 'Select a review decision.';
-        if (isDisapproved && item.disapproval_reasons.length === 0)
+        }
+
+        if (isDisapproved && item.disapproval_reasons.length === 0) {
             nextErrors.disapproval_reasons =
                 'Select at least one disapproval reason.';
+        }
+
+        if (isDisapproved && item.remarks.trim() === '') {
+            nextErrors.remarks =
+                'Remarks are required for disapproved decisions.';
+        }
+
         setErrors(nextErrors);
-        if (Object.keys(nextErrors).length === 0) setIsConfirmationOpen(true);
+
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const handleConfirm = (): void => {
+        if (validateReviewForm()) {
+            setIsConfirmationOpen(true);
+        }
     };
 
     const handleSubmit = (): void => {
+        if (!validateReviewForm()) {
+            setIsConfirmationOpen(false);
+            return;
+        }
+
         const formData = new FormData();
         formData.append('holdings_id', holdingsID);
         formData.append('review_decision', item.review_decision);
@@ -142,7 +164,7 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <div className="grid grid-cols-4 gap-4">
-                <section className="min-w-0 flex-1 rounded-2xl border border-sky-200 bg-white p-6 shadow-sm col-span-3">
+                <section className="col-span-3 min-w-0 flex-1 rounded-2xl border border-sky-200 bg-white p-6 shadow-sm">
                     {request ? (
                         <ContentViewer fields={request} />
                     ) : (
@@ -151,7 +173,7 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
                         </div>
                     )}
                 </section>
-                <section className="h-fit w-full rounded-2xl border border-sky-200 bg-white p-6 shadow-sm ">
+                <section className="h-fit w-full rounded-2xl border border-sky-200 bg-white p-6 shadow-sm">
                     <h1 className="text-lg font-semibold text-slate-900">
                         Quality Assurance Review
                     </h1>

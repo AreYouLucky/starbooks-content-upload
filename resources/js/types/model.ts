@@ -126,6 +126,7 @@ export type RecordModel = {
     Abstracts: string | null;
     JournalTitle: string | null;
     AgencyCode: string | null;
+    BroadClass?: string | null;
     PhysicalExtension: string | null;
     VolumeNo: string | null;
     IssueNo: string | null;

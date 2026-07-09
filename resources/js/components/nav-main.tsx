@@ -6,6 +6,7 @@ import {
     ListChecks,
     SendToBack,
     Settings2,
+    ArchiveRestore,
     ShieldCheck,
     UsersRound,
 } from 'lucide-react';
@@ -56,6 +57,12 @@ const workflowItems: NavItem[] = [
         icon: SendToBack,
         allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
+    {
+        title: 'Existing Records',
+        href: '/existing-records',
+        icon: ArchiveRestore,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
+    },
 ];
 
 const configurationItems: NavItem[] = [
@@ -77,7 +84,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
 
     const sections: NavigationSection[] = [
         {
-            label: 'Content Management',
+            label: 'Approval Section',
             icon: BookOpenCheck,
             items: filterNavigationItems(workflowItems, userRole),
         },
