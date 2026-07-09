@@ -312,22 +312,20 @@ export default function Dashboard(): JSX.Element {
                                     <button
                                         type="button"
                                         onClick={() => setScope('all')}
-                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${
-                                            scope === 'all'
-                                                ? 'bg-sky-500 text-sky-50 shadow-sm'
-                                                : 'text-slate-500 hover:text-slate-800'
-                                        }`}
+                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${scope === 'all'
+                                            ? 'bg-sky-500 text-sky-50 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-800'
+                                            }`}
                                     >
                                         All
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setScope('filtered')}
-                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${
-                                            scope === 'filtered'
-                                                ? 'bg-sky-500 text-sky-50 shadow-sm'
-                                                : 'text-slate-500 hover:text-slate-800'
-                                        }`}
+                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${scope === 'filtered'
+                                            ? 'bg-sky-500 text-sky-50 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-800'
+                                            }`}
                                     >
                                         Quarter
                                     </button>
@@ -380,80 +378,83 @@ export default function Dashboard(): JSX.Element {
                         {error}
                     </div>
                 )}
-
-                <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
-                    <div className="flex flex-col gap-2  px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 className="flex items-center gap-2 text-base font-bold text-slate-50">
-                                <span className="rounded-md border border-sky-100 bg-sky-50 p-1.5 text-red-600">
-                                    <AlertTriangle className="size-4" />
-                                </span>
-                                Needs Urgent Review
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-100">
-                                Late batches still waiting for review.
-                            </p>
-                        </div>
-                        <span className="w-fit rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                            {data.urgent_batches.length} late batches
-                        </span>
-                    </div>
-                    <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
-                        {data.urgent_batches.length === 0 ? (
-                            <div className="rounded-lg border border-dashed border-sky-200 bg-sky-50/90 px-4 py-6 text-center text-sm text-slate-700 lg:col-span-2 xl:col-span-4">
-                                No late review batches.
-                            </div>
-                        ) : (
-                            data.urgent_batches.map((batch) => (
-                                <div
-                                    key={batch.id}
-                                    className="rounded-lg border border-sky-100 bg-sky-50 p-4"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-bold text-slate-900">
-                                                {batch.batch_name}
-                                            </p>
-                                            <p className="mt-1 text-xs text-slate-500">
-                                                {batch.content_source} -{' '}
-                                                {batch.quarter} {batch.year}
-                                            </p>
-                                        </div>
-                                        <span className="rounded-full border border-sky-100 bg-red-500 px-2.5 py-1 text-[11px] font-bold text-sky-50">
-                                            {batch.days_late}d late
+                {
+                    data.urgent_batches.length > 0 && (
+                        <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
+                            <div className="flex flex-col gap-2  px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h2 className="flex items-center gap-2 text-base font-bold text-slate-50">
+                                        <span className="rounded-md border border-sky-100 bg-sky-50 p-1.5 text-red-600">
+                                            <AlertTriangle className="size-4" />
                                         </span>
-                                    </div>
-                                    <div className="mt-4 grid gap-2 text-xs">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-slate-500">
-                                                Stage
-                                            </span>
-                                            <span className="font-semibold text-sky-700">
-                                                {batch.stage}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-slate-500">
-                                                Target
-                                            </span>
-                                            <span className="font-semibold text-slate-700">
-                                                {formatDate(batch.target_date)}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="text-slate-500">
-                                                Records
-                                            </span>
-                                            <span className="font-semibold text-slate-700">
-                                                {batch.records_count}
-                                            </span>
-                                        </div>
-                                    </div>
+                                        Needs Urgent Review
+                                    </h2>
+                                    <p className="mt-1 text-sm text-slate-100">
+                                        Late batches still waiting for review.
+                                    </p>
                                 </div>
-                            ))
-                        )}
-                    </div>
-                </section>
+                                <span className="w-fit rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                                    {data.urgent_batches.length} late batches
+                                </span>
+                            </div>
+                            <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
+                                {data.urgent_batches.length === 0 ? (
+                                    <div className="rounded-lg border border-dashed border-sky-200 bg-sky-50/90 px-4 py-6 text-center text-sm text-slate-700 lg:col-span-2 xl:col-span-4">
+                                        No late review batches.
+                                    </div>
+                                ) : (
+                                    data.urgent_batches.map((batch) => (
+                                        <div
+                                            key={batch.id}
+                                            className="rounded-lg border border-sky-100 bg-sky-50 p-4"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-bold text-slate-900">
+                                                        {batch.batch_name}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-slate-500">
+                                                        {batch.content_source} -{' '}
+                                                        {batch.quarter} {batch.year}
+                                                    </p>
+                                                </div>
+                                                <span className="rounded-full border border-sky-100 bg-red-500 px-2.5 py-1 text-[11px] font-bold text-sky-50">
+                                                    {batch.days_late}d late
+                                                </span>
+                                            </div>
+                                            <div className="mt-4 grid gap-2 text-xs">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-slate-500">
+                                                        Stage
+                                                    </span>
+                                                    <span className="font-semibold text-sky-700">
+                                                        {batch.stage}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-slate-500">
+                                                        Target
+                                                    </span>
+                                                    <span className="font-semibold text-slate-700">
+                                                        {formatDate(batch.target_date)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-slate-500">
+                                                        Records
+                                                    </span>
+                                                    <span className="font-semibold text-slate-700">
+                                                        {batch.records_count}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+                    )
+                }
                 <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                     {statItems.map((item) => (
                         <StatCard
@@ -517,7 +518,7 @@ export default function Dashboard(): JSX.Element {
                                             key={entry.name}
                                             fill={
                                                 chartColors[
-                                                    index % chartColors.length
+                                                index % chartColors.length
                                                 ]
                                             }
                                         />
