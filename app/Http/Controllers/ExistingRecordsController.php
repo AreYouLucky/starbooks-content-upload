@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ArchiveRecords;
 use App\Models\LkContent;
 use App\Models\Record;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -56,6 +56,8 @@ class ExistingRecordsController extends Controller
             'content_group' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['all', 'published', 'unpublished'])],
             'search' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
         $filters = [
@@ -63,20 +65,10 @@ class ExistingRecordsController extends Controller
             'status' => $validated['status'] ?? 'all',
             'search' => $validated['search'] ?? '',
         ];
-
-        $publishedRecords = $filters['status'] === 'unpublished'
-            ? collect()
-            : $this->recordsForTable(Record::query(), 'published', $filters);
-
-        $unpublishedRecords = $filters['status'] === 'published'
-            ? collect()
-            : $this->recordsForTable(ArchiveRecords::query(), 'unpublished', $filters);
+        $perPage = $validated['per_page'] ?? 8;
 
         return Inertia::render('existing-records/existing-records-page', [
-            'records' => $publishedRecords
-                ->concat($unpublishedRecords)
-                ->sortByDesc('id')
-                ->values(),
+            'records' => $this->paginatedRecords($filters, $perPage),
             'contentGroups' => LkContent::query()->orderBy('desc')->get(),
             'filters' => $filters,
             'analytics' => [
@@ -85,7 +77,6 @@ class ExistingRecordsController extends Controller
             ],
         ]);
     }
-
 
     public function edit(string $status, int $id): Response
     {
@@ -158,10 +149,30 @@ class ExistingRecordsController extends Controller
 
     /**
      * @param  array{content_group: string, status: string, search: string}  $filters
-     * @return Collection<int, array<string, mixed>>
      */
-    private function recordsForTable(Builder $query, string $status, array $filters): Collection
+    private function paginatedRecords(array $filters, int $perPage): LengthAwarePaginator
     {
+        $query = match ($filters['status']) {
+            'published' => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters),
+            'unpublished' => $this->recordsQueryForTable((new ArchiveRecords)->getTable(), 'unpublished', $filters),
+            default => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters)
+                ->unionAll($this->recordsQueryForTable((new ArchiveRecords)->getTable(), 'unpublished', $filters)),
+        };
+
+        return DB::query()
+            ->fromSub($query, 'existing_records')
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * @param  array{content_group: string, status: string, search: string}  $filters
+     */
+    private function recordsQueryForTable(string $table, string $status, array $filters): QueryBuilder
+    {
+        $query = DB::table($table);
+
         if ($filters['content_group'] !== 'all') {
             $query->where('Contents', $filters['content_group']);
         }
@@ -177,12 +188,10 @@ class ExistingRecordsController extends Controller
         }
 
         return $query
-            ->select(['id', ...$this->recordColumns()])
-            ->latest('id')
-            ->get()
-            ->map(fn ($record): array => [
-                ...$record->toArray(),
-                'record_status' => $status,
+            ->select([
+                'id',
+                ...$this->recordColumns(),
+                DB::raw("'{$status}' as record_status"),
             ]);
     }
 

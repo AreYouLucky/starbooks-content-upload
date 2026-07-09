@@ -21,10 +21,10 @@ import {
 } from '@/components/ui/select';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import ViewContent from '@/components/custom/view-content';
-import PaginatedSearchTable from '@/components/ui/data-table';
+import PaginatedSearchTable from '@/components/ui/data-table-server';
 import type { BreadcrumbItem } from '@/types';
 import type { ApprovalRequestModel, LkContentModel, RecordModel } from '@/types/model';
-import { trimText, purifyDom } from '@/lib/utils';
+import { getPageFromUrl, trimText, purifyDom } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
     useRepublishRecord,
@@ -48,6 +48,16 @@ type ExistingRecordsAnalytics = {
     unpublished: number;
 };
 
+type PaginatedExistingRecords = {
+    data: ExistingRecord[];
+    current_page: number;
+    last_page: number;
+    next_page_url: string | null;
+    prev_page_url: string | null;
+    total: number;
+    per_page: number;
+};
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Existing Records', href: '/existing-records' },
@@ -55,13 +65,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function ExistingRecordsPage() {
     const { props } = usePage<{
-        records?: ExistingRecord[];
+        records?: PaginatedExistingRecords;
         contentGroups?: LkContentModel[];
         filters?: ExistingRecordsFilters;
         analytics?: ExistingRecordsAnalytics;
     }>();
 
-    const records = props.records ?? [];
+    const records = props.records?.data ?? [];
     const contentGroups = props.contentGroups ?? [];
     const analytics = props.analytics ?? { published: 0, unpublished: 0 };
     const initialFilters = props.filters ?? {
@@ -91,6 +101,26 @@ export default function ExistingRecordsPage() {
             preserveScroll: true,
             preserveState: true,
         });
+    };
+
+    const changePage = (url: string | null): void => {
+        const nextPage = getPageFromUrl(url);
+
+        if (nextPage === null) {
+            return;
+        }
+
+        router.get(
+            '/existing-records',
+            {
+                ...filters,
+                page: nextPage,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
     };
 
     const changeFilter = <K extends keyof ExistingRecordsFilters>(
@@ -233,8 +263,7 @@ export default function ExistingRecordsPage() {
                 <CardContent className="overflow-x-auto p-2">
                     <PaginatedSearchTable<ExistingRecord>
                         items={records}
-                        hasSearch={false}
-                        itemsPerPage={8}
+                        itemsPerPage={props.records?.per_page ?? 8}
                         emptyText="No existing records found."
                         headers={[
                             { name: 'Holdings ID', position: 'left' },
@@ -345,6 +374,12 @@ export default function ExistingRecordsPage() {
                                 </td>
                             </tr>
                         )}
+                        currentPage={props.records?.current_page}
+                        totalPages={props.records?.last_page}
+                        nextPageUrl={props.records?.next_page_url}
+                        prevPageUrl={props.records?.prev_page_url}
+                        total={props.records?.total ?? 0}
+                        onPageChange={changePage}
                     />
                 </CardContent>
             </Card>

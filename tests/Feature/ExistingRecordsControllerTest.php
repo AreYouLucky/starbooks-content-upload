@@ -99,11 +99,42 @@ test('existing records page lists published and unpublished records with filters
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('existing-records/existing-records-page')
-            ->has('records', 1)
-            ->where('records.0.Title', 'Published Science Record')
-            ->where('records.0.record_status', 'published')
+            ->has('records.data', 1)
+            ->where('records.data.0.Title', 'Published Science Record')
+            ->where('records.data.0.record_status', 'published')
+            ->where('records.total', 1)
             ->where('analytics.published', 1)
             ->where('analytics.unpublished', 1));
+});
+
+test('existing records page paginates records on the backend', function () {
+    foreach (range(1, 10) as $number) {
+        Record::query()->create(existingRecordPayload([
+            'Title' => sprintf('Paginated Existing Record %02d', $number),
+            'Contents' => 'SCI',
+        ]));
+    }
+
+    $this->actingAs(createExistingRecordsUser())
+        ->get('/existing-records?status=published&content_group=SCI')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('existing-records/existing-records-page')
+            ->has('records.data', 8)
+            ->where('records.current_page', 1)
+            ->where('records.last_page', 2)
+            ->where('records.per_page', 8)
+            ->where('records.total', 10)
+            ->where('records.data.0.Title', 'Paginated Existing Record 10'));
+
+    $this->actingAs(createExistingRecordsUser())
+        ->get('/existing-records?status=published&content_group=SCI&page=2')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('existing-records/existing-records-page')
+            ->has('records.data', 2)
+            ->where('records.current_page', 2)
+            ->where('records.total', 10));
 });
 
 test('published records can be unpublished and republished', function () {
