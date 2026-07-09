@@ -86,6 +86,7 @@ class ExistingRecordsController extends Controller
         ]);
     }
 
+    
     public function edit(string $status, int $id): Response
     {
         abort_unless(in_array($status, ['published', 'unpublished'], true), 404);
