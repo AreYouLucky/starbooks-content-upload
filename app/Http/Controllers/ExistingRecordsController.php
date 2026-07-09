@@ -50,8 +50,9 @@ class ExistingRecordsController extends Controller
         ];
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
+        return 'test';
         $validated = $request->validate([
             'content_group' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['all', 'published', 'unpublished'])],
@@ -86,7 +87,7 @@ class ExistingRecordsController extends Controller
         ]);
     }
 
-    
+
     public function edit(string $status, int $id): Response
     {
         abort_unless(in_array($status, ['published', 'unpublished'], true), 404);
