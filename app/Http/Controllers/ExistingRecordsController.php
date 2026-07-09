@@ -52,7 +52,6 @@ class ExistingRecordsController extends Controller
 
     public function index(Request $request)
     {
-        return 'test';
         $validated = $request->validate([
             'content_group' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['all', 'published', 'unpublished'])],
