@@ -1,4 +1,4 @@
-export type UserRoleValue = 'stii_admin' | 'committee' | 'quality';
+export type UserRoleValue = 'stii_admin' | 'committee' | 'quality' | 'head_committee';
 
 export type UserRoleOption = {
     value: UserRoleValue;
@@ -9,6 +9,7 @@ export const userRoleOptions: UserRoleOption[] = [
     { value: 'stii_admin', label: 'STII Admin' },
     { value: 'committee', label: 'Committee Reviewer' },
     { value: 'quality', label: 'Quality Assurance' },
+    { value: 'head_committee', label: 'Head Committee' }
 ];
 
 export function formatUserRole(role: string): string {

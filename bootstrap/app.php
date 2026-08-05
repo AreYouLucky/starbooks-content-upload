@@ -1,14 +1,15 @@
 <?php
 
+use App\Http\Middleware\CommitteeMiddleware;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\HeadCommitteeMiddleware;
+use App\Http\Middleware\QualityMiddleware;
+use App\Http\Middleware\StiiAdminMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
-use App\Http\Middleware\StiiAdminMiddleware;
-use App\Http\Middleware\CommitteeMiddleware;
-use App\Http\Middleware\QualityMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-            $middleware->redirectGuestsTo('/');
+        $middleware->redirectGuestsTo('/');
 
         $middleware->web(append: [
             HandleAppearance::class,
@@ -26,9 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
         $middleware->alias([
+            'head_committee' => HeadCommitteeMiddleware::class,
             'stii_admin' => StiiAdminMiddleware::class,
             'committee' => CommitteeMiddleware::class,
-            'quality' => QualityMiddleware::class
+            'quality' => QualityMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

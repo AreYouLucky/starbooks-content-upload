@@ -31,10 +31,20 @@ class ApprovalRequest extends Model
         'Type',
         'Subject',
         'EditDate',
+        'committee_reviewed_date',
+        'committee_reviewer_id',
+        'quality_assurance_reviewer_id',
         'uploaded_by',
         'batch_id',
         'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'committee_reviewed_date' => 'date',
+        ];
+    }
 
     public function batch(): BelongsTo
     {
@@ -44,5 +54,15 @@ class ApprovalRequest extends Model
     public function approvalLogs(): HasMany
     {
         return $this->hasMany(ApprovalLog::class, 'approval_request_id');
+    }
+
+    public function committeeReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'committee_reviewer_id');
+    }
+
+    public function qualityAssuranceReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'quality_assurance_reviewer_id');
     }
 }

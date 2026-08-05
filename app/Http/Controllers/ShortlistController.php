@@ -64,7 +64,7 @@ class ShortlistController extends Controller
      */
     public function show(string $name)
     {
-        $batch = Batch::where('batch_name',$name)->first();
+        $batch = Batch::where('batch_name', $name)->first();
         $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->get();
 
         return Inertia::render(
@@ -103,9 +103,13 @@ class ShortlistController extends Controller
             ], 400);
         }
         if ($batch->status == 'for shortlisting') {
-            $batch->status = $batch->is_dost ==  1 ? 'for quality approval' : 'for initial review';
+            $batch->status = $batch->is_dost == 1 ? 'for quality approval' : 'for initial review';
             $batch->shortlisted_date = Carbon::today()->format('Y-m-d');
-            ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 1]);
+            if ($batch->is_dost == 1) {
+                ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 2]);
+            } else {
+                ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 1]);
+            }
 
         } else {
             ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 0]);

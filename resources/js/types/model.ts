@@ -73,6 +73,11 @@ export type ApprovalRequestModel = TimestampFields & {
     uploaded_by?: number | null;
     batch_id?: number | null;
     is_active?: boolean;
+    batch?: BatchModel;
+    committee_reviewer_id?: number | null;
+    quality_assurance_reviewer_id?: number | null;
+    committee_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
+    quality_assurance_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
 };
 
 export type ApprovalMultimediaModel = TimestampFields & {

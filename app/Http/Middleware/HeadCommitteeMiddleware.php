@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class CommitteeMiddleware
+class HeadCommitteeMiddleware
 {
     /**
      * Handle an incoming request.
@@ -16,7 +16,7 @@ class CommitteeMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && in_array(Auth::user()->role, ['committee', 'super_admin', 'head_committee'], true)) {
+        if (Auth::check() && in_array(Auth::user()->role, ['head_committee', 'super_admin'], true)) {
             return $next($request);
         }
 

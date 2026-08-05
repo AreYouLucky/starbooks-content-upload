@@ -16,7 +16,7 @@ class UsersController extends Controller
     /**
      * @var list<string>
      */
-    private const ROLES = ['stii_admin', 'committee', 'quality'];
+    private const ROLES = ['stii_admin', 'committee', 'quality', 'head_committee'];
 
     public function page(): Response
     {
@@ -27,7 +27,7 @@ class UsersController extends Controller
     {
         $users = User::query()
             ->select('id', 'username', 'full_name', 'delivery_unit', 'role', 'designation', 'task_description')
-            ->whereNot('role','super_admin')
+            ->whereNot('role', 'super_admin')
             ->orderBy('full_name')
             ->get();
 

@@ -2,14 +2,16 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpenCheck,
     ClipboardCheck,
-    Layers3,
+    BookUser,
     ListChecks,
     SendToBack,
     Settings2,
     ArchiveRestore,
     ShieldCheck,
     UsersRound,
+    CalendarCog
 } from 'lucide-react';
+
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -30,20 +32,26 @@ const workflowItems: NavItem[] = [
     {
         title: 'Batches',
         href: '/view-batches',
-        icon: Layers3,
-        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
+        icon: BookUser,
+        allowedRoles: ['admin', 'super_admin', 'stii_admin', 'head_committee'],
     },
     {
         title: 'For Shortlisting',
         href: '/view-shortlisted',
         icon: ListChecks,
+        allowedRoles: ['super_admin', 'head_committee'],
+    },
+    {
+        title: 'For Assignment',
+        href: '/view-assignment-designation',
+        icon: CalendarCog,
         allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
     {
         title: 'For Committee Review',
         href: '/committee-review-page',
         icon: ClipboardCheck,
-        allowedRoles: ['admin', 'super_admin', 'committee'],
+        allowedRoles: ['admin', 'super_admin', 'committee', 'head_committee'],
     },
     {
         title: 'For Quality Assurance',

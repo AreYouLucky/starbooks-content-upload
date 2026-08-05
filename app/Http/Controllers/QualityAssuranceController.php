@@ -146,7 +146,6 @@ class QualityAssuranceController extends Controller
             'content_reviewer_id' => Auth::id(),
             'batch_id' => $approvalRequest->batch_id,
             'is_approved' => $approvalStatus === 4,
-            'approval_status' => $approvalStatus,
             'progress_status' => $approvalStatus,
             'remarks' => $validated['remarks'] ?? '',
         ]);
@@ -155,7 +154,6 @@ class QualityAssuranceController extends Controller
 
         foreach ($disapprovalReasons as $reason) {
             LogDetail::query()->forceCreate([
-                'approval_status' => $approvalStatus,
                 'approval_request_id' => $approvalRequest->id,
                 'content_reviewer_id' => Auth::id(),
                 'content_log_id' => $approvalLog->id,

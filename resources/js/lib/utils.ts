@@ -57,3 +57,4 @@ export function getPageFromUrl(url: string | null): number | null {
         return null;
     }
 }
+
