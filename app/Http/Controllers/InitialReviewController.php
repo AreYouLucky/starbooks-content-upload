@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
 use App\Models\LogDetail;
+use App\Models\Request as ContentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,19 +13,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
-class CommitteeReviewController extends Controller
+class InitialReviewController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function committeeReviewPage()
+    public function initialReviewPage()
     {
         return Inertia::render(
-            'committee-review/committee-review-page'
+            'initial-review/initial-review-page'
         );
     }
 
-    public function CommitteeReviewBatches(Request $request)
+    public function initialReviewBatches(Request $request)
     {
 
         $query = Batch::select('id', 'batch_name', 'content_source', 'batch_description', 'target_initial_review_date', 'initial_reviewed_date', 'status')
@@ -50,7 +50,7 @@ class CommitteeReviewController extends Controller
         }
 
         $analytics = [
-            'for_committee_review' => Batch::query()
+            'for_initial_review' => Batch::query()
                 ->where('is_active', 1)
                 ->where('status', 'for initial review')
                 ->count(),
@@ -74,10 +74,10 @@ class CommitteeReviewController extends Controller
     public function viewApprovalRequests(string $name)
     {
         $batch = Batch::where('batch_name', $name)->first();
-        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->orderBy('approval_status', 'asc')->get();
+        $approval_requests = ContentRequest::where('batch_id', $batch->id)->orderBy('approval_status', 'asc')->get();
 
         return Inertia::render(
-            'committee-review/requests-list',
+            'initial-review/requests-list',
             [
                 'approval_requests' => $approval_requests,
                 'batch' => $batch,
@@ -85,16 +85,16 @@ class CommitteeReviewController extends Controller
         );
     }
 
-    public function ReviewRequest(string $holdingsID)
+    public function reviewRequest(string $holdingsID)
     {
-        $request = ApprovalRequest::with('batch')->where('HoldingsID', $holdingsID)->first();
+        $request = ContentRequest::with('batch')->where('HoldingsID', $holdingsID)->first();
 
         if (! $request) {
             return redirect('/already-reviewed');
         }
 
         return Inertia::render(
-            'committee-review/partials/review-request-form',
+            'initial-review/partials/review-request-form',
             [
                 'approval_request' => $request,
                 'batch' => $request->batch,
@@ -108,7 +108,7 @@ class CommitteeReviewController extends Controller
     public function submitReview(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'holdings_id' => ['required', 'string', 'max:50', Rule::exists('content_approval_requests', 'HoldingsID')],
+            'holdings_id' => ['required', 'string', 'max:50', Rule::exists('requests', 'HoldingsID')],
             'review_decision' => ['required', 'string', Rule::in(['approved', 'disapproved'])],
             'remarks' => ['nullable', 'string', 'max:1000'],
             'disapproval_reasons' => ['required_if:review_decision,disapproved', 'array', 'min:1'],
@@ -126,17 +126,19 @@ class CommitteeReviewController extends Controller
 
         try {
             DB::beginTransaction();
-            $approvalRequest = ApprovalRequest::where('HoldingsID', $validated['holdings_id'])->firstOrFail();
+            $approvalRequest = ContentRequest::where('HoldingsID', $validated['holdings_id'])->firstOrFail();
             $approvalStatus = $validated['review_decision'] === 'disapproved' ? 3 : 2;
             $approvalRequest->forceFill([
                 'approval_status' => $approvalStatus,
+                'initial_reviewed_date' => now(),
             ])->save();
 
-            $log = ApprovalLog::query()->forceCreate([
-                'approval_request_id' => $approvalRequest->id,
-                'content_reviewer_id' => Auth::id(),
+            $log = Log::query()->forceCreate([
+                'request_id' => $approvalRequest->id,
+                'user_id' => Auth::id(),
                 'batch_id' => $approvalRequest->batch_id,
                 'is_approved' => $approvalStatus === 2,
+                'approval_status' => $approvalStatus,
                 'progress_status' => $approvalStatus,
                 'remarks' => $validated['remarks'] ?? '',
             ]);
@@ -145,9 +147,12 @@ class CommitteeReviewController extends Controller
 
             foreach ($disapprovalReasons as $reason) {
                 LogDetail::query()->forceCreate([
-                    'approval_request_id' => $approvalRequest->id,
-                    'content_reviewer_id' => Auth::id(),
-                    'content_log_id' => $log->id,
+                    'approval_status' => $approvalStatus,
+                    'request_id' => $approvalRequest->id,
+                    'user_id' => Auth::id(),
+                    'log_id' => $log->id,
+                    'is_passed' => false,
+                    'description' => $reason,
                     'remarks' => $reason,
                 ]);
             }
@@ -165,7 +170,7 @@ class CommitteeReviewController extends Controller
         }
     }
 
-    public function generateCommitteeReport(Request $request): JsonResponse
+    public function generateInitialReviewReport(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'quarter' => ['required', 'string', 'max:50'],
@@ -214,14 +219,20 @@ class CommitteeReviewController extends Controller
 
         if ($batch->approvalRequests()->where('approval_status', 1)->exists()) {
             return response()->json([
-                'message' => 'Complete all pending committee reviews before forwarding.',
+                'message' => 'Complete all pending initial reviews before forwarding.',
             ], 422);
         }
 
-        $batch->update([
-            'status' => 'for quality approval',
-            'initial_reviewed_date' => now(),
-        ]);
+        DB::transaction(function () use ($batch): void {
+            $batch->approvalRequests()
+                ->where('approval_status', 2)
+                ->update(['approval_status' => 1]);
+
+            $batch->update([
+                'status' => 'for quality approval',
+                'initial_reviewed_date' => now(),
+            ]);
+        });
 
         return response()->json(['message' => 'Batch successfully forwarded to Quality Assurance Approval.']);
     }

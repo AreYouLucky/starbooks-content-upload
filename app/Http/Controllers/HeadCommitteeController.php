@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateApprovalRequestAssignmentRequest;
 use App\Http\Requests\ViewRequestAssignmentsRequest;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -20,16 +20,17 @@ class HeadCommitteeController extends Controller
             'quarter' => $validated['quarter'] ?? 'all',
             'year' => $validated['year'] ?? 'all',
             'search' => $validated['search'] ?? '',
+            'unassigned_only' => $request->boolean('unassigned_only'),
         ];
 
-        $approvalRequests = ApprovalRequest::query()
+        $approvalRequests = ContentRequest::query()
             ->select([
                 'id', 'Title', 'MaterialType', 'HoldingsID', 'Author', 'Abstracts', 'Contents', 'Type',
-                'approval_status', 'batch_id', 'committee_reviewer_id', 'quality_assurance_reviewer_id',
+                'approval_status', 'batch_id', 'initial_reviewer_id', 'quality_assurance_reviewer_id',
             ])
             ->with([
                 'batch:id,batch_name,batch_description,quarter,year,is_dost',
-                'committeeReviewer:id,full_name,role',
+                'initialReviewer:id,full_name,role',
                 'qualityAssuranceReviewer:id,full_name,role',
             ])
             ->whereIn('approval_status', [1, 2])
@@ -58,12 +59,26 @@ class HeadCommitteeController extends Controller
                     $dostQuery->whereNotNull('quality_assurance_reviewer_id')
                         ->whereHas('batch', fn ($batchQuery) => $batchQuery->where('is_dost', 1));
                 })->orWhere(function ($nonDostQuery): void {
-                    $nonDostQuery->whereNotNull('committee_reviewer_id')
+                    $nonDostQuery->whereNotNull('initial_reviewer_id')
                         ->whereNotNull('quality_assurance_reviewer_id')
                         ->whereHas('batch', fn ($batchQuery) => $batchQuery->where('is_dost', 0));
                 });
             })
             ->count();
+
+        if ($filters['unassigned_only']) {
+            $approvalRequests->where(function ($query): void {
+                $query->where(function ($dostQuery): void {
+                    $dostQuery->whereNull('quality_assurance_reviewer_id')
+                        ->whereHas('batch', fn ($batchQuery) => $batchQuery->where('is_dost', 1));
+                })->orWhere(function ($nonDostQuery): void {
+                    $nonDostQuery->where(function ($assignmentQuery): void {
+                        $assignmentQuery->whereNull('initial_reviewer_id')
+                            ->orWhereNull('quality_assurance_reviewer_id');
+                    })->whereHas('batch', fn ($batchQuery) => $batchQuery->where('is_dost', 0));
+                });
+            });
+        }
 
         $paginatedApprovalRequests = $approvalRequests
             ->latest()
@@ -73,7 +88,7 @@ class HeadCommitteeController extends Controller
         $availableBatches = Batch::query()
             ->whereHas('approvalRequests', fn ($query) => $query->whereIn('approval_status', [1, 2]));
 
-        $committeeReviewers = User::query()
+        $initialReviewers = User::query()
             ->select('id', 'full_name', 'role')
             ->whereIn('role', ['committee', 'head_committee'])
             ->orderBy('full_name')
@@ -87,7 +102,7 @@ class HeadCommitteeController extends Controller
 
         return Inertia::render('head-committee/requests-list', [
             'approval_requests' => $paginatedApprovalRequests,
-            'committee_reviewers' => $committeeReviewers,
+            'initial_reviewers' => $initialReviewers,
             'quality_assurance_reviewers' => $qualityAssuranceReviewers,
             'filters' => $filters,
             'quarters' => (clone $availableBatches)->whereNotNull('quarter')->distinct()->orderBy('quarter')->pluck('quarter'),
@@ -99,7 +114,7 @@ class HeadCommitteeController extends Controller
         ]);
     }
 
-    public function updateRequestAssignment(UpdateApprovalRequestAssignmentRequest $request, ApprovalRequest $approvalRequest): JsonResponse
+    public function updateRequestAssignment(UpdateApprovalRequestAssignmentRequest $request, ContentRequest $approvalRequest): JsonResponse
     {
         $approvalRequest->load('batch:id,is_dost');
 

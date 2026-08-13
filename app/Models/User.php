@@ -12,7 +12,7 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    protected $table = 'content_reviewers';
+    protected $table = 'users';
 
     protected $fillable = [
         'username',
@@ -39,6 +39,6 @@ class User extends Authenticatable
 
     public function approvalLogs(): HasMany
     {
-        return $this->hasMany(ApprovalLog::class, 'content_reviewer_id');
+        return $this->hasMany(Log::class, 'user_id');
     }
 }

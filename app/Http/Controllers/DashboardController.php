@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Request as ContentRequest;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +37,7 @@ class DashboardController extends Controller
         }
 
         $batchIds = (clone $batchQuery)->pluck('id');
-        $recordQuery = ApprovalRequest::query()->whereIn('batch_id', $batchIds);
+        $recordQuery = ContentRequest::query()->whereIn('batch_id', $batchIds);
 
         $workflow = [
             'batches' => (clone $batchQuery)->count(),
@@ -99,7 +99,7 @@ class DashboardController extends Controller
                     ->get()
             ),
             'quarter_trend' => $this->quarterTrend($batchQuery),
-            'urgent_batches' => $this->urgentBatches($batchQuery),
+            'urgent_contents' => $this->urgentContents($recordQuery),
             'recent_batches' => (clone $batchQuery)
                 ->select('id', 'batch_name', 'content_source', 'quarter', 'year', 'status', 'created_at')
                 ->withCount('approvalRequests as records_count')
@@ -174,83 +174,85 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return array<int, array{id: int, batch_name: string, content_source: string, quarter: string, year: string, status: string|null, target_date: string|null, stage: string, days_late: int, records_count: int}>
+     * @return array<int, array{id: int, holdings_id: string|null, title: string|null, batch_name: string, content_source: string, quarter: string, year: string, target_date: string|null, stage: string, days_late: int}>
      */
-    private function urgentBatches(Builder $batchQuery): array
+    private function urgentContents(Builder $recordQuery): array
     {
         $today = now()->startOfDay();
 
-        return (clone $batchQuery)
-            ->select([
-                'id',
-                'batch_name',
-                'content_source',
-                'quarter',
-                'year',
-                'status',
-                'target_shortlist_date',
-                'target_initial_review_date',
-                'target_quality_approval_date',
-                'target_published_date',
-            ])
+        return (clone $recordQuery)
+            ->join('batches', 'batches.id', '=', 'requests.batch_id')
+            ->select(['requests.id', 'requests.HoldingsID', 'requests.Title', 'requests.batch_id', 'requests.approval_status'])
+            ->where('requests.is_active', true)
+            ->where('batches.is_active', true)
             ->where(function (Builder $query) use ($today): void {
                 $query->where(function (Builder $query) use ($today): void {
-                    $query->where('status', 'for shortlisting')
-                        ->whereDate('target_shortlist_date', '<', $today);
+                    $query->where('requests.approval_status', 0)
+                        ->where('batches.status', 'for shortlisting')
+                        ->whereDate('batches.target_shortlist_date', '<', $today);
                 })->orWhere(function (Builder $query) use ($today): void {
-                    $query->where('status', 'for initial review')
-                        ->whereDate('target_initial_review_date', '<', $today);
+                    $query->where('requests.approval_status', 1)
+                        ->where('batches.status', 'for initial review')
+                        ->whereDate('batches.target_initial_review_date', '<', $today);
                 })->orWhere(function (Builder $query) use ($today): void {
-                    $query->where('status', 'for quality approval')
-                        ->whereDate('target_quality_approval_date', '<', $today);
+                    $query->where('requests.approval_status', 2)
+                        ->where('batches.status', 'for quality approval')
+                        ->whereDate('batches.target_quality_approval_date', '<', $today);
                 })->orWhere(function (Builder $query) use ($today): void {
-                    $query->where('status', 'for publishing')
-                        ->whereDate('target_published_date', '<', $today);
+                    $query->where('requests.approval_status', 4)
+                        ->where('batches.status', 'for publishing')
+                        ->whereDate('batches.target_published_date', '<', $today);
                 });
             })
-            ->withCount('approvalRequests as records_count')
+            ->orderByRaw('CASE requests.approval_status
+                WHEN 0 THEN batches.target_shortlist_date
+                WHEN 1 THEN batches.target_initial_review_date
+                WHEN 2 THEN batches.target_quality_approval_date
+                WHEN 4 THEN batches.target_published_date
+                END ASC')
+            ->limit(8)
+            ->with('batch:id,batch_name,content_source,quarter,year,target_shortlist_date,target_initial_review_date,target_quality_approval_date,target_published_date')
             ->get()
-            ->map(function (Batch $batch) use ($today): array {
-                $targetDate = $this->targetDateForStatus($batch);
+            ->map(function (ContentRequest $content) use ($today): array {
+                $batch = $content->batch;
+                $targetDate = $this->targetDateForStatus($batch, $content->approval_status);
                 $target = $targetDate ? Carbon::parse($targetDate)->startOfDay() : null;
 
                 return [
-                    'id' => $batch->id,
+                    'id' => $content->id,
+                    'holdings_id' => $content->HoldingsID,
+                    'title' => $content->Title,
                     'batch_name' => $batch->batch_name,
                     'content_source' => $batch->content_source,
                     'quarter' => $batch->quarter,
                     'year' => $batch->year,
-                    'status' => $batch->status,
                     'target_date' => $targetDate,
-                    'stage' => $this->stageLabel($batch->status),
+                    'stage' => $this->stageLabel($content->approval_status),
                     'days_late' => $target ? (int) $target->diffInDays($today) : 0,
-                    'records_count' => (int) $batch->records_count,
                 ];
             })
-            ->sortByDesc('days_late')
-            ->take(8)
             ->values()
             ->all();
     }
 
-    private function targetDateForStatus(Batch $batch): ?string
+    private function targetDateForStatus(Batch $batch, int $approvalStatus): ?string
     {
-        return match ($batch->status) {
-            'for shortlisting' => $batch->target_shortlist_date,
-            'for initial review' => $batch->target_initial_review_date,
-            'for quality approval' => $batch->target_quality_approval_date,
-            'for publishing' => $batch->target_published_date,
+        return match ($approvalStatus) {
+            0 => $batch->target_shortlist_date,
+            1 => $batch->target_initial_review_date,
+            2 => $batch->target_quality_approval_date,
+            4 => $batch->target_published_date,
             default => null,
         };
     }
 
-    private function stageLabel(?string $status): string
+    private function stageLabel(int $approvalStatus): string
     {
-        return match ($status) {
-            'for shortlisting' => 'Shortlisting',
-            'for initial review' => 'Initial Review',
-            'for quality approval' => 'Quality Assurance',
-            'for publishing' => 'Publishing',
+        return match ($approvalStatus) {
+            0 => 'Shortlisting',
+            1 => 'Initial Review',
+            2 => 'Quality Assurance',
+            4 => 'Publishing',
             default => 'Review',
         };
     }

@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ApprovalRequestModel } from "@/types/model";
+import { RequestModel } from "@/types/model";
 import axios from "axios";
 import { AxiosError } from "axios";
-type ApiOk = { status: string; approval_request?: ApprovalRequestModel; errors: undefined, id?: number };
+type ApiOk = { status: string; approval_request?: RequestModel; errors: undefined, id?: number };
 type ApiValidationErrors = Record<string, string[]>;
 type ApiError = {
     message?: string;

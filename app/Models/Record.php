@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Record extends Model
 {
+    protected $connection = 'starbooks';
+
     protected $table = 'tblrecord';
 
     protected $fillable = [

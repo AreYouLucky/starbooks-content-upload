@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LogDetail extends Model
 {
-    protected $table = 'content_log_details';
+    protected $table = 'log_details';
 
     protected $fillable = [
         'approval_status',
-        'approval_request_id',
-        'content_reviewer_id',
-        'content_log_id',
+        'request_id',
+        'user_id',
+        'log_id',
         'is_passed',
         'description',
         'remarks',
@@ -21,6 +21,6 @@ class LogDetail extends Model
 
     public function approvalLog(): BelongsTo
     {
-        return $this->belongsTo(ApprovalLog::class, 'content_log_id');
+        return $this->belongsTo(Log::class, 'log_id');
     }
 }

@@ -11,17 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('content_approval_logs', function (Blueprint $table) {
+        Schema::create('logs', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('approval_request_id');
-            $table->foreign('approval_request_id')->references('id')->on('content_approval_requests')->onDelete('cascade');
-            $table->unsignedBigInteger('content_reviewer_id');
-            $table->foreign('content_reviewer_id')->references('id')->on('content_reviewers')->onDelete('cascade');
-            $table->unsignedBigInteger('batch_id');
-            $table->foreign('batch_id')->references('id')->on('content_batches')->onDelete('cascade');
+            $table->foreignId('request_id')->constrained('requests')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('batch_id')->constrained('batches')->cascadeOnDelete();
             $table->boolean('is_approved')->nullable();
             $table->text('remarks')->nullable();
             $table->integer('approval_status')->default(0);
+            $table->integer('progress_status')->default(0);
             $table->timestamps();
         });
     }
@@ -31,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('content_approval_logs');
+        Schema::dropIfExists('logs');
     }
 };

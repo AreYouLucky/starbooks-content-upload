@@ -5,17 +5,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/text-area';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import type { BreadcrumbItem } from '@/types';
-import type { ApprovalRequestModel, BatchModel } from '@/types/model';
+import type { RequestModel, BatchModel } from '@/types/model';
 import ContentViewer from '@/components/custom/content/content-viewer';
 import { useState } from 'react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
 import {
-  getCommitteeReviewErrorMessage,
+  getInitialReviewErrorMessage,
   type ApiValidationErrors,
-  useSubmitCommitteeReview,
-} from './committee-review-hooks';
+  useSubmitInitialReview,
+} from './initial-review-hooks';
 
 const disapprovalReasons = ['Accuracy', 'Authority/Credibility', 'Coverage and Relevance', 'Purpose and Objectivity', 'Recency'];
 
@@ -28,7 +28,7 @@ type ReviewFormValues = {
 };
 
 type ReviewRequestPageProps = {
-  approval_request?: ApprovalRequestModel & {
+  approval_request?: RequestModel & {
     batch?: BatchModel;
   };
   batch?: BatchModel;
@@ -66,18 +66,18 @@ export default function ReviewRequestForm() {
       href: '/dashboard',
     },
     {
-      title: 'Committee Review Batches',
-      href: '/view-committee-review-batches',
+      title: 'Initial Review Batches',
+      href: '/view-initial-review-batches',
     },
     {
       title: `${batch?.batch_name}`,
       href: batch
-        ? `/view-committee-review-batch/${batch.batch_name}`
-        : '/view-committee-review-batches',
+        ? `/view-initial-review-batch/${batch.batch_name}`
+        : '/view-initial-review-batches',
     },
     {
       title: 'Review Request Form',
-      href: `/committee-review-request/${holdingsID}`,
+      href: `/initial-review-request/${holdingsID}`,
     },
   ];
 
@@ -103,7 +103,7 @@ export default function ReviewRequestForm() {
     handleArrayChange('disapproval_reasons', selectedReasons);
   };
 
-  const submitCommitteeReview = useSubmitCommitteeReview();
+  const submitInitialReview = useSubmitInitialReview();
   const createFormData = (): FormData => {
     const formData = new FormData();
 
@@ -150,12 +150,12 @@ export default function ReviewRequestForm() {
   const handleSubmit = (): void => {
     const formData = createFormData();
 
-    submitCommitteeReview.mutate(formData, {
+    submitInitialReview.mutate(formData, {
       onSuccess: (response) => {
         setOpen(false);
         setErrors({});
         toast.success(response.message);
-        router.visit(`/view-committee-review-batch/${batch?.batch_name}`);
+        router.visit(`/view-initial-review-batch/${batch?.batch_name}`);
       },
       onError: (error) => {
         setOpen(false);
@@ -167,7 +167,7 @@ export default function ReviewRequestForm() {
           return;
         }
 
-        toast.error(getCommitteeReviewErrorMessage(error));
+        toast.error(getInitialReviewErrorMessage(error));
       }
     });
   };
@@ -187,7 +187,7 @@ export default function ReviewRequestForm() {
         <section className="relative h-fit col-span-1 overflow-hidden rounded-2xl border border-sky-200 bg-white text-gray-700 shadow-sm">
           <div className='p-6 space-y-2'>
             <div className="space-y-1">
-              <h2 className="text-base font-semibold text-slate-900">Committee Review</h2>
+              <h2 className="text-base font-semibold text-slate-900">Initial Review</h2>
             </div>
 
             <div className="grid gap-3">
@@ -255,14 +255,14 @@ export default function ReviewRequestForm() {
                 name="remarks"
                 value={String(item.remarks)}
                 onChange={handleChange}
-                placeholder="Add committee remarks"
+                placeholder="Add initial review remarks"
                 className="min-h-32 resize-none border-slate-200 text-sm focus-visible:ring-sky-500"
               />
               <InputError message={errors.remarks} />
             </div>
 
-            <Button className="w-full bg-sky-600 text-white hover:bg-sky-700" onClick={handleOpenConfirm} disabled={submitCommitteeReview.isPending}>
-              {submitCommitteeReview.isPending ? 'Submitting...' : 'Submit review'}
+            <Button className="w-full bg-sky-600 text-white hover:bg-sky-700" onClick={handleOpenConfirm} disabled={submitInitialReview.isPending}>
+              {submitInitialReview.isPending ? 'Submitting...' : 'Submit review'}
             </Button>
           </div>
         </section>

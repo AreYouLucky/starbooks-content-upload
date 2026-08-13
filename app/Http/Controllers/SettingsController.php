@@ -36,8 +36,8 @@ class SettingsController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'username' => ['required', 'string', 'max:255', Rule::unique('content_reviewers', 'username')->ignore($user->id)],
-            'full_name' => ['required', 'string', 'max:255', Rule::unique('content_reviewers', 'full_name')->ignore($user->id)],
+            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
+            'full_name' => ['required', 'string', 'max:255', Rule::unique('users', 'full_name')->ignore($user->id)],
             'delivery_unit' => ['required', 'string', 'max:255'],
             'designation' => ['required', 'string', 'max:255'],
             'task_description' => ['required', 'string', 'max:255'],

@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/text-area';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import type { BreadcrumbItem } from '@/types';
-import type { ApprovalRequestModel, BatchModel } from '@/types/model';
+import type { RequestModel, BatchModel } from '@/types/model';
 import {
     getQualityAssuranceErrorMessage,
     type QualityAssuranceValidationErrors,
@@ -26,7 +26,7 @@ type ReviewFormValues = {
 };
 type ReviewFormErrors = Partial<Record<keyof ReviewFormValues, string>>;
 type PageProps = {
-    approval_request?: ApprovalRequestModel & { batch?: BatchModel };
+    approval_request?: RequestModel & { batch?: BatchModel };
     batch?: BatchModel;
 };
 

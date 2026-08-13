@@ -2,24 +2,11 @@
 
 use App\Models\Batch;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    Schema::table('content_batches', function (Blueprint $table) {
-        $table->string('target_shortlist_date')->nullable();
-        $table->string('shortlisted_date')->nullable();
-        $table->string('status')->default('for shortlisting');
-        $table->boolean('is_active')->default(1);
-        $table->boolean('is_dost')->default(1);
-        $table->string('start_date')->nullable();
-    });
-});
 
 function createShortlistUser(): User
 {
@@ -42,7 +29,6 @@ function createBatch(array $attributes = []): Batch
         'batch_description' => 'Analytics test batch',
         'target_shortlist_date' => '2026-05-15',
         'target_initial_review_date' => '2026-05-19',
-        'target_committee_review_date' => '2026-05-22',
         'target_published_date' => '2026-05-29',
         'status' => 'for shortlisting',
         'is_active' => 1,

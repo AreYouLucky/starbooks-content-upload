@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
 use App\Models\LkContent;
+use App\Models\Record;
+use App\Models\Request as ContentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -103,8 +104,8 @@ class BulkUploadController extends Controller
             foreach ($recordData as $record) {
                 $holdingsId = $record['HoldingsID'] ?? '';
 
-                if (DB::table('tblrecord')->where('HoldingsID', $holdingsId)->exists()
-                    || ApprovalRequest::where('HoldingsID', $holdingsId)->exists()) {
+                if (Record::query()->where('HoldingsID', $holdingsId)->exists()
+                    || ContentRequest::where('HoldingsID', $holdingsId)->exists()) {
                     DB::rollBack();
 
                     return response()->json([
@@ -114,7 +115,7 @@ class BulkUploadController extends Controller
                 }
 
                 if ($holdingsId !== '') {
-                    ApprovalRequest::create([
+                    ContentRequest::create([
                         'HoldingsID' => $holdingsId,
                         'MaterialType' => $record['MaterialType'] ?? '',
                         'Title' => $record['Title'] ?? '',

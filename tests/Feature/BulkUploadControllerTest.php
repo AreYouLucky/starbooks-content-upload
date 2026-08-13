@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,7 +42,6 @@ function createBulkUploadBatch(): Batch
         'batch_description' => 'Bulk upload encoding test',
         'target_published_date' => '2026-07-31',
         'target_initial_review_date' => '2026-07-01',
-        'target_committee_review_date' => '2026-07-15',
     ]);
 }
 
@@ -76,7 +75,7 @@ test('bulk upload converts windows 1252 csv values to utf 8', function () {
         ->assertOk()
         ->assertJsonPath('status', 'Content saved successfully');
 
-    $approvalRequest = ApprovalRequest::query()
+    $approvalRequest = ContentRequest::query()
         ->where('HoldingsID', 'PCAARRD_TEST')
         ->firstOrFail();
 

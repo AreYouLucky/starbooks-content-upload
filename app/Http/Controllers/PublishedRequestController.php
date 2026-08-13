@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
 use App\Models\Record;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,7 +86,7 @@ class PublishedRequestController extends Controller
                 'published_date' => now(),
             ]);
 
-            $requests = ApprovalRequest::query()
+            $requests = ContentRequest::query()
                 ->where('batch_id', $batch->id)
                 ->get();
 
@@ -178,17 +178,17 @@ class PublishedRequestController extends Controller
     public function generatePublishingReviewerReport(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'reviewer_id' => ['required', 'integer', 'exists:content_reviewers,id'],
+            'reviewer_id' => ['required', 'integer', 'exists:users,id'],
             'quarter' => ['required', 'string', 'max:50'],
             'year' => ['required', 'string', 'max:50'],
         ]);
 
         $reviewerId = $validated['reviewer_id'];
         $reviewLogFilter = fn ($query) => $query
-            ->where('content_reviewer_id', $reviewerId)
+            ->where('user_id', $reviewerId)
             ->whereIn('progress_status', [2, 3, 4, 5]);
 
-        $records = ApprovalRequest::query()
+        $records = ContentRequest::query()
             ->select('id', 'Title', 'HoldingsID', 'batch_id')
             ->whereHas('batch', fn ($query) => $query
                 ->where('quarter', $validated['quarter'])
@@ -197,7 +197,7 @@ class PublishedRequestController extends Controller
             ->with([
                 'batch:id,batch_name,content_source,start_date,shortlisted_date,initial_reviewed_date,target_initial_review_date,target_quality_approval_date,target_published_date',
                 'approvalLogs' => fn ($query) => $query
-                    ->where('content_reviewer_id', $reviewerId)
+                    ->where('user_id', $reviewerId)
                     ->whereIn('progress_status', [2, 3, 4, 5])
                     ->orderBy('created_at')
                     ->with([
@@ -207,7 +207,7 @@ class PublishedRequestController extends Controller
             ])
             ->orderBy('Title')
             ->get()
-            ->flatMap(function (ApprovalRequest $approvalRequest) {
+            ->flatMap(function (ContentRequest $approvalRequest) {
                 return $approvalRequest->approvalLogs->map(fn ($approvalLog) => [
                     'batch_name' => $approvalRequest->batch?->batch_name,
                     'content_source' => $approvalRequest->batch?->content_source,
@@ -239,7 +239,7 @@ class PublishedRequestController extends Controller
         return response()->json(['records' => $records]);
     }
 
-    private function forwardedDateForReview(ApprovalRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
+    private function forwardedDateForReview(ContentRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
     {
         if ($reviewerRole === 'quality') {
             return $approvalRequest->batch?->initial_reviewed_date;
@@ -260,7 +260,7 @@ class PublishedRequestController extends Controller
         };
     }
 
-    private function targetDeadlineForReview(ApprovalRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
+    private function targetDeadlineForReview(ContentRequest $approvalRequest, int $progressStatus, ?string $reviewerRole): ?string
     {
         if ($reviewerRole === 'quality') {
             return $approvalRequest->batch?->target_quality_approval_date;

@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ApprovalRequest extends Model
+class Request extends Model
 {
-    protected $table = 'content_approval_requests';
+    protected $table = 'requests';
 
     protected $fillable = [
         'approval_status',
@@ -31,8 +31,9 @@ class ApprovalRequest extends Model
         'Type',
         'Subject',
         'EditDate',
-        'committee_reviewed_date',
-        'committee_reviewer_id',
+        'initial_reviewed_date',
+        'quality_assurance_date',
+        'initial_reviewer_id',
         'quality_assurance_reviewer_id',
         'uploaded_by',
         'batch_id',
@@ -42,7 +43,8 @@ class ApprovalRequest extends Model
     protected function casts(): array
     {
         return [
-            'committee_reviewed_date' => 'date',
+            'initial_reviewed_date' => 'date',
+            'quality_assurance_date' => 'date',
         ];
     }
 
@@ -53,12 +55,12 @@ class ApprovalRequest extends Model
 
     public function approvalLogs(): HasMany
     {
-        return $this->hasMany(ApprovalLog::class, 'approval_request_id');
+        return $this->hasMany(Log::class, 'request_id');
     }
 
-    public function committeeReviewer(): BelongsTo
+    public function initialReviewer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'committee_reviewer_id');
+        return $this->belongsTo(User::class, 'initial_reviewer_id');
     }
 
     public function qualityAssuranceReviewer(): BelongsTo

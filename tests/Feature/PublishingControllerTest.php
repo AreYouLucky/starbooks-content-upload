@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
 use App\Models\LogDetail;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,21 +14,6 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    Schema::table('content_batches', function (Blueprint $table) {
-        $table->date('start_date')->nullable();
-        $table->dateTime('quality_approval_date')->nullable();
-        $table->dateTime('published_date')->nullable();
-        $table->dateTime('shortlisted_date')->nullable();
-        $table->dateTime('initial_reviewed_date')->nullable();
-        $table->string('target_quality_approval_date')->nullable();
-        $table->string('status')->default('for shortlisting');
-        $table->boolean('is_active')->default(1);
-    });
-
-    Schema::table('content_approval_logs', function (Blueprint $table) {
-        $table->integer('progress_status')->default(0);
-    });
-
     if (! Schema::hasTable('tblrecord')) {
         Schema::create('tblrecord', function (Blueprint $table) {
             $table->id();
@@ -76,7 +61,6 @@ function createPublishingBatch(array $attributes = []): Batch
         'target_published_date' => '2026-07-15',
         'target_initial_review_date' => '2026-06-15',
         'target_quality_approval_date' => '2026-06-30',
-        'target_committee_review_date' => '2026-06-22',
         'initial_reviewed_date' => '2026-06-20 08:00:00',
         'quality_approval_date' => '2026-06-30 08:00:00',
         'status' => 'for publishing',
@@ -84,9 +68,9 @@ function createPublishingBatch(array $attributes = []): Batch
     ], $attributes));
 }
 
-function createPublishingRequest(Batch $batch, array $attributes = []): ApprovalRequest
+function createPublishingRequest(Batch $batch, array $attributes = []): ContentRequest
 {
-    return ApprovalRequest::query()->create(array_merge([
+    return ContentRequest::query()->create(array_merge([
         'HoldingsID' => 'PUB-'.Str::upper(Str::random(8)),
         'Title' => 'Publishing Request '.Str::upper(Str::random(4)),
         'batch_id' => $batch->id,
@@ -96,14 +80,14 @@ function createPublishingRequest(Batch $batch, array $attributes = []): Approval
 }
 
 function createPublishingLog(
-    ApprovalRequest $approvalRequest,
+    ContentRequest $approvalRequest,
     User $user,
     int $progressStatus,
     string $remarks = 'Publishing report decision.',
-): ApprovalLog {
-    return ApprovalLog::query()->forceCreate([
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
+): Log {
+    return Log::query()->forceCreate([
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $approvalRequest->batch_id,
         'is_approved' => in_array($progressStatus, [2, 4], true),
         'approval_status' => $progressStatus,
@@ -251,9 +235,9 @@ test('publishing reviewer report returns selected reviewer rows and lists every 
 
     LogDetail::query()->forceCreate([
         'approval_status' => 5,
-        'approval_request_id' => $approvalRequest->id,
-        'content_log_id' => $selectedLog->id,
-        'content_reviewer_id' => $reviewer->id,
+        'request_id' => $approvalRequest->id,
+        'log_id' => $selectedLog->id,
+        'user_id' => $reviewer->id,
         'is_passed' => false,
         'description' => 'Completeness',
         'remarks' => 'Completeness',

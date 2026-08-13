@@ -1,13 +1,13 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, } from '@/components/ui/dialog';
 import ContentViewer from '@/components/custom/content/content-viewer';
 import { Button } from '../ui/button';
-import type { ApprovalRequestModel } from '@/types/model';
+import type { RequestModel } from '@/types/model';
 import type { JSX } from 'react';
 
 type BatchFormProps = {
     show: boolean;
     onClose: () => void;
-    data: ApprovalRequestModel | null;
+    data: RequestModel | null;
 };
 
 export default function ViewContent(props: BatchFormProps): JSX.Element {

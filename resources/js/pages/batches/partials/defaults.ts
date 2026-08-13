@@ -18,7 +18,7 @@ export const getStats = (batches: BatchModel[]) => {
             tone: 'bg-white/80 text-sky-600 ring-sky-200',
         },
         {
-            label: 'For Committee Review',
+            label: 'For Initial Review',
             value: batches.filter(
                 (batch) => batch.status === 'for initial review',
             ).length,

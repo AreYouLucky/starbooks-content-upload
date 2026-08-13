@@ -11,32 +11,37 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('requests', function (Blueprint $table) {
+        if (Schema::hasTable('archived_records')) {
+            return;
+        }
+
+        Schema::create('archived_records', function (Blueprint $table) {
             $table->id();
-            $table->integer('approval_status')->default(0);
             $table->string('HoldingsID')->nullable();
             $table->string('MaterialType')->nullable();
             $table->string('Title')->nullable();
-            $table->string('FileName')->nullable();
             $table->string('SubTitle')->nullable();
             $table->string('SeriesTitle')->nullable();
             $table->text('BibliographicNote')->nullable();
-            $table->text('Contents')->nullable();
+            $table->string('Contents')->nullable();
             $table->text('Abstracts')->nullable();
             $table->string('JournalTitle')->nullable();
             $table->string('AgencyCode')->nullable();
             $table->string('BroadClass')->nullable();
+            $table->string('PhysicalExtension')->nullable();
             $table->string('VolumeNo')->nullable();
             $table->string('IssueNo')->nullable();
             $table->string('IssueDate')->nullable();
             $table->string('Author')->nullable();
+            $table->string('AuthorStmt')->nullable();
             $table->string('Type')->nullable();
             $table->string('Subject')->nullable();
-            $table->dateTime('EditDate')->nullable();
-            $table->foreignId('uploaded_by')->nullable()->constrained('users')->cascadeOnDelete();
-            $table->foreignId('batch_id')->nullable()->constrained('batches')->cascadeOnDelete();
-            $table->boolean('is_active')->default(1);
-            $table->timestamps();
+            $table->string('Publication')->nullable();
+            $table->string('EditDate')->nullable();
+            $table->string('date_uploaded')->nullable();
+            $table->string('attribution')->nullable();
+            $table->unsignedBigInteger('uploaded_by')->nullable();
+            $table->string('url')->nullable();
         });
     }
 
@@ -45,6 +50,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('requests');
+        /** The table may predate this compatibility migration. */
     }
 };

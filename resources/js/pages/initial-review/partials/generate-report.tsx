@@ -22,8 +22,8 @@ import { quarters } from '@/lib/default';
 import { generateYears } from '@/pages/batches/partials/defaults';
 import axios from 'axios';
 import {
-    ApprovalLogModel,
-    ApprovalRequestModel,
+    LogModel,
+    RequestModel,
     BatchModel,
     LogDetailModel,
     UserModel,
@@ -34,22 +34,22 @@ type Props = {
     show: boolean;
     onClose: () => void;
 };
-type CommitteeReportReviewer = Pick<UserModel, 'id' | 'full_name'>;
-type CommitteeReportLogDetail = LogDetailModel;
-type CommitteeReportApprovalLog = Omit<ApprovalLogModel, 'is_approved'> & {
+type InitialReviewReportReviewer = Pick<UserModel, 'id' | 'full_name'>;
+type InitialReviewReportLogDetail = LogDetailModel;
+type InitialReviewReportApprovalLog = Omit<LogModel, 'is_approved'> & {
     is_approved: boolean | number | null;
-    log_details?: CommitteeReportLogDetail[];
-    reviewer?: CommitteeReportReviewer | null;
+    log_details?: InitialReviewReportLogDetail[];
+    reviewer?: InitialReviewReportReviewer | null;
 };
-type CommitteeReportApprovalRequest = ApprovalRequestModel & {
-    approval_logs?: CommitteeReportApprovalLog[];
+type InitialReviewReportApprovalRequest = RequestModel & {
+    approval_logs?: InitialReviewReportApprovalLog[];
 };
-type CommitteeReportBatch = BatchModel & {
-    approval_requests?: CommitteeReportApprovalRequest[];
+type InitialReviewReportBatch = BatchModel & {
+    approval_requests?: InitialReviewReportApprovalRequest[];
 };
 type Result = {
-    batches: CommitteeReportBatch[];
-    records: CommitteeReportApprovalRequest[];
+    batches: InitialReviewReportBatch[];
+    records: InitialReviewReportApprovalRequest[];
 };
 
 const REPORT_HEADERS = [
@@ -112,7 +112,7 @@ const formatManilaDate = (value: string | null | undefined): string => {
     }).format(date);
 };
 
-const getDecision = (approvalLog: CommitteeReportApprovalLog): string => {
+const getDecision = (approvalLog: InitialReviewReportApprovalLog): string => {
     if (
         approvalLog.is_approved === true ||
         approvalLog.is_approved === 1
@@ -131,7 +131,7 @@ const getDecision = (approvalLog: CommitteeReportApprovalLog): string => {
 };
 
 const getRejectionReasons = (
-    approvalLog: CommitteeReportApprovalLog,
+    approvalLog: InitialReviewReportApprovalLog,
 ): string => {
     return (approvalLog.log_details ?? [])
         .map((detail) => detail.remarks)
@@ -166,12 +166,12 @@ const styleMergedTitle = (
     };
 };
 
-const downloadCommitteeReviewReport = async ({
+const downloadInitialReviewReport = async ({
     batches,
     quarter,
     year,
 }: {
-    batches: CommitteeReportBatch[];
+    batches: InitialReviewReportBatch[];
     quarter: string;
     year: string;
 }): Promise<void> => {
@@ -325,7 +325,7 @@ const downloadCommitteeReviewReport = async ({
     const objectUrl = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = objectUrl;
-    anchor.download = `STARBOOKS-Committee-Initial-Review-${quarter}-${year}.xlsx`;
+    anchor.download = `STARBOOKS-Initial-Review-${quarter}-${year}.xlsx`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -342,11 +342,11 @@ export default function GenerateReport(props: Props): JSX.Element {
     const generateReportFn = (): void => {
         const { quarter, year } = item;
         axios
-            .get<Result>('/generate-committee-report', {
+            .get<Result>('/generate-initial-review-report', {
                 params: { quarter: quarter, year: year },
             })
             .then(async (res) => {
-                await downloadCommitteeReviewReport({
+                await downloadInitialReviewReport({
                     batches: res.data.batches,
                     quarter: quarter,
                     year: year,

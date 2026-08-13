@@ -1,33 +1,19 @@
 <?php
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
 use App\Models\LogDetail;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function () {
-    Schema::table('content_batches', function (Blueprint $table) {
-        $table->string('initial_reviewed_date')->nullable();
-        $table->string('status')->default('for shortlisting');
-        $table->boolean('is_active')->default(1);
-    });
-
-    Schema::table('content_approval_logs', function (Blueprint $table) {
-        $table->integer('progress_status')->default(0);
-    });
-});
-
-function createCommitteeUser(): User
+function createInitialReviewUser(): User
 {
     return User::query()->create([
         'username' => 'committee_'.Str::lower(Str::random(8)),
@@ -40,7 +26,7 @@ function createCommitteeUser(): User
     ]);
 }
 
-function createCommitteeBatch(array $attributes = []): Batch
+function createInitialReviewBatch(array $attributes = []): Batch
 {
     return Batch::query()->forceCreate(array_merge([
         'batch_name' => 'Batch '.Str::upper(Str::random(4)),
@@ -50,15 +36,14 @@ function createCommitteeBatch(array $attributes = []): Batch
         'batch_description' => 'Committee review test batch',
         'target_published_date' => '2026-05-29',
         'target_initial_review_date' => '2026-05-19',
-        'target_committee_review_date' => '2026-05-22',
         'status' => 'for initial review',
         'is_active' => 1,
     ], $attributes));
 }
 
-function createApprovalRequestForBatch(Batch $batch, int $approvalStatus): ApprovalRequest
+function createApprovalRequestForBatch(Batch $batch, int $approvalStatus): ContentRequest
 {
-    return ApprovalRequest::query()->create([
+    return ContentRequest::query()->create([
         'HoldingsID' => 'HOLD-'.Str::upper(Str::random(8)),
         'Title' => 'Approval Request '.Str::upper(Str::random(4)),
         'batch_id' => $batch->id,
@@ -67,8 +52,8 @@ function createApprovalRequestForBatch(Batch $batch, int $approvalStatus): Appro
     ]);
 }
 
-test('committee review index returns approval request status counts per batch', function () {
-    $batch = createCommitteeBatch([
+test('initial review index returns approval request status counts per batch', function () {
+    $batch = createInitialReviewBatch([
         'batch_name' => 'Science Committee Batch',
     ]);
 
@@ -78,15 +63,15 @@ test('committee review index returns approval request status counts per batch', 
     createApprovalRequestForBatch($batch, 3);
     createApprovalRequestForBatch($batch, 0);
 
-    createCommitteeBatch([
+    createInitialReviewBatch([
         'batch_name' => 'Shortlisting Batch',
         'status' => 'for shortlisting',
     ]);
 
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
     $this->actingAs($user)
-        ->getJson('/committee-review-batches')
+        ->getJson('/initial-review-batches')
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.pending', 2)
@@ -94,12 +79,12 @@ test('committee review index returns approval request status counts per batch', 
         ->assertJsonPath('data.0.rejected', 1);
 });
 
-test('committee review index filters batches without changing their request counts', function () {
-    $scienceBatch = createCommitteeBatch([
+test('initial review index filters batches without changing their request counts', function () {
+    $scienceBatch = createInitialReviewBatch([
         'batch_name' => 'Science Committee Batch',
         'batch_description' => 'Filtered committee work',
     ]);
-    $historyBatch = createCommitteeBatch([
+    $historyBatch = createInitialReviewBatch([
         'batch_name' => 'History Committee Batch',
         'batch_description' => 'Should not match',
     ]);
@@ -107,10 +92,10 @@ test('committee review index filters batches without changing their request coun
     createApprovalRequestForBatch($scienceBatch, 2);
     createApprovalRequestForBatch($historyBatch, 3);
 
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
     $this->actingAs($user)
-        ->getJson('/committee-review-batches?search=Science')
+        ->getJson('/initial-review-batches?search=Science')
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.batch_name', 'Science Committee Batch')
@@ -118,38 +103,38 @@ test('committee review index filters batches without changing their request coun
         ->assertJsonPath('data.0.rejected', 0);
 });
 
-test('committee review index includes reviewed batches after unreviewed batches', function () {
-    $reviewedBatch = createCommitteeBatch([
+test('initial review index includes reviewed batches after unreviewed batches', function () {
+    $reviewedBatch = createInitialReviewBatch([
         'batch_name' => 'Already Reviewed Committee Batch',
         'status' => 'for quality approval',
         'initial_reviewed_date' => '2026-06-20 08:00:00',
         'created_at' => now(),
     ]);
-    $unreviewedBatch = createCommitteeBatch([
+    $unreviewedBatch = createInitialReviewBatch([
         'batch_name' => 'Current Committee Batch',
         'status' => 'for initial review',
         'created_at' => now()->subDay(),
     ]);
     createApprovalRequestForBatch($reviewedBatch, 2);
     createApprovalRequestForBatch($unreviewedBatch, 1);
-    createCommitteeBatch([
+    createInitialReviewBatch([
         'batch_name' => 'Shortlisting Batch',
         'status' => 'for shortlisting',
     ]);
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
     $this->actingAs($user)
-        ->getJson('/committee-review-batches')
+        ->getJson('/initial-review-batches')
         ->assertOk()
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.batch_name', 'Current Committee Batch')
         ->assertJsonPath('data.1.batch_name', 'Already Reviewed Committee Batch')
-        ->assertJsonPath('analytics.for_committee_review', 1)
+        ->assertJsonPath('analytics.for_initial_review', 1)
         ->assertJsonPath('analytics.reviewed', 1);
 });
 
-test('committee report returns reviewed requests with their logs and details', function () {
-    $batch = createCommitteeBatch([
+test('initial review report returns reviewed requests with their logs and details', function () {
+    $batch = createInitialReviewBatch([
         'batch_name' => 'Reviewed Committee Batch',
         'quarter' => 'Q3',
         'status' => 'for quality approval',
@@ -157,51 +142,51 @@ test('committee report returns reviewed requests with their logs and details', f
     ]);
     $reviewedRequest = createApprovalRequestForBatch($batch, 1);
     $unreviewedRequest = createApprovalRequestForBatch($batch, 2);
-    createCommitteeBatch([
+    createInitialReviewBatch([
         'batch_name' => 'Different Quarter Batch',
         'quarter' => 'Q4',
         'status' => 'for quality approval',
         'year' => '2026',
     ]);
-    $batchWithoutReviewedLogs = createCommitteeBatch([
+    $batchWithoutReviewedLogs = createInitialReviewBatch([
         'batch_name' => 'No Reviewed Logs Batch',
         'quarter' => 'Q3',
         'status' => 'for quality approval',
         'year' => '2026',
     ]);
     createApprovalRequestForBatch($batchWithoutReviewedLogs, 2);
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
-    $approvalLog = ApprovalLog::query()->create([
-        'approval_request_id' => $reviewedRequest->id,
-        'content_reviewer_id' => $user->id,
+    $approvalLog = Log::query()->create([
+        'request_id' => $reviewedRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $batch->id,
         'is_approved' => true,
         'progress_status' => 2,
         'remarks' => 'Approved by the committee.',
     ]);
 
-    ApprovalLog::query()->create([
-        'approval_request_id' => $unreviewedRequest->id,
-        'content_reviewer_id' => $user->id,
+    Log::query()->create([
+        'request_id' => $unreviewedRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $batch->id,
         'is_approved' => false,
         'progress_status' => 1,
-        'remarks' => 'Still awaiting committee review.',
+        'remarks' => 'Still awaiting initial review.',
     ]);
 
     LogDetail::query()->forceCreate([
         'approval_status' => 2,
-        'approval_request_id' => $reviewedRequest->id,
-        'content_log_id' => $approvalLog->id,
-        'content_reviewer_id' => $user->id,
+        'request_id' => $reviewedRequest->id,
+        'log_id' => $approvalLog->id,
+        'user_id' => $user->id,
         'is_passed' => true,
         'description' => 'Accuracy',
         'remarks' => 'Passed.',
     ]);
 
     $this->actingAs($user)
-        ->getJson('/generate-committee-report?quarter=Q3&year=2026')
+        ->getJson('/generate-initial-review-report?quarter=Q3&year=2026')
         ->assertOk()
         ->assertJsonCount(1, 'batches')
         ->assertJsonMissingPath('batches.1')
@@ -216,13 +201,13 @@ test('committee report returns reviewed requests with their logs and details', f
         ->assertJsonPath('records.0.id', $reviewedRequest->id);
 });
 
-test('committee review submission updates request and stores disapproval reasons', function () {
-    $batch = createCommitteeBatch();
+test('initial review submission updates request and stores disapproval reasons', function () {
+    $batch = createInitialReviewBatch();
     $approvalRequest = createApprovalRequestForBatch($batch, 1);
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
     $this->actingAs($user)
-        ->postJson('/submit-committee-review', [
+        ->postJson('/submit-initial-review', [
             'holdings_id' => $approvalRequest->HoldingsID,
             'review_decision' => 'disapproved',
             'disapproval_reasons' => ['Accuracy', 'Recency'],
@@ -233,36 +218,36 @@ test('committee review submission updates request and stores disapproval reasons
 
     $approvalRequest->refresh();
     expect($approvalRequest->approval_status)->toBe(3)
-        ->and($approvalRequest->committee_reviewed_date)->toBe(Carbon::today()->toDateString());
+        ->and($approvalRequest->initial_reviewed_date?->toDateString())->toBe(Carbon::today()->toDateString());
 
-    $logId = DB::table('content_approval_logs')->value('id');
+    $logId = DB::table('logs')->value('id');
 
-    $this->assertDatabaseHas('content_approval_logs', [
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
+    $this->assertDatabaseHas('logs', [
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $batch->id,
         'is_approved' => false,
         'approval_status' => 3,
         'remarks' => 'Needs corrections before approval.',
     ]);
 
-    $this->assertDatabaseHas('content_log_details', [
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
-        'content_log_id' => $logId,
+    $this->assertDatabaseHas('log_details', [
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
+        'log_id' => $logId,
         'approval_status' => 3,
         'description' => 'Accuracy',
         'remarks' => 'Accuracy',
     ]);
 });
 
-test('committee review submission requires reasons when disapproved', function () {
-    $batch = createCommitteeBatch();
+test('initial review submission requires reasons when disapproved', function () {
+    $batch = createInitialReviewBatch();
     $approvalRequest = createApprovalRequestForBatch($batch, 1);
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
 
     $this->actingAs($user)
-        ->postJson('/submit-committee-review', [
+        ->postJson('/submit-initial-review', [
             'holdings_id' => $approvalRequest->HoldingsID,
             'review_decision' => 'disapproved',
             'remarks' => 'Needs corrections before approval.',
@@ -275,10 +260,11 @@ test('committee review submission requires reasons when disapproved', function (
 });
 
 test('forwarding to quality assurance resets approved requests for the next review stage', function () {
-    $batch = createCommitteeBatch(['batch_name' => 'Ready for QA Batch']);
+    $batch = createInitialReviewBatch(['batch_name' => 'Ready for QA Batch']);
     $approvedRequest = createApprovalRequestForBatch($batch, 2);
     $disapprovedRequest = createApprovalRequestForBatch($batch, 3);
-    $user = createCommitteeUser();
+    $user = createInitialReviewUser();
+    $user->update(['role' => 'stii_admin']);
 
     $this->actingAs($user)
         ->postJson('/forward-to-quality-assurance', ['batchName' => $batch->batch_name])

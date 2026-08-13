@@ -11,16 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('content_batches', function (Blueprint $table) {
+        Schema::create('batches', function (Blueprint $table) {
             $table->id();
             $table->string('batch_name')->unique();
             $table->string('quarter');
             $table->string('year');
             $table->string('content_source');
             $table->text('batch_description');
-            $table->string('target_published_date');
-            $table->string('target_initial_review_date');
-            $table->string('target_committee_review_date');
+            $table->date('start_date')->nullable();
+            $table->date('target_shortlist_date')->nullable();
+            $table->dateTime('shortlisted_date')->nullable();
+            $table->date('target_initial_review_date');
+            $table->dateTime('initial_reviewed_date')->nullable();
+            $table->date('target_quality_approval_date')->nullable();
+            $table->dateTime('quality_approval_date')->nullable();
+            $table->date('target_published_date');
+            $table->dateTime('published_date')->nullable();
+            $table->string('status')->default('for shortlisting');
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_dost')->default(false);
             $table->timestamps();
         });
     }
@@ -30,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('content_batches');
+        Schema::dropIfExists('batches');
     }
 };

@@ -24,7 +24,7 @@ class UpdateApprovalRequestAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'committee_reviewer_id' => [
+            'initial_reviewer_id' => [
                 'nullable',
                 'integer',
                 Rule::exists(User::class, 'id')->whereIn('role', ['committee', 'head_committee']),

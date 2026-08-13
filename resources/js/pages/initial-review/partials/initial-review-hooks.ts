@@ -4,8 +4,8 @@ import axios from "axios";
 import { AxiosError } from "axios";
 
 
-type ForCommitteeReviewAnalytics = {
-  for_committee_review: number;
+type ForInitialReviewAnalytics = {
+  for_initial_review: number;
   reviewed: number;
 };
 
@@ -17,7 +17,7 @@ type PaginatedResponse<T> = {
   total: number;
   next_page_url: string | null;
   prev_page_url: string | null;
-  analytics: ForCommitteeReviewAnalytics;
+  analytics: ForInitialReviewAnalytics;
 };
 
 type ApiOk = { message: string; batch?: BatchModel; id?: number };
@@ -32,12 +32,12 @@ type Filters = {
   search: string | '';
   batch_id: number | '';
 }
-export function useFetchCommitteeReview(page: number,
+export function useFetchInitialReview(page: number,
   filters: Filters) {
   return useQuery<PaginatedResponse<BatchModel>>({
-    queryKey: ["committee-review", page, filters],
+    queryKey: ["initial-review", page, filters],
     queryFn: async () => {
-      const res = await axios.get("/committee-review-batches", {
+      const res = await axios.get("/initial-review-batches", {
         params: {
           page,
           ...filters,
@@ -51,18 +51,18 @@ export function useFetchCommitteeReview(page: number,
 }
 
 
-export function useSubmitCommitteeReview() {
+export function useSubmitInitialReview() {
   const queryClient = useQueryClient();
   return useMutation<ApiOk, AxiosError<ApiError>, FormData>({
     mutationFn: (payload) =>
-      axios.post<ApiOk>("/submit-committee-review", payload).then((res) => res.data),
+      axios.post<ApiOk>("/submit-initial-review", payload).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["committee-review"] });
+      queryClient.invalidateQueries({ queryKey: ["initial-review"] });
     },
   });
 }
 
-export function getCommitteeReviewErrorMessage(error: AxiosError<ApiError>): string {
+export function getInitialReviewErrorMessage(error: AxiosError<ApiError>): string {
   return error.response?.data?.message
     ?? error.response?.data?.error
     ?? "Failed to submit review. Please try again.";
@@ -74,7 +74,7 @@ export function useForwardToQualityApproval() {
     mutationFn: ({ batchName }) =>
       axios.post<ApiOk>("/forward-to-quality-assurance", { batchName }).then((res) => res.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["committee-review"] });
+      queryClient.invalidateQueries({ queryKey: ["initial-review"] });
     },
   });
 }

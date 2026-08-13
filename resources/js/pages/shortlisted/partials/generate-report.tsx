@@ -9,7 +9,7 @@ import { quarters } from '@/lib/default'
 import { generateYears } from '@/pages/batches/partials/defaults'
 import { downloadShortlisted } from '@/lib/excel-download'
 import axios from 'axios'
-import { BatchModel, ApprovalRequestModel } from '@/types/model'
+import { BatchModel, RequestModel } from '@/types/model'
 import { toast } from 'sonner'
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
 }
 type Result = {
     batches: BatchModel[],
-    records: ApprovalRequestModel[]
+    records: RequestModel[]
 }
 export default function GenerateReport(props: Props) {
     const { item, errors, setItem, setErrors } = useHandleChange({

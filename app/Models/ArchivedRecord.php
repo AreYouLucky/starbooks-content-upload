@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ArchiveRecords extends Model
+class ArchivedRecord extends Model
 {
-    protected $table = 'tblarchivedrecords';
+    protected $table = 'archived_records';
 
     protected $fillable = [
         'HoldingsID',

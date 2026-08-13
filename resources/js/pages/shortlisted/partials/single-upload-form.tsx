@@ -9,7 +9,7 @@ import { FaUpload } from "react-icons/fa";
 import InputError from '@/components/input-error';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { LkContentModel, ApprovalRequestModel, BatchModel, RecordModel } from '@/types/model';
+import { LkContentModel, RequestModel, BatchModel, RecordModel } from '@/types/model';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, } from "@/components/ui/select"
 import { content_type, material_type } from '@/lib/default';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 export default function SingleUpload() {
-    const { props } = usePage<{ content_group?: LkContentModel[], approval_request?: ApprovalRequestModel, existing_record?: RecordModel, record_status?: string, batches?: BatchModel[] }>();
+    const { props } = usePage<{ content_group?: LkContentModel[], approval_request?: RequestModel, existing_record?: RecordModel, record_status?: string, batches?: BatchModel[] }>();
     const content_group = props.content_group ?? []
     const batches = props.batches ?? []
     const approval_request = props.approval_request

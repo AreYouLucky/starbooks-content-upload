@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ArchiveRecords;
+use App\Models\ArchivedRecord;
 use App\Models\LkContent;
 use App\Models\Record;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -73,7 +73,7 @@ class ExistingRecordsController extends Controller
             'filters' => $filters,
             'analytics' => [
                 'published' => Record::query()->count(),
-                'unpublished' => ArchiveRecords::query()->count(),
+                'unpublished' => ArchivedRecord::query()->count(),
             ],
         ]);
     }
@@ -95,7 +95,7 @@ class ExistingRecordsController extends Controller
         abort_unless(in_array($status, ['published', 'unpublished'], true), 404);
 
         $record = $this->findRecord($status, $id);
-        $table = $status === 'published' ? 'tblrecord' : 'tblarchivedrecords';
+        $table = $status === 'published' ? 'tblrecord' : 'archived_records';
 
         $validated = $request->validate([
             'Title' => ['required', 'string', 'max:500', Rule::unique($table, 'Title')->ignore($record->getKey())],
@@ -128,7 +128,7 @@ class ExistingRecordsController extends Controller
         $record = Record::query()->findOrFail($id);
 
         DB::transaction(function () use ($record): void {
-            ArchiveRecords::query()->create($this->transferData($record));
+            ArchivedRecord::query()->create($this->transferData($record));
             $record->delete();
         });
 
@@ -137,7 +137,7 @@ class ExistingRecordsController extends Controller
 
     public function republish(int $id): JsonResponse
     {
-        $record = ArchiveRecords::query()->findOrFail($id);
+        $record = ArchivedRecord::query()->findOrFail($id);
 
         DB::transaction(function () use ($record): void {
             Record::query()->create($this->transferData($record));
@@ -154,9 +154,9 @@ class ExistingRecordsController extends Controller
     {
         $query = match ($filters['status']) {
             'published' => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters),
-            'unpublished' => $this->recordsQueryForTable((new ArchiveRecords)->getTable(), 'unpublished', $filters),
+            'unpublished' => $this->recordsQueryForTable((new ArchivedRecord)->getTable(), 'unpublished', $filters),
             default => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters)
-                ->unionAll($this->recordsQueryForTable((new ArchiveRecords)->getTable(), 'unpublished', $filters)),
+                ->unionAll($this->recordsQueryForTable((new ArchivedRecord)->getTable(), 'unpublished', $filters)),
         };
 
         return DB::query()
@@ -195,17 +195,17 @@ class ExistingRecordsController extends Controller
             ]);
     }
 
-    private function findRecord(string $status, int $id): Record|ArchiveRecords
+    private function findRecord(string $status, int $id): Record|ArchivedRecord
     {
         return $status === 'published'
             ? Record::query()->findOrFail($id)
-            : ArchiveRecords::query()->findOrFail($id);
+            : ArchivedRecord::query()->findOrFail($id);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function transferData(Record|ArchiveRecords $record): array
+    private function transferData(Record|ArchivedRecord $record): array
     {
         return $record->only($this->recordColumns());
     }

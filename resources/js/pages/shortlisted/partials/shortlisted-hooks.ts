@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { BatchModel, ApprovalRequestModel } from "@/types/model";
+import { BatchModel, RequestModel } from "@/types/model";
 import axios from "axios";
 import { AxiosError } from "axios";
 import { use } from "react";

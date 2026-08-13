@@ -6,12 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class LkContent extends Model
 {
+    protected $connection = 'starbooks';
+
     protected $table = 'lk_contents';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
 
     protected $fillable = [
-        'code', 'desc', 'vol','issue'
+        'code', 'desc', 'vol', 'issue',
     ];
 
     public function records()

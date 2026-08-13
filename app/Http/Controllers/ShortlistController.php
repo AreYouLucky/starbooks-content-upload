@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Request as ContentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -65,7 +65,7 @@ class ShortlistController extends Controller
     public function show(string $name)
     {
         $batch = Batch::where('batch_name', $name)->first();
-        $approval_requests = ApprovalRequest::where('batch_id', $batch->id)->get();
+        $approval_requests = ContentRequest::where('batch_id', $batch->id)->get();
 
         return Inertia::render(
             'shortlisted/requests-list',
@@ -106,13 +106,13 @@ class ShortlistController extends Controller
             $batch->status = $batch->is_dost == 1 ? 'for quality approval' : 'for initial review';
             $batch->shortlisted_date = Carbon::today()->format('Y-m-d');
             if ($batch->is_dost == 1) {
-                ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 2]);
+                ContentRequest::where('batch_id', $id)->update(['approval_status' => 2]);
             } else {
-                ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 1]);
+                ContentRequest::where('batch_id', $id)->update(['approval_status' => 1]);
             }
 
         } else {
-            ApprovalRequest::where('batch_id', $id)->update(['approval_status' => 0]);
+            ContentRequest::where('batch_id', $id)->update(['approval_status' => 0]);
             $batch->status = 'for shortlisting';
             $batch->shortlisted_date = null;
         }
@@ -134,7 +134,7 @@ class ShortlistController extends Controller
             ->where('status', 'for initial review')
             ->get();
         $batchIds = $batches->pluck('id');
-        $records = ApprovalRequest::whereIn('batch_id', $batchIds)->get();
+        $records = ContentRequest::whereIn('batch_id', $batchIds)->get();
 
         return response()->json([
             'batches' => $batches,

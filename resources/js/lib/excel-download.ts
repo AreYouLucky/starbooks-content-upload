@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
-import { ApprovalRequestModel, BatchModel } from "@/types/model";
+import { RequestModel, BatchModel } from "@/types/model";
 import { quarters } from "./default";
-export const downloadShortlisted = async ({ records, batch, batches, type, quarter, year }: { records: ApprovalRequestModel[], batch?: BatchModel, batches?: BatchModel[], type: number, quarter?: string, year?: string }) => {
+export const downloadShortlisted = async ({ records, batch, batches, type, quarter, year }: { records: RequestModel[], batch?: BatchModel, batches?: BatchModel[], type: number, quarter?: string, year?: string }) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -16,7 +16,7 @@ export const downloadShortlisted = async ({ records, batch, batches, type, quart
     worksheet.mergeCells("A2:J2");
     worksheet.mergeCells("A3:J3");
 
-    worksheet.getCell("A1").value = "STARBOOKS Content Committee Review";
+    worksheet.getCell("A1").value = "STARBOOKS Content Initial Review";
     worksheet.getCell("A2").value = "SHORTLISTED CONTENT";
     if(type === 1)
     worksheet.getCell("A3").value = quarters.find((q) => q.value === batch?.quarter)?.desc + " " + batch?.year;

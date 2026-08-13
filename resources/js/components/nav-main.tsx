@@ -48,8 +48,8 @@ const workflowItems: NavItem[] = [
         allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
     {
-        title: 'For Committee Review',
-        href: '/committee-review-page',
+        title: 'For Initial Review',
+        href: '/initial-review-page',
         icon: ClipboardCheck,
         allowedRoles: ['admin', 'super_admin', 'committee', 'head_committee'],
     },

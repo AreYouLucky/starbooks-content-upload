@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
-import type { ApprovalRequestModel } from '@/types/model';
+import type { RequestModel } from '@/types/model';
 
-export type ViewerFields = ApprovalRequestModel & {
+export type ViewerFields = RequestModel & {
     GeneralNote?: string | null;
     Publication?: string | null;
     attribution?: string | null;

@@ -1,30 +1,15 @@
 <?php
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
 use App\Models\LogDetail;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    Schema::table('content_batches', function (Blueprint $table) {
-        $table->string('target_quality_approval_date')->nullable();
-        $table->dateTime('quality_approval_date')->nullable();
-        $table->string('status')->default('for shortlisting');
-        $table->boolean('is_active')->default(1);
-    });
-
-    Schema::table('content_approval_logs', function (Blueprint $table) {
-        $table->integer('progress_status')->default(0);
-    });
-});
 
 function createQualityUser(): User
 {
@@ -49,16 +34,15 @@ function createQualityBatch(array $attributes = []): Batch
         'batch_description' => 'Quality assurance test batch',
         'target_published_date' => '2026-07-15',
         'target_initial_review_date' => '2026-06-15',
-        'target_committee_review_date' => '2026-06-22',
         'target_quality_approval_date' => '2026-06-29',
         'status' => 'for quality approval',
         'is_active' => 1,
     ], $attributes));
 }
 
-function createQualityRequest(Batch $batch, int $approvalStatus): ApprovalRequest
+function createQualityRequest(Batch $batch, int $approvalStatus): ContentRequest
 {
-    return ApprovalRequest::query()->create([
+    return ContentRequest::query()->create([
         'HoldingsID' => 'QA-'.Str::upper(Str::random(8)),
         'Title' => 'Quality Request '.Str::upper(Str::random(4)),
         'batch_id' => $batch->id,
@@ -68,13 +52,13 @@ function createQualityRequest(Batch $batch, int $approvalStatus): ApprovalReques
 }
 
 function createQualityLog(
-    ApprovalRequest $approvalRequest,
+    ContentRequest $approvalRequest,
     User $user,
     int $progressStatus,
-): ApprovalLog {
-    return ApprovalLog::query()->forceCreate([
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
+): Log {
+    return Log::query()->forceCreate([
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $approvalRequest->batch_id,
         'is_approved' => $progressStatus === 4,
         'approval_status' => $progressStatus === 4 ? 2 : 3,
@@ -171,15 +155,15 @@ test('quality assurance submission stores a separate quality-stage decision', fu
 
     expect($approvalRequest->refresh()->approval_status)->toBe(5);
 
-    $this->assertDatabaseHas('content_approval_logs', [
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
+    $this->assertDatabaseHas('logs', [
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
         'progress_status' => 5,
         'approval_status' => 5,
         'remarks' => 'Quality corrections are required.',
     ]);
-    $this->assertDatabaseHas('content_log_details', [
-        'approval_request_id' => $approvalRequest->id,
+    $this->assertDatabaseHas('log_details', [
+        'request_id' => $approvalRequest->id,
         'approval_status' => 5,
         'description' => 'Completeness',
         'remarks' => 'Completeness',
@@ -206,6 +190,7 @@ test('quality assurance batch can only be forwarded after pending reviews are co
     $batch = createQualityBatch(['batch_name' => 'Publishing QA Batch']);
     $approvalRequest = createQualityRequest($batch, 2);
     $user = createQualityUser();
+    $user->update(['role' => 'stii_admin']);
 
     $this->actingAs($user)
         ->postJson('/forward-to-publishing', ['batchName' => $batch->batch_name])
@@ -237,9 +222,9 @@ test('quality assurance report returns only quality-stage review logs', function
 
     LogDetail::query()->forceCreate([
         'approval_status' => 4,
-        'approval_request_id' => $approvalRequest->id,
-        'content_log_id' => $qualityLog->id,
-        'content_reviewer_id' => $user->id,
+        'request_id' => $approvalRequest->id,
+        'log_id' => $qualityLog->id,
+        'user_id' => $user->id,
         'is_passed' => true,
         'description' => 'Quality',
         'remarks' => 'Passed quality assurance.',

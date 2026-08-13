@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Middleware\CommitteeMiddleware;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HeadCommitteeMiddleware;
+use App\Http\Middleware\InitialReviewMiddleware;
 use App\Http\Middleware\QualityMiddleware;
 use App\Http\Middleware\StiiAdminMiddleware;
 use Illuminate\Foundation\Application;
@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'head_committee' => HeadCommitteeMiddleware::class,
             'stii_admin' => StiiAdminMiddleware::class,
-            'committee' => CommitteeMiddleware::class,
+            'initial_review' => InitialReviewMiddleware::class,
             'quality' => QualityMiddleware::class,
         ]);
     })

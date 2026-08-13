@@ -25,6 +25,7 @@ class ViewRequestAssignmentsRequest extends FormRequest
             'quarter' => ['nullable', 'string', 'max:50'],
             'year' => ['nullable', 'string', 'max:50'],
             'search' => ['nullable', 'string', 'max:255'],
+            'unassigned_only' => ['nullable', 'boolean'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
     }

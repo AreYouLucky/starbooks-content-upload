@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import PaginatedSearchTable from '@/components/ui/data-table';
 import { purifyDom, trimText } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
-import type { ApprovalRequestModel, BatchModel } from '@/types/model';
+import type { RequestModel, BatchModel } from '@/types/model';
 
 type RequestAnalytics = {
     pending: number;
@@ -63,13 +63,13 @@ function getStatus(status?: number): { label: string; className: string } {
 
 export default function QualityAssuranceRequestsList(): JSX.Element {
     const { props } = usePage<{
-        approval_requests?: ApprovalRequestModel[];
+        approval_requests?: RequestModel[];
         batch?: BatchModel;
     }>();
     const approvalRequests = props.approval_requests ?? [];
     const batch = props.batch;
     const [selectedContent, setSelectedContent] =
-        useState<ApprovalRequestModel | null>(null);
+        useState<RequestModel | null>(null);
     const [isContentOpen, setIsContentOpen] = useState(false);
     const analytics = approvalRequests.reduce<RequestAnalytics>(
         (totals, request) => {
@@ -121,7 +121,7 @@ export default function QualityAssuranceRequestsList(): JSX.Element {
 
             <Card className="gap-0 rounded-2xl border-sky-200 py-0 shadow-sm">
                 <CardContent className="p-2">
-                    <PaginatedSearchTable<ApprovalRequestModel>
+                    <PaginatedSearchTable<RequestModel>
                         items={approvalRequests}
                         headers={[
                             { name: 'Holdings ID', position: 'left' },
@@ -223,7 +223,7 @@ export default function QualityAssuranceRequestsList(): JSX.Element {
             <ViewContent
                 show={isContentOpen}
                 onClose={() => setIsContentOpen(false)}
-                data={selectedContent as ApprovalRequestModel}
+                data={selectedContent as RequestModel}
             />
         </div>
     );

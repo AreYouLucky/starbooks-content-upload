@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('content_reviewers', function (Blueprint $table) {
+        Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('username')->unique();
             $table->string('full_name')->unique();
@@ -36,10 +36,10 @@ return new class extends Migration
             $table->integer('last_activity')->index();
         });
     }
-    
+
     public function down(): void
     {
-        Schema::dropIfExists('content_reviewers');
+        Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

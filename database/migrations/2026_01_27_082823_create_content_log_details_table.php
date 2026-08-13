@@ -11,15 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('content_log_details', function (Blueprint $table) {
+        Schema::create('log_details', function (Blueprint $table) {
             $table->id();
             $table->integer('approval_status');
-            $table->unsignedBigInteger('approval_request_id');
-            $table->foreign('approval_request_id')->references('id')->on('content_approval_requests')->onDelete('cascade');
-            $table->unsignedBigInteger('content_log_id');
-            $table->foreign('content_log_id')->references('id')->on('content_approval_logs')->onDelete('cascade');
-            $table->unsignedBigInteger('content_reviewer_id');
-            $table->foreign('content_reviewer_id')->references('id')->on('content_reviewers')->onDelete('cascade');
+            $table->foreignId('request_id')->constrained('requests')->cascadeOnDelete();
+            $table->foreignId('log_id')->constrained('logs')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->boolean('is_passed')->nullable();
             $table->string('description')->nullable();
             $table->text('remarks')->nullable();
@@ -32,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('content_log_details');
+        Schema::dropIfExists('log_details');
     }
 };

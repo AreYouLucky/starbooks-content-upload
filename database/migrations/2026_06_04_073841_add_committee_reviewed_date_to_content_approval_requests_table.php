@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('content_approval_requests', function (Blueprint $table) {
-            $table->date('committee_reviewed_date')->nullable()->after('EditDate');
+        Schema::table('requests', function (Blueprint $table): void {
+            $table->date('initial_reviewed_date')->nullable()->after('EditDate');
+            $table->date('quality_assurance_date')->nullable()->after('initial_reviewed_date');
         });
     }
 
@@ -21,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('content_approval_requests', function (Blueprint $table) {
-            $table->dropColumn('committee_reviewed_date');
+        Schema::table('requests', function (Blueprint $table): void {
+            $table->dropColumn(['initial_reviewed_date', 'quality_assurance_date']);
         });
     }
 };

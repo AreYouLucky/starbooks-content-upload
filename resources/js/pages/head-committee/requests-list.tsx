@@ -1,11 +1,12 @@
 import { ReactNode, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { CheckCircle2, Clock3, Eye, LockKeyhole, Search } from 'lucide-react';
+import { CheckCircle2, Clock3, Eye, LockKeyhole, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,13 +18,12 @@ import {
 } from '@/components/ui/select';
 import ViewContent from '@/components/custom/view-content';
 import type { BreadcrumbItem } from '@/types';
-import type { ApprovalRequestModel, UserModel } from '@/types/model';
-import { getPageFromUrl } from '@/lib/utils';
+import type { RequestModel, UserModel } from '@/types/model';
 
 type Reviewer = Pick<UserModel, 'id' | 'full_name' | 'role'>;
 
 type Assignment = {
-    committee_reviewer_id?: number;
+    initial_reviewer_id?: number;
     quality_assurance_reviewer_id?: number;
 };
 
@@ -36,10 +36,11 @@ type AssignmentFilters = {
     quarter: string;
     year: string;
     search: string;
+    unassigned_only: boolean;
 };
 
 type PaginatedApprovalRequests = {
-    data: ApprovalRequestModel[];
+    data: RequestModel[];
     current_page: number;
     last_page: number;
     next_page_url: string | null;
@@ -56,7 +57,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function RequestList() {
     const { props } = usePage<{
         approval_requests?: PaginatedApprovalRequests;
-        committee_reviewers?: Reviewer[];
+        initial_reviewers?: Reviewer[];
         quality_assurance_reviewers?: Reviewer[];
         filters?: AssignmentFilters;
         quarters?: string[];
@@ -64,15 +65,17 @@ export default function RequestList() {
         analytics?: AssignmentAnalytics;
     }>();
     const approvalRequests = props.approval_requests?.data ?? [];
-    const [selectedContent, setSelectedContent] = useState<ApprovalRequestModel | null>(null);
+    const [selectedContent, setSelectedContent] = useState<RequestModel | null>(null);
     const [isContentOpen, setIsContentOpen] = useState(false);
     const [updatingRequestId, setUpdatingRequestId] = useState<number | null>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [filters, setFilters] = useState<AssignmentFilters>(props.filters ?? {
         quarter: 'all',
         year: 'all',
         search: '',
+        unassigned_only: false,
     });
-    const committeeReviewers = props.committee_reviewers ?? [];
+    const initialReviewers = props.initial_reviewers ?? [];
     const qualityAssuranceReviewers = props.quality_assurance_reviewers ?? [];
     const quarters = props.quarters ?? [];
     const years = props.years ?? [];
@@ -80,7 +83,12 @@ export default function RequestList() {
 
     const applyFilters = (nextFilters: AssignmentFilters): void => {
         setFilters(nextFilters);
-        router.get('/view-assignment-designation', nextFilters, {
+        router.get('/view-assignment-designation', {
+            quarter: nextFilters.quarter,
+            year: nextFilters.year,
+            search: nextFilters.search,
+            unassigned_only: nextFilters.unassigned_only ? 1 : undefined,
+        }, {
             preserveScroll: true,
             preserveState: true,
         });
@@ -91,19 +99,25 @@ export default function RequestList() {
     };
 
     const changePage = (url: string | null): void => {
-        const page = getPageFromUrl(url);
-
-        if (page === null) {
+        if (!url) {
             return;
         }
 
-        router.get('/view-assignment-designation', { ...filters, page }, {
+        router.visit(url, {
             preserveScroll: true,
             preserveState: true,
         });
     };
 
-    const updateAssignment = async (request: ApprovalRequestModel, assignment: Assignment): Promise<void> => {
+    const refreshRequests = (): void => {
+        router.reload({
+            only: ['approval_requests', 'initial_reviewers', 'quality_assurance_reviewers', 'analytics'],
+            onStart: () => setIsRefreshing(true),
+            onFinish: () => setIsRefreshing(false),
+        });
+    };
+
+    const updateAssignment = async (request: RequestModel, assignment: Assignment): Promise<void> => {
         if (!request.id) {
             return;
         }
@@ -131,7 +145,7 @@ export default function RequestList() {
                 <div className="flex flex-row justify-between">
                     <div className="h-full flex item-center flex-col">
                         <h1 className="text-2xl font-bold tracking-tight uppercase">Reviewer Assignments</h1>
-                        <p className="mt-1 text-sm text-sky-50">Assign committee and quality assurance reviewers to each request.</p>
+                        <p className="mt-1 text-sm text-sky-50">Assign initial and quality assurance reviewers to each request.</p>
                     </div>
                     <div className="flex gap-4">
                         <div className=" grid gap-3 sm:grid-cols-2 xl:max-w-md">
@@ -167,7 +181,15 @@ export default function RequestList() {
                                 />
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                            <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-slate-600">
+                                <Checkbox
+                                    checked={filters.unassigned_only}
+                                    onCheckedChange={(checked) => changeFilter('unassigned_only', checked === true)}
+                                    aria-label="Show not yet assigned requests only"
+                                />
+                                Not yet assigned only
+                            </label>
                             <div className="w-full sm:w-48">
                                 <Select value={filters.quarter} onValueChange={(value) => changeFilter('quarter', value)}>
                                     <SelectTrigger aria-label="Filter by quarter" className='text-gray-500'><SelectValue placeholder="All quarters" /></SelectTrigger>
@@ -188,15 +210,25 @@ export default function RequestList() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={refreshRequests}
+                                disabled={isRefreshing}
+                                className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                            >
+                                <RefreshCw className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
                         </div>
                     </div>
-                    <PaginatedSearchTable<ApprovalRequestModel>
+                    <PaginatedSearchTable<RequestModel>
                         items={approvalRequests}
                         headers={[
                             { name: 'Holdings ID', position: 'left' },
                             { name: 'Title & Author', position: 'left' },
                             { name: 'Abstract', position: 'left' },
-                            { name: 'Committee Reviewer', position: 'left' },
+                            { name: 'Initial Reviewer', position: 'left' },
                             { name: 'Quality Assurance', position: 'left' },
                             { name: 'Actions', position: 'center' },
                         ]}
@@ -219,9 +251,9 @@ export default function RequestList() {
                                         <p className="text-sm text-slate-500">{request.Author || 'Unknown author'}</p>
                                     </td>
                                     <td className="min-w-56 px-4 py-4 align-middle">
-                                        <Select value={request.committee_reviewer_id?.toString()} disabled={isDostBatch || isUpdating} onValueChange={(value) => updateAssignment(request, { committee_reviewer_id: Number(value) })}>
-                                            <SelectTrigger aria-label={`Committee reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
-                                            <SelectContent>{committeeReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
+                                        <Select value={request.initial_reviewer_id?.toString()} disabled={isDostBatch || isUpdating} onValueChange={(value) => updateAssignment(request, { initial_reviewer_id: Number(value) })}>
+                                            <SelectTrigger aria-label={`Initial reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
+                                            <SelectContent>{initialReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </td>
                                     <td className="min-w-56 px-4 py-4 align-middle">
@@ -247,7 +279,7 @@ export default function RequestList() {
                     />
                 </CardContent>
             </Card>
-            <ViewContent show={isContentOpen} onClose={() => setIsContentOpen(false)} data={selectedContent as ApprovalRequestModel} />
+            <ViewContent show={isContentOpen} onClose={() => setIsContentOpen(false)} data={selectedContent as RequestModel} />
         </div>
     );
 }

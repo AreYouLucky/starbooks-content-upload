@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\LkContent;
-use Inertia\Inertia;
 use App\Models\Batch;
-use App\Models\ApprovalRequest;
+use App\Models\LkContent;
+use App\Models\Request as ContentRequest;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class SingleUploadController extends Controller
 {
@@ -22,6 +22,7 @@ class SingleUploadController extends Controller
     {
         $content_group = LkContent::all();
         $batches = Batch::orderBy('created_at', 'desc')->get();
+
         return Inertia::render('shortlisted/partials/single-upload-form', ['content_group' => $content_group, 'batches' => $batches]);
     }
 
@@ -31,7 +32,7 @@ class SingleUploadController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'Title' => 'required|string|unique:tblrecord,Title|unique:content_approval_requests,Title',
+            'Title' => 'required|string|unique:starbooks.tblrecord,Title|unique:requests,Title',
             'Author' => 'required|string',
             'HoldingsID' => 'required|string',
             'Contents' => 'required|string',
@@ -49,27 +50,28 @@ class SingleUploadController extends Controller
             'Abstracts' => 'required|string',
         ]);
 
-        $request = ApprovalRequest::create([
-            'Title' => $request->Title ?? "",
-            'Author' => $request->Author ?? "",
-            'HoldingsID' => $request->HoldingsID ?? "",
-            'Contents' => $request->Contents ?? "",
-            'MaterialType' => $request->MaterialType ?? "",
-            'JournalTitle' => $request->JournalTitle ?? "",
-            'Subject' => $request->Subject ?? "",
-            'SubTitle' => $request->SubTitle ?? "",
-            'VolumeNo' => $request->VolumeNo ?? "",
-            'IssueNo' => $request->IssueNo ?? "",
-            'IssueDate' => $request->IssueDate ?? "",
-            'BroadClass' => $request->BroadClass ?? "",
-            'AgencyCode' => $request->AgencyCode ?? "",
-            'Type' => $request->Type ?? "",
-            'batch_id' => $request->batch_id ?? "",
-            'Abstracts' => $request->Abstracts ?? "",
+        $request = ContentRequest::create([
+            'Title' => $request->Title ?? '',
+            'Author' => $request->Author ?? '',
+            'HoldingsID' => $request->HoldingsID ?? '',
+            'Contents' => $request->Contents ?? '',
+            'MaterialType' => $request->MaterialType ?? '',
+            'JournalTitle' => $request->JournalTitle ?? '',
+            'Subject' => $request->Subject ?? '',
+            'SubTitle' => $request->SubTitle ?? '',
+            'VolumeNo' => $request->VolumeNo ?? '',
+            'IssueNo' => $request->IssueNo ?? '',
+            'IssueDate' => $request->IssueDate ?? '',
+            'BroadClass' => $request->BroadClass ?? '',
+            'AgencyCode' => $request->AgencyCode ?? '',
+            'Type' => $request->Type ?? '',
+            'batch_id' => $request->batch_id ?? '',
+            'Abstracts' => $request->Abstracts ?? '',
         ]);
+
         return response()->json([
             'status' => 'Request Successfully Created',
-            'approval_request' => $request
+            'approval_request' => $request,
         ], 200);
     }
 
@@ -83,9 +85,10 @@ class SingleUploadController extends Controller
      */
     public function edit(string $id)
     {
-        $approval_request = ApprovalRequest::find($id);
+        $approval_request = ContentRequest::find($id);
         $content_group = LkContent::all();
         $batches = Batch::orderBy('created_at', 'desc')->get();
+
         return Inertia::render('shortlisted/partials/single-upload-form', ['content_group' => $content_group, 'batches' => $batches, 'approval_request' => $approval_request]);
     }
 
@@ -95,7 +98,7 @@ class SingleUploadController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'Title' => ['required', 'string', 'unique:tblrecord,Title', 'unique:content_approval_requests,Title,'.$id.',id'],
+            'Title' => ['required', 'string', 'unique:starbooks.tblrecord,Title', 'unique:requests,Title,'.$id.',id'],
             'Author' => ['required', 'string'],
             'HoldingsID' => ['required', 'string'],
             'Contents' => ['required', 'string'],
@@ -112,27 +115,28 @@ class SingleUploadController extends Controller
             'batch_id' => ['required', 'string'],
             'Abstracts' => ['required', 'string'],
         ]);
-        $request = ApprovalRequest::where('id', $id)->update([
-            'Title' => $request->Title ?? "",
-            'Author' => $request->Author ?? "",
-            'HoldingsID' => $request->HoldingsID ?? "",
-            'Contents' => $request->Contents ?? "",
-            'MaterialType' => $request->MaterialType ?? "",
-            'JournalTitle' => $request->JournalTitle ?? "",
-            'Subject' => $request->Subject ?? "",
-            'SubTitle' => $request->SubTitle ?? "",
-            'VolumeNo' => $request->VolumeNo ?? "",
-            'IssueNo' => $request->IssueNo ?? "",
-            'IssueDate' => $request->IssueDate ?? "",
-            'BroadClass' => $request->BroadClass ?? "",
-            'AgencyCode' => $request->AgencyCode ?? "",
-            'Type' => $request->Type ?? "",
-            'batch_id' => $request->batch_id ?? "",
-            'Abstracts' => $request->Abstracts ?? "",
+        $request = ContentRequest::where('id', $id)->update([
+            'Title' => $request->Title ?? '',
+            'Author' => $request->Author ?? '',
+            'HoldingsID' => $request->HoldingsID ?? '',
+            'Contents' => $request->Contents ?? '',
+            'MaterialType' => $request->MaterialType ?? '',
+            'JournalTitle' => $request->JournalTitle ?? '',
+            'Subject' => $request->Subject ?? '',
+            'SubTitle' => $request->SubTitle ?? '',
+            'VolumeNo' => $request->VolumeNo ?? '',
+            'IssueNo' => $request->IssueNo ?? '',
+            'IssueDate' => $request->IssueDate ?? '',
+            'BroadClass' => $request->BroadClass ?? '',
+            'AgencyCode' => $request->AgencyCode ?? '',
+            'Type' => $request->Type ?? '',
+            'batch_id' => $request->batch_id ?? '',
+            'Abstracts' => $request->Abstracts ?? '',
         ]);
+
         return response()->json([
             'status' => 'Request Successfully Created',
-            'approval_request' => $request
+            'approval_request' => $request,
         ], 200);
     }
 
@@ -141,7 +145,8 @@ class SingleUploadController extends Controller
      */
     public function destroy(string $id)
     {
-        ApprovalRequest::where('id', $id)->delete();
+        ContentRequest::where('id', $id)->delete();
+
         return response()->json(['status' => 'Request Successfully Deleted'], 200);
     }
 }

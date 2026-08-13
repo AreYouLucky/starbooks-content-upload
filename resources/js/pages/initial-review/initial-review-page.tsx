@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
-import { useFetchCommitteeReview, useForwardToQualityApproval } from './partials/committee-review-hooks';
+import { useFetchInitialReview, useForwardToQualityApproval } from './partials/initial-review-hooks';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { toast } from 'sonner';
@@ -23,8 +23,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
     {
-        title: 'For Committee Review',
-        href: '/view-committee-review-batches',
+        title: 'For Initial Review',
+        href: '/view-initial-review-batches',
     },
 ];
 
@@ -52,7 +52,7 @@ const reviewSummaryItems = [
     },
 ] as const;
 
-export default function CommitteeReviewPage() {
+export default function InitialReviewPage() {
     const { auth } = usePage<SharedData>().props;
     const [page, setPage] = useState(1);
     const [generateReportDialog, setGenerateReportDialog] = useState(false);
@@ -70,13 +70,13 @@ export default function CommitteeReviewPage() {
         search: debouncedSearch,
     };
 
-    const { data, isFetching, refetch } = useFetchCommitteeReview(
+    const { data, isFetching, refetch } = useFetchInitialReview(
         page,
         queryFilters,
     );
     const batches = data?.data ?? [];
     const analytics = data?.analytics ?? {
-        for_committee_review: 0,
+        for_initial_review: 0,
         reviewed: 0,
     };
 
@@ -106,10 +106,10 @@ export default function CommitteeReviewPage() {
                     <div className="max-w-2xl space-y-4">
                         <div className="space-y-2">
                             <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                                Committee Review Batches
+                                Initial Review Batches
                             </h1>
                             <p className="max-w-2xl text-sm leading-6 text-sky-50 sm:text-base">
-                                Monitor batches queued for committee review,
+                                Monitor batches queued for initial review,
                                 inspect record decisions, and keep the review
                                 pipeline visible at a glance.
                             </p>
@@ -119,11 +119,11 @@ export default function CommitteeReviewPage() {
                     <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-md">
                         <div className="rounded-2xl border border-white/20 bg-white/12 px-4 py-4 backdrop-blur-sm">
                             <p className="text-xs font-semibold tracking-[0.16em] text-sky-100 uppercase">
-                                For Committee Review
+                                For Initial Review
                             </p>
                             <div className="mt-2 flex items-end gap-2">
                                 <span className="text-2xl font-bold md:text-3xl">
-                                    {analytics.for_committee_review}
+                                    {analytics.for_initial_review}
                                 </span>
                                 <span className="pb-1 text-xs text-sky-100">
                                     active batches
@@ -277,7 +277,7 @@ export default function CommitteeReviewPage() {
                                     <td className="px-6 py-2 align-middle">
                                         <div className="flex items-center justify-center gap-2">
                                             <Link
-                                                href={`/view-committee-review-batch/${batch.batch_name}`}
+                                                href={`/view-initial-review-batch/${batch.batch_name}`}
                                                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
                                             >
                                                 <Eye className="size-4" />
@@ -311,7 +311,7 @@ export default function CommitteeReviewPage() {
                         searchPlaceholder="Search batches"
                         onRefresh={() => refetch()}
                         isLoading={isFetching}
-                        emptyText="No committee review batches found yet."
+                        emptyText="No initial review batches found yet."
                         currentPage={data?.current_page}
                         totalPages={data?.last_page}
                         nextPageUrl={data?.next_page_url}
@@ -333,6 +333,6 @@ export default function CommitteeReviewPage() {
         </div>
     );
 }
-CommitteeReviewPage.layout = (page: ReactNode) => (
+InitialReviewPage.layout = (page: ReactNode) => (
     <AppLayout breadcrumbs={breadcrumbs}>{page}</AppLayout>
 );

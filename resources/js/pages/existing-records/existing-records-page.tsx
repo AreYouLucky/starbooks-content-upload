@@ -23,7 +23,7 @@ import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import ViewContent from '@/components/custom/view-content';
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import type { BreadcrumbItem } from '@/types';
-import type { ApprovalRequestModel, LkContentModel, RecordModel } from '@/types/model';
+import type { RequestModel, LkContentModel, RecordModel } from '@/types/model';
 import { getPageFromUrl, trimText, purifyDom } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -387,7 +387,7 @@ export default function ExistingRecordsPage() {
             <ViewContent
                 show={isViewOpen}
                 onClose={() => setIsViewOpen(false)}
-                data={selectedRecord as ApprovalRequestModel | null}
+                data={selectedRecord as RequestModel | null}
             />
             <ConfirmationDialog
                 show={isConfirmOpen}

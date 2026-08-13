@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ApprovalLog extends Model
+class Log extends Model
 {
-    protected $table = 'content_approval_logs';
+    protected $table = 'logs';
 
     protected $fillable = [
-        'approval_request_id',
-        'content_reviewer_id',
+        'request_id',
+        'user_id',
         'batch_id',
         'is_approved',
         'remarks',
@@ -21,16 +21,16 @@ class ApprovalLog extends Model
 
     public function approvalRequest(): BelongsTo
     {
-        return $this->belongsTo(ApprovalRequest::class, 'approval_request_id');
+        return $this->belongsTo(Request::class, 'request_id');
     }
 
     public function reviewer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'content_reviewer_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function logDetails(): HasMany
     {
-        return $this->hasMany(LogDetail::class, 'content_log_id');
+        return $this->hasMany(LogDetail::class, 'log_id');
     }
 }

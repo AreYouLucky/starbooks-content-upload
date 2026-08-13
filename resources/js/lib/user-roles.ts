@@ -7,7 +7,7 @@ export type UserRoleOption = {
 
 export const userRoleOptions: UserRoleOption[] = [
     { value: 'stii_admin', label: 'STII Admin' },
-    { value: 'committee', label: 'Committee Reviewer' },
+    { value: 'committee', label: 'Initial Reviewer' },
     { value: 'quality', label: 'Quality Assurance' },
     { value: 'head_committee', label: 'Head Committee' }
 ];

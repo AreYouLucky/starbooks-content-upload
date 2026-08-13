@@ -1,30 +1,14 @@
 <?php
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
+use App\Models\Request as ContentRequest;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    Schema::table('content_batches', function (Blueprint $table) {
-        $table->string('target_shortlist_date')->nullable();
-        $table->string('target_quality_approval_date')->nullable();
-        $table->dateTime('shortlisted_date')->nullable();
-        $table->dateTime('published_date')->nullable();
-        $table->string('status')->default('for shortlisting');
-        $table->boolean('is_active')->default(1);
-    });
-
-    Schema::table('content_approval_logs', function (Blueprint $table) {
-        $table->integer('progress_status')->default(0);
-    });
-});
 
 function createDashboardBatch(array $attributes = []): Batch
 {
@@ -38,7 +22,6 @@ function createDashboardBatch(array $attributes = []): Batch
         'target_published_date' => '2026-07-15',
         'target_initial_review_date' => '2026-06-15',
         'target_quality_approval_date' => '2026-06-25',
-        'target_committee_review_date' => '2026-06-22',
         'status' => 'for publishing',
         'is_active' => 1,
     ], $attributes));
@@ -57,25 +40,25 @@ function createDashboardUser(): User
     ]);
 }
 
-function createDashboardRequest(Batch $batch, int $approvalStatus): ApprovalRequest
+function createDashboardRequest(Batch $batch, int $approvalStatus, array $attributes = []): ContentRequest
 {
-    return ApprovalRequest::query()->create([
+    return ContentRequest::query()->create(array_merge([
         'HoldingsID' => 'DASH-'.fake()->unique()->bothify('????####'),
         'Title' => 'Dashboard Request '.fake()->unique()->word(),
         'batch_id' => $batch->id,
         'approval_status' => $approvalStatus,
         'is_active' => 1,
-    ]);
+    ], $attributes));
 }
 
 function createDashboardLog(
-    ApprovalRequest $approvalRequest,
+    ContentRequest $approvalRequest,
     User $user,
     int $progressStatus,
-): ApprovalLog {
-    return ApprovalLog::query()->forceCreate([
-        'approval_request_id' => $approvalRequest->id,
-        'content_reviewer_id' => $user->id,
+): Log {
+    return Log::query()->forceCreate([
+        'request_id' => $approvalRequest->id,
+        'user_id' => $user->id,
         'batch_id' => $approvalRequest->batch_id,
         'is_approved' => in_array($progressStatus, [2, 4], true),
         'approval_status' => $progressStatus,
@@ -162,7 +145,9 @@ test('dashboard data filters by quarter and year', function () {
         ->assertJsonMissing(['batch_name' => 'Outside Dashboard Batch']);
 });
 
-test('dashboard data includes late review batches by urgency', function () {
+test('dashboard data includes late content awaiting review by urgency', function () {
+    $this->travelTo(Carbon::parse('2026-08-13'));
+
     $user = createDashboardUser();
     $lateInitialReviewBatch = createDashboardBatch([
         'batch_name' => 'Late Initial Review Batch',
@@ -177,18 +162,35 @@ test('dashboard data includes late review batches by urgency', function () {
     createDashboardBatch([
         'batch_name' => 'Healthy Publishing Batch',
         'status' => 'for publishing',
-        'target_published_date' => '2026-08-01',
+        'target_published_date' => '2026-08-14',
     ]);
 
-    createDashboardRequest($lateInitialReviewBatch, 1);
-    createDashboardRequest($lateQualityBatch, 2);
+    createDashboardRequest($lateInitialReviewBatch, 1, [
+        'HoldingsID' => 'URGENT-INITIAL',
+        'Title' => 'Late Initial Review Content',
+    ]);
+    createDashboardRequest($lateInitialReviewBatch, 1, [
+        'HoldingsID' => 'URGENT-INITIAL-SECOND',
+        'Title' => 'Second Late Initial Content',
+    ]);
+    createDashboardRequest($lateInitialReviewBatch, 2, [
+        'Title' => 'Completed Initial Review Content',
+    ]);
+    createDashboardRequest($lateQualityBatch, 2, [
+        'HoldingsID' => 'URGENT-QA',
+        'Title' => 'Late Quality Content',
+    ]);
 
     $this->actingAs($user)
         ->getJson('/dashboard-data?scope=all')
         ->assertOk()
-        ->assertJsonPath('urgent_batches.0.batch_name', 'Late Initial Review Batch')
-        ->assertJsonPath('urgent_batches.0.stage', 'Initial Review')
-        ->assertJsonPath('urgent_batches.1.batch_name', 'Late Quality Batch')
-        ->assertJsonPath('urgent_batches.1.stage', 'Quality Assurance')
-        ->assertJsonCount(2, 'urgent_batches');
+        ->assertJsonPath('urgent_contents.0.title', 'Late Initial Review Content')
+        ->assertJsonPath('urgent_contents.0.batch_name', 'Late Initial Review Batch')
+        ->assertJsonPath('urgent_contents.0.stage', 'Initial Review')
+        ->assertJsonPath('urgent_contents.1.title', 'Second Late Initial Content')
+        ->assertJsonPath('urgent_contents.2.title', 'Late Quality Content')
+        ->assertJsonPath('urgent_contents.2.batch_name', 'Late Quality Batch')
+        ->assertJsonPath('urgent_contents.2.stage', 'Quality Assurance')
+        ->assertJsonMissing(['title' => 'Completed Initial Review Content'])
+        ->assertJsonCount(3, 'urgent_contents');
 });

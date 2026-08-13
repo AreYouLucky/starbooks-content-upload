@@ -48,7 +48,7 @@ export type BatchModel = TimestampFields & {
     approved?: number;
 };
 
-export type ApprovalRequestModel = TimestampFields & {
+export type RequestModel = TimestampFields & {
     id?: number;
     approval_status?: number;
     HoldingsID?: string | null;
@@ -74,9 +74,9 @@ export type ApprovalRequestModel = TimestampFields & {
     batch_id?: number | null;
     is_active?: boolean;
     batch?: BatchModel;
-    committee_reviewer_id?: number | null;
+    initial_reviewer_id?: number | null;
     quality_assurance_reviewer_id?: number | null;
-    committee_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
+    initial_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
     quality_assurance_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
 };
 
@@ -90,10 +90,10 @@ export type ApprovalMultimediaModel = TimestampFields & {
     NumPages: string;
 };
 
-export type ApprovalLogModel = TimestampFields & {
+export type LogModel = TimestampFields & {
     id: number;
-    approval_request_id: number;
-    content_reviewer_id: number;
+    request_id: number;
+    user_id: number;
     batch_id: number;
     is_approved: boolean | null;
     remarks: string | null;
@@ -103,9 +103,9 @@ export type ApprovalLogModel = TimestampFields & {
 export type LogDetailModel = TimestampFields & {
     id: number;
     approval_status: number;
-    approval_request_id: number;
-    content_log_id: number;
-    content_reviewer_id: number;
+    request_id: number;
+    log_id: number;
+    user_id: number;
     is_passed: boolean | null;
     description: string | null;
     remarks: string | null;

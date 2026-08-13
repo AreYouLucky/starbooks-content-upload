@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PaginatedSearchTable from '@/components/ui/data-table';
 import type { BreadcrumbItem } from '@/types';
-import { ApprovalRequestModel, BatchModel } from '@/types/model';
+import { RequestModel, BatchModel } from '@/types/model';
 import ViewContent from '@/components/custom/view-content';
 import ImageLoader from '@/components/custom/image-loader';
 import { isSinglePdfGroup, normalizeGroup } from '@/components/custom/content/utils/utils';
@@ -47,7 +47,7 @@ const statusSummaryItems = [
   },
 ] as const;
 
-const getApprovalStatusMeta = (status: ApprovalRequestModel['approval_status']): StatusMeta => {
+const getApprovalStatusMeta = (status: RequestModel['approval_status']): StatusMeta => {
   if (status === 1) {
     return {
       label: 'Pending',
@@ -81,8 +81,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     href: '/dashboard',
   },
   {
-    title: 'Committee Review Batches',
-    href: '/committee-review-page',
+    title: 'Initial Review Batches',
+    href: '/initial-review-page',
   },
   {
     title: 'Requests List',
@@ -92,7 +92,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function RequestList() {
   const { props } = usePage<{
-    approval_requests?: ApprovalRequestModel[];
+    approval_requests?: RequestModel[];
     batch?: BatchModel;
   }>();
 
@@ -117,14 +117,14 @@ export default function RequestList() {
   );
   const batch = props.batch;
   const [viewContentDialogOpen, setViewContentDialogOpen] = useState(false);
-  const [selectedContent, setSelectedContent] = useState<ApprovalRequestModel | null>(null);
+  const [selectedContent, setSelectedContent] = useState<RequestModel | null>(null);
 
-  const viewContent = (request: ApprovalRequestModel) => {
+  const viewContent = (request: RequestModel) => {
     setSelectedContent(request);
     setViewContentDialogOpen(true);
   }
 
-  const processImage = (request: ApprovalRequestModel): string => {
+  const processImage = (request: RequestModel): string => {
     const normalizedContents = normalizeGroup(request.Contents);
 
     if (
@@ -181,7 +181,7 @@ export default function RequestList() {
 
       <Card className="gap-0 rounded-2xl border-sky-200 py-0 shadow-sm">
         <CardContent className=" p-2">
-          <PaginatedSearchTable<ApprovalRequestModel>
+          <PaginatedSearchTable<RequestModel>
             items={approvalRequests}
             headers={[
               { name: 'Holdings ID', position: 'left' },
@@ -243,7 +243,7 @@ export default function RequestList() {
                       {
                         request.approval_status === 1 && (
                           <Link
-                            href={`/committee-review-request/${request.HoldingsID}`}
+                            href={`/initial-review-request/${request.HoldingsID}`}
                             className="flex flex-row font-semiboldflex items-center gap-2 rounded-md bg-sky-600 px-3 py-2 text-sm text-sky-50 hover:bg-sky-600"
                           >
                             <FileScan className="size-4" /> Review
@@ -262,7 +262,7 @@ export default function RequestList() {
           />
         </CardContent>
       </Card>
-      <ViewContent show={viewContentDialogOpen} onClose={() => setViewContentDialogOpen(false)} data={selectedContent as ApprovalRequestModel} />
+      <ViewContent show={viewContentDialogOpen} onClose={() => setViewContentDialogOpen(false)} data={selectedContent as RequestModel} />
     </div>
   );
 }

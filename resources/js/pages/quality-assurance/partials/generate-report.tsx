@@ -22,7 +22,7 @@ import { useHandleChange } from '@/hooks/use-handle-change';
 import { quarters } from '@/lib/default';
 import { generateYears } from '@/pages/batches/partials/defaults';
 import type {
-    ApprovalRequestModel,
+    RequestModel,
     BatchModel,
     LogDetailModel,
     UserModel,
@@ -42,7 +42,7 @@ type QualityReportLog = {
     log_details?: LogDetailModel[];
 };
 
-type QualityReportRequest = ApprovalRequestModel & {
+type QualityReportRequest = RequestModel & {
     approval_logs?: QualityReportLog[];
 };
 

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PaginatedSearchTable from '@/components/ui/data-table';
 import type { BreadcrumbItem } from '@/types';
-import { ApprovalRequestModel, BatchModel } from '@/types/model';
+import { RequestModel, BatchModel } from '@/types/model';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { useDeleteSingleRequest } from './partials/upload-hooks';
@@ -32,7 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function RequestList() {
   const { props } = usePage<{
-    approval_requests?: ApprovalRequestModel[];
+    approval_requests?: RequestModel[];
     batch?: BatchModel;
   }>();
 
@@ -40,7 +40,7 @@ export default function RequestList() {
   const batch = props.batch;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewContentDialogOpen, setViewContentDialogOpen] = useState(false);
-  const [selectedContent, setSelectedContent] = useState<ApprovalRequestModel | null>(null);
+  const [selectedContent, setSelectedContent] = useState<RequestModel | null>(null);
   const [id, setId] = useState<number | null>(0);
   const deleteSingleRequest = useDeleteSingleRequest();
   const deleteSingleRequestFn = () => {
@@ -53,12 +53,12 @@ export default function RequestList() {
   }
 
 
-  const viewContent = (request: ApprovalRequestModel) => {
+  const viewContent = (request: RequestModel) => {
     setSelectedContent(request);
     setViewContentDialogOpen(true);
   }
 
-  const processImage = (request: ApprovalRequestModel): string => {
+  const processImage = (request: RequestModel): string => {
     const normalizedContents = normalizeGroup(request.Contents);
 
     if (
@@ -117,7 +117,7 @@ export default function RequestList() {
 
       <Card className="gap-0 rounded-2xl border-sky-200 py-0 shadow-sm">
         <CardContent className=" p-2">
-          <PaginatedSearchTable<ApprovalRequestModel>
+          <PaginatedSearchTable<RequestModel>
             items={approvalRequests}
             headers={[
               { name: 'Holdings ID', position: 'left' },
@@ -188,7 +188,7 @@ export default function RequestList() {
           />
         </CardContent>
       </Card>
-      <ViewContent show={viewContentDialogOpen} onClose={() => setViewContentDialogOpen(false)} data={selectedContent as ApprovalRequestModel} />
+      <ViewContent show={viewContentDialogOpen} onClose={() => setViewContentDialogOpen(false)} data={selectedContent as RequestModel} />
       <ConfirmationDialog show={isDialogOpen} onClose={() => setIsDialogOpen(false)} message='Are you sure you want to delete this request?' type={2} onConfirm={deleteSingleRequestFn} />
     </div>
   );

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ApprovalLog;
-use App\Models\ApprovalRequest;
 use App\Models\Batch;
+use App\Models\Log;
 use App\Models\LogDetail;
+use App\Models\Request as ContentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,7 +102,7 @@ class QualityAssuranceController extends Controller
 
     public function reviewRequest(string $holdingsID): Response
     {
-        $approvalRequest = ApprovalRequest::query()
+        $approvalRequest = ContentRequest::query()
             ->with('batch')
             ->where('HoldingsID', $holdingsID)
             ->where('approval_status', 2)
@@ -118,7 +118,7 @@ class QualityAssuranceController extends Controller
     public function submitReview(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'holdings_id' => ['required', 'string', 'max:50', Rule::exists('content_approval_requests', 'HoldingsID')],
+            'holdings_id' => ['required', 'string', 'max:50', Rule::exists('requests', 'HoldingsID')],
             'review_decision' => ['required', 'string', Rule::in(['approved', 'disapproved'])],
             'remarks' => ['required_if:review_decision,disapproved', 'nullable', 'string', 'max:1000'],
             'disapproval_reasons' => ['required_if:review_decision,disapproved', 'array', 'min:1'],
@@ -131,7 +131,7 @@ class QualityAssuranceController extends Controller
         ]);
 
         DB::beginTransaction();
-        $approvalRequest = ApprovalRequest::query()
+        $approvalRequest = ContentRequest::query()
             ->where('HoldingsID', $validated['holdings_id'])
             ->where('approval_status', 2)
             ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
@@ -141,11 +141,12 @@ class QualityAssuranceController extends Controller
 
         $approvalRequest->update(['approval_status' => $approvalStatus]);
 
-        $approvalLog = ApprovalLog::query()->forceCreate([
-            'approval_request_id' => $approvalRequest->id,
-            'content_reviewer_id' => Auth::id(),
+        $approvalLog = Log::query()->forceCreate([
+            'request_id' => $approvalRequest->id,
+            'user_id' => Auth::id(),
             'batch_id' => $approvalRequest->batch_id,
             'is_approved' => $approvalStatus === 4,
+            'approval_status' => $approvalStatus,
             'progress_status' => $approvalStatus,
             'remarks' => $validated['remarks'] ?? '',
         ]);
@@ -154,9 +155,10 @@ class QualityAssuranceController extends Controller
 
         foreach ($disapprovalReasons as $reason) {
             LogDetail::query()->forceCreate([
-                'approval_request_id' => $approvalRequest->id,
-                'content_reviewer_id' => Auth::id(),
-                'content_log_id' => $approvalLog->id,
+                'approval_status' => $approvalStatus,
+                'request_id' => $approvalRequest->id,
+                'user_id' => Auth::id(),
+                'log_id' => $approvalLog->id,
                 'is_passed' => false,
                 'description' => $reason,
                 'remarks' => $reason,

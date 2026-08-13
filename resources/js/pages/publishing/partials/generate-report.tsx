@@ -168,7 +168,7 @@ const getAverageTimelinessLabel = (
 
 const getRoleLabel = (role: string): string => {
     const labels: Record<string, string> = {
-        committee: 'Committee Reviewer',
+        committee: 'Initial Reviewer',
         quality: 'Quality Assurance',
         stii_admin: 'STII Admin',
     };

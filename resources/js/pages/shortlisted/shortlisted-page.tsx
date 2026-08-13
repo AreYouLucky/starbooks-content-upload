@@ -35,7 +35,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
     {
         title: 'For Shortlisting',
-        href: '/view-committee-review-batches',
+        href: '/view-initial-review-batches',
     },
 ];
 

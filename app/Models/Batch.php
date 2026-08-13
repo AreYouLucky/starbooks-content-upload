@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Batch extends Model
 {
-    protected $table = 'content_batches';
+    protected $table = 'batches';
 
     protected $fillable = [
         'batch_name',
@@ -31,6 +31,6 @@ class Batch extends Model
 
     public function approvalRequests(): HasMany
     {
-        return $this->hasMany(ApprovalRequest::class, 'batch_id');
+        return $this->hasMany(Request::class, 'batch_id');
     }
 }

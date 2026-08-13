@@ -66,7 +66,14 @@ type RecentBatch = {
     records_count: number;
 };
 
-type UrgentBatch = RecentBatch & {
+type UrgentContent = {
+    id: number;
+    holdings_id: string | null;
+    title: string | null;
+    batch_name: string;
+    content_source: string;
+    quarter: string;
+    year: string;
     target_date: string | null;
     stage: string;
     days_late: number;
@@ -88,7 +95,7 @@ type DashboardData = {
     review_decisions: CountItem[];
     source_distribution: CountItem[];
     quarter_trend: QuarterTrendItem[];
-    urgent_batches: UrgentBatch[];
+    urgent_contents: UrgentContent[];
     recent_batches: RecentBatch[];
 };
 
@@ -114,7 +121,7 @@ const emptyDashboardData: DashboardData = {
     review_decisions: [],
     source_distribution: [],
     quarter_trend: [],
-    urgent_batches: [],
+    urgent_contents: [],
     recent_batches: [],
 };
 
@@ -379,7 +386,7 @@ export default function Dashboard(): JSX.Element {
                     </div>
                 )}
                 {
-                    data.urgent_batches.length > 0 && (
+                    data.urgent_contents.length > 0 && (
                         <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
                             <div className="flex flex-col gap-2  px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
@@ -390,36 +397,33 @@ export default function Dashboard(): JSX.Element {
                                         Needs Urgent Review
                                     </h2>
                                     <p className="mt-1 text-sm text-slate-100">
-                                        Late batches still waiting for review.
+                                        Late content still waiting for review.
                                     </p>
                                 </div>
                                 <span className="w-fit rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                                    {data.urgent_batches.length} late batches
+                                    {data.urgent_contents.length}{' '}
+                                    {data.urgent_contents.length === 1
+                                        ? 'late item'
+                                        : 'late items'}
                                 </span>
                             </div>
                             <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
-                                {data.urgent_batches.length === 0 ? (
-                                    <div className="rounded-lg border border-dashed border-sky-200 bg-sky-50/90 px-4 py-6 text-center text-sm text-slate-700 lg:col-span-2 xl:col-span-4">
-                                        No late review batches.
-                                    </div>
-                                ) : (
-                                    data.urgent_batches.map((batch) => (
+                                {data.urgent_contents.map((content) => (
                                         <div
-                                            key={batch.id}
+                                            key={content.id}
                                             className="rounded-lg border border-sky-100 bg-sky-50 p-4"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <p className="truncate text-sm font-bold text-slate-900">
-                                                        {batch.batch_name}
+                                                        {content.title || content.holdings_id || 'Untitled content'}
                                                     </p>
                                                     <p className="mt-1 text-xs text-slate-500">
-                                                        {batch.content_source} -{' '}
-                                                        {batch.quarter} {batch.year}
+                                                        {content.holdings_id || 'No holdings ID'}
                                                     </p>
                                                 </div>
                                                 <span className="rounded-full border border-sky-100 bg-red-500 px-2.5 py-1 text-[11px] font-bold text-sky-50">
-                                                    {batch.days_late}d late
+                                                    {content.days_late}d late
                                                 </span>
                                             </div>
                                             <div className="mt-4 grid gap-2 text-xs">
@@ -428,7 +432,7 @@ export default function Dashboard(): JSX.Element {
                                                         Stage
                                                     </span>
                                                     <span className="font-semibold text-sky-700">
-                                                        {batch.stage}
+                                                        {content.stage}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-3">
@@ -436,21 +440,20 @@ export default function Dashboard(): JSX.Element {
                                                         Target
                                                     </span>
                                                     <span className="font-semibold text-slate-700">
-                                                        {formatDate(batch.target_date)}
+                                                        {formatDate(content.target_date)}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-3">
                                                     <span className="text-slate-500">
-                                                        Records
+                                                        Batch
                                                     </span>
                                                     <span className="font-semibold text-slate-700">
-                                                        {batch.records_count}
+                                                        {content.batch_name}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))
-                                )}
+                                ))}
                             </div>
                         </section>
                     )

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\ArchiveRecords;
+use App\Models\ArchivedRecord;
 use App\Models\Record;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    foreach (['tblrecord', 'tblarchivedrecords'] as $tableName) {
+    foreach (['tblrecord', 'archived_records'] as $tableName) {
         if (! Schema::hasTable($tableName)) {
             Schema::create($tableName, function (Blueprint $table): void {
                 $table->id();
@@ -89,7 +89,7 @@ test('existing records page lists published and unpublished records with filters
         'Title' => 'Published Science Record',
         'Contents' => 'SCI',
     ]));
-    ArchiveRecords::query()->create(existingRecordPayload([
+    ArchivedRecord::query()->create(existingRecordPayload([
         'Title' => 'Archived Health Record',
         'Contents' => 'HLT',
     ]));
@@ -151,12 +151,12 @@ test('published records can be unpublished and republished', function () {
     $this->assertDatabaseMissing('tblrecord', [
         'HoldingsID' => 'MOVE-001',
     ]);
-    $this->assertDatabaseHas('tblarchivedrecords', [
+    $this->assertDatabaseHas('archived_records', [
         'HoldingsID' => 'MOVE-001',
         'Title' => 'Movable Existing Record',
     ]);
 
-    $archivedRecord = ArchiveRecords::query()
+    $archivedRecord = ArchivedRecord::query()
         ->where('HoldingsID', 'MOVE-001')
         ->firstOrFail();
 
@@ -169,7 +169,7 @@ test('published records can be unpublished and republished', function () {
         'HoldingsID' => 'MOVE-001',
         'Title' => 'Movable Existing Record',
     ]);
-    $this->assertDatabaseMissing('tblarchivedrecords', [
+    $this->assertDatabaseMissing('archived_records', [
         'HoldingsID' => 'MOVE-001',
     ]);
 });
