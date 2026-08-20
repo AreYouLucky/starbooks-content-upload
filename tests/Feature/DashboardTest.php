@@ -108,14 +108,20 @@ test('dashboard data returns all scope workflow counts', function () {
     $this->actingAs($user)
         ->getJson('/dashboard-data?scope=all')
         ->assertOk()
-        ->assertJsonPath('summary.batches', 2)
-        ->assertJsonPath('summary.records', 3)
-        ->assertJsonPath('summary.shortlisted', 3)
-        ->assertJsonPath('summary.initial_reviewed', 2)
-        ->assertJsonPath('summary.quality_reviewed', 2)
+        ->assertJsonPath('summary.total_requests', 3)
+        ->assertJsonPath('summary.for_shortlisting', 0)
+        ->assertJsonPath('summary.for_initial_review', 1)
+        ->assertJsonPath('summary.for_quality_assurance', 0)
+        ->assertJsonPath('summary.for_publishing', 0)
         ->assertJsonPath('summary.published', 1)
-        ->assertJsonFragment(['name' => 'DOST-SEI', 'value' => 1])
-        ->assertJsonFragment(['period' => 'Q3 2026']);
+        ->assertJsonFragment(['name' => 'DOST-SEI', 'value' => 2])
+        ->assertJsonFragment([
+            'period' => 'Q3 2026',
+            'requests' => 2,
+            'published' => 1,
+        ])
+        ->assertJsonMissingPath('batch_statuses')
+        ->assertJsonMissingPath('recent_batches');
 });
 
 test('dashboard data filters by quarter and year', function () {
@@ -132,17 +138,20 @@ test('dashboard data filters by quarter and year', function () {
         'year' => '2026',
     ]);
 
-    createDashboardRequest($targetBatch, 6);
-    createDashboardRequest($outsideBatch, 6);
+    createDashboardRequest($targetBatch, 6, [
+        'Title' => 'Filtered Content Request',
+    ]);
+    createDashboardRequest($outsideBatch, 6, [
+        'Title' => 'Outside Content Request',
+    ]);
 
     $this->actingAs($user)
         ->getJson('/dashboard-data?scope=filtered&quarter=Q1&year=2026')
         ->assertOk()
-        ->assertJsonPath('summary.batches', 1)
-        ->assertJsonPath('summary.records', 1)
+        ->assertJsonPath('summary.total_requests', 1)
         ->assertJsonPath('summary.published', 1)
-        ->assertJsonPath('recent_batches.0.batch_name', 'Filtered Dashboard Batch')
-        ->assertJsonMissing(['batch_name' => 'Outside Dashboard Batch']);
+        ->assertJsonPath('recent_requests.0.title', 'Filtered Content Request')
+        ->assertJsonMissing(['title' => 'Outside Content Request']);
 });
 
 test('dashboard data includes late content awaiting review by urgency', function () {
@@ -185,12 +194,9 @@ test('dashboard data includes late content awaiting review by urgency', function
         ->getJson('/dashboard-data?scope=all')
         ->assertOk()
         ->assertJsonPath('urgent_contents.0.title', 'Late Initial Review Content')
-        ->assertJsonPath('urgent_contents.0.batch_name', 'Late Initial Review Batch')
         ->assertJsonPath('urgent_contents.0.stage', 'Initial Review')
         ->assertJsonPath('urgent_contents.1.title', 'Second Late Initial Content')
         ->assertJsonPath('urgent_contents.2.title', 'Late Quality Content')
-        ->assertJsonPath('urgent_contents.2.batch_name', 'Late Quality Batch')
         ->assertJsonPath('urgent_contents.2.stage', 'Quality Assurance')
-        ->assertJsonMissing(['title' => 'Completed Initial Review Content'])
         ->assertJsonCount(3, 'urgent_contents');
 });

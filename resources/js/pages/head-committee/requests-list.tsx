@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import ViewContent from '@/components/custom/view-content';
+import { formatDate } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestModel, UserModel } from '@/types/model';
 
@@ -251,16 +252,26 @@ export default function RequestList() {
                                         <p className="text-sm text-slate-500">{request.Author || 'Unknown author'}</p>
                                     </td>
                                     <td className="min-w-56 px-4 py-4 align-middle">
-                                        <Select value={request.initial_reviewer_id?.toString()} disabled={isDostBatch || isUpdating} onValueChange={(value) => updateAssignment(request, { initial_reviewer_id: Number(value) })}>
-                                            <SelectTrigger aria-label={`Initial reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
-                                            <SelectContent>{initialReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Select value={request.initial_reviewer_id?.toString()} disabled={isDostBatch || isUpdating} onValueChange={(value) => updateAssignment(request, { initial_reviewer_id: Number(value) })}>
+                                                <SelectTrigger aria-label={`Initial reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
+                                                <SelectContent>{initialReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                            {request.initial_reviewed_assigned_date && (
+                                                <p className="text-xs text-slate-500">Assigned {formatDate(request.initial_reviewed_assigned_date)}</p>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="min-w-56 px-4 py-4 align-middle">
-                                        <Select value={request.quality_assurance_reviewer_id?.toString()} disabled={isUpdating} onValueChange={(value) => updateAssignment(request, { quality_assurance_reviewer_id: Number(value) })}>
-                                            <SelectTrigger aria-label={`Quality assurance reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
-                                            <SelectContent>{qualityAssuranceReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Select value={request.quality_assurance_reviewer_id?.toString()} disabled={isUpdating} onValueChange={(value) => updateAssignment(request, { quality_assurance_reviewer_id: Number(value) })}>
+                                                <SelectTrigger aria-label={`Quality assurance reviewer for ${request.Title ?? request.HoldingsID}`}><SelectValue placeholder="Select reviewer" /></SelectTrigger>
+                                                <SelectContent>{qualityAssuranceReviewers.map((reviewer) => <SelectItem key={reviewer.id} value={reviewer.id.toString()}>{reviewer.full_name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                            {request.quality_assurance_assigned_date && (
+                                                <p className="text-xs text-slate-500">Assigned {formatDate(request.quality_assurance_assigned_date)}</p>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 text-center align-middle">
                                         <Button size="icon" aria-label={`View ${request.Title ?? request.HoldingsID}`} onClick={() => { setSelectedContent(request); setIsContentOpen(true); }}><Eye className="size-4" /></Button>

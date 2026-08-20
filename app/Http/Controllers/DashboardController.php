@@ -36,19 +36,15 @@ class DashboardController extends Controller
                 ->where('year', $validated['year']);
         }
 
-        $batchIds = (clone $batchQuery)->pluck('id');
-        $recordQuery = ContentRequest::query()->whereIn('batch_id', $batchIds);
+        $recordQuery = ContentRequest::query()
+            ->whereIn('batch_id', (clone $batchQuery)->select('id'));
 
         $workflow = [
-            'batches' => (clone $batchQuery)->count(),
-            'records' => (clone $recordQuery)->count(),
-            'shortlisted' => (clone $recordQuery)->where('approval_status', '>=', 1)->count(),
-            'initial_reviewed' => (clone $recordQuery)
-                ->whereHas('approvalLogs', fn ($query) => $query->whereIn('progress_status', [2, 3]))
-                ->count(),
-            'quality_reviewed' => (clone $recordQuery)
-                ->whereHas('approvalLogs', fn ($query) => $query->whereIn('progress_status', [4, 5]))
-                ->count(),
+            'total_requests' => (clone $recordQuery)->count(),
+            'for_shortlisting' => (clone $recordQuery)->where('approval_status', 0)->count(),
+            'for_initial_review' => (clone $recordQuery)->where('approval_status', 1)->count(),
+            'for_quality_assurance' => (clone $recordQuery)->where('approval_status', 2)->count(),
+            'for_publishing' => (clone $recordQuery)->where('approval_status', 4)->count(),
             'published' => (clone $recordQuery)->where('approval_status', 6)->count(),
         ];
 
@@ -81,31 +77,12 @@ class DashboardController extends Controller
 
         return response()->json([
             'summary' => $workflow,
-            'batch_statuses' => $this->formatCounts(
-                (clone $batchQuery)
-                    ->selectRaw('status as name, count(*) as value')
-                    ->groupBy('status')
-                    ->orderBy('status')
-                    ->get()
-            ),
-            'record_statuses' => $this->recordStatusCounts($recordQuery),
+            'request_statuses' => $this->requestStatusCounts($recordQuery),
             'review_decisions' => $reviewDecisions,
-            'source_distribution' => $this->formatCounts(
-                (clone $batchQuery)
-                    ->selectRaw('content_source as name, count(*) as value')
-                    ->groupBy('content_source')
-                    ->orderByDesc('value')
-                    ->limit(8)
-                    ->get()
-            ),
-            'quarter_trend' => $this->quarterTrend($batchQuery),
+            'source_distribution' => $this->sourceDistribution($recordQuery),
+            'quarter_trend' => $this->quarterTrend($recordQuery),
             'urgent_contents' => $this->urgentContents($recordQuery),
-            'recent_batches' => (clone $batchQuery)
-                ->select('id', 'batch_name', 'content_source', 'quarter', 'year', 'status', 'created_at')
-                ->withCount('approvalRequests as records_count')
-                ->latest()
-                ->limit(6)
-                ->get(),
+            'recent_requests' => $this->recentRequests($recordQuery),
         ]);
     }
 
@@ -127,7 +104,7 @@ class DashboardController extends Controller
     /**
      * @return array<int, array{name: string, value: int}>
      */
-    private function recordStatusCounts(Builder $recordQuery): array
+    private function requestStatusCounts(Builder $recordQuery): array
     {
         $statusLabels = [
             0 => 'For Shortlisting',
@@ -149,32 +126,68 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return array<int, array{period: string, batches: int, records: int, published: int}>
+     * @return array<int, array{name: string, value: int}>
      */
-    private function quarterTrend(Builder $batchQuery): array
+    private function sourceDistribution(Builder $recordQuery): array
     {
-        return (clone $batchQuery)
-            ->select('id', 'quarter', 'year')
-            ->withCount([
-                'approvalRequests as records_count',
-                'approvalRequests as published_count' => fn ($query) => $query->where('approval_status', 6),
-            ])
-            ->orderBy('year')
-            ->orderBy('quarter')
+        return $this->formatCounts(
+            (clone $recordQuery)
+                ->join('batches', 'batches.id', '=', 'requests.batch_id')
+                ->selectRaw('batches.content_source as name, count(requests.id) as value')
+                ->groupBy('batches.content_source')
+                ->orderByDesc('value')
+                ->limit(8)
+                ->get()
+        );
+    }
+
+    /**
+     * @return array<int, array{period: string, requests: int, published: int}>
+     */
+    private function quarterTrend(Builder $recordQuery): array
+    {
+        return (clone $recordQuery)
+            ->join('batches', 'batches.id', '=', 'requests.batch_id')
+            ->selectRaw('batches.quarter, batches.year, count(requests.id) as requests_count, sum(case when requests.approval_status = 6 then 1 else 0 end) as published_count')
+            ->groupBy('batches.quarter', 'batches.year')
+            ->orderBy('batches.year')
+            ->orderBy('batches.quarter')
             ->get()
-            ->groupBy(fn (Batch $batch): string => $batch->quarter.' '.$batch->year)
-            ->map(fn (Collection $batches, string $period): array => [
-                'period' => $period,
-                'batches' => $batches->count(),
-                'records' => (int) $batches->sum('records_count'),
-                'published' => (int) $batches->sum('published_count'),
+            ->map(fn (ContentRequest $request): array => [
+                'period' => $request->quarter.' '.$request->year,
+                'requests' => (int) $request->requests_count,
+                'published' => (int) $request->published_count,
             ])
             ->values()
             ->all();
     }
 
     /**
-     * @return array<int, array{id: int, holdings_id: string|null, title: string|null, batch_name: string, content_source: string, quarter: string, year: string, target_date: string|null, stage: string, days_late: int}>
+     * @return array<int, array{id: int, holdings_id: string|null, title: string|null, content_source: string, quarter: string, year: string, status: string, created_at: string|null}>
+     */
+    private function recentRequests(Builder $recordQuery): array
+    {
+        return (clone $recordQuery)
+            ->select(['requests.id', 'requests.HoldingsID', 'requests.Title', 'requests.batch_id', 'requests.approval_status', 'requests.created_at'])
+            ->with('batch:id,content_source,quarter,year')
+            ->latest('requests.created_at')
+            ->limit(6)
+            ->get()
+            ->map(fn (ContentRequest $content): array => [
+                'id' => $content->id,
+                'holdings_id' => $content->HoldingsID,
+                'title' => $content->Title,
+                'content_source' => $content->batch->content_source,
+                'quarter' => $content->batch->quarter,
+                'year' => $content->batch->year,
+                'status' => $this->requestStatusLabel($content->approval_status),
+                'created_at' => $content->created_at?->toISOString(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{id: int, holdings_id: string|null, title: string|null, content_source: string, quarter: string, year: string, target_date: string|null, stage: string, days_late: int}>
      */
     private function urgentContents(Builder $recordQuery): array
     {
@@ -222,7 +235,6 @@ class DashboardController extends Controller
                     'id' => $content->id,
                     'holdings_id' => $content->HoldingsID,
                     'title' => $content->Title,
-                    'batch_name' => $batch->batch_name,
                     'content_source' => $batch->content_source,
                     'quarter' => $batch->quarter,
                     'year' => $batch->year,
@@ -254,6 +266,20 @@ class DashboardController extends Controller
             2 => 'Quality Assurance',
             4 => 'Publishing',
             default => 'Review',
+        };
+    }
+
+    private function requestStatusLabel(int $approvalStatus): string
+    {
+        return match ($approvalStatus) {
+            0 => 'For Shortlisting',
+            1 => 'For Initial Review',
+            2 => 'Initial Approved',
+            3 => 'Initial Disapproved',
+            4 => 'QA Approved',
+            5 => 'QA Disapproved',
+            6 => 'Published',
+            default => 'Unspecified',
         };
     }
 }

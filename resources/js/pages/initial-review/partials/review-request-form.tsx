@@ -66,14 +66,8 @@ export default function ReviewRequestForm() {
       href: '/dashboard',
     },
     {
-      title: 'Initial Review Batches',
-      href: '/view-initial-review-batches',
-    },
-    {
-      title: `${batch?.batch_name}`,
-      href: batch
-        ? `/view-initial-review-batch/${batch.batch_name}`
-        : '/view-initial-review-batches',
+      title: 'Initial Review Requests',
+      href: '/initial-review-page',
     },
     {
       title: 'Review Request Form',
@@ -155,7 +149,7 @@ export default function ReviewRequestForm() {
         setOpen(false);
         setErrors({});
         toast.success(response.message);
-        router.visit(`/view-initial-review-batch/${batch?.batch_name}`);
+        router.visit('/initial-review-page');
       },
       onError: (error) => {
         setOpen(false);

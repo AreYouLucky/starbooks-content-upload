@@ -15,11 +15,10 @@ import {
 } from 'recharts';
 import {
     AlertTriangle,
-    Archive,
     BookOpenCheck,
     CheckCircle2,
     ClipboardCheck,
-    Layers3,
+    FileText,
     ShieldCheck,
 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
@@ -51,26 +50,25 @@ type CountItem = {
 
 type QuarterTrendItem = {
     period: string;
-    batches: number;
-    records: number;
+    requests: number;
     published: number;
 };
 
-type RecentBatch = {
+type RecentRequest = {
     id: number;
-    batch_name: string;
+    holdings_id: string | null;
+    title: string | null;
     content_source: string;
     quarter: string;
     year: string;
-    status: string | null;
-    records_count: number;
+    status: string;
+    created_at: string | null;
 };
 
 type UrgentContent = {
     id: number;
     holdings_id: string | null;
     title: string | null;
-    batch_name: string;
     content_source: string;
     quarter: string;
     year: string;
@@ -80,49 +78,47 @@ type UrgentContent = {
 };
 
 type DashboardSummary = {
-    batches: number;
-    records: number;
-    shortlisted: number;
-    initial_reviewed: number;
-    quality_reviewed: number;
+    total_requests: number;
+    for_shortlisting: number;
+    for_initial_review: number;
+    for_quality_assurance: number;
+    for_publishing: number;
     published: number;
 };
 
 type DashboardData = {
     summary: DashboardSummary;
-    batch_statuses: CountItem[];
-    record_statuses: CountItem[];
+    request_statuses: CountItem[];
     review_decisions: CountItem[];
     source_distribution: CountItem[];
     quarter_trend: QuarterTrendItem[];
     urgent_contents: UrgentContent[];
-    recent_batches: RecentBatch[];
+    recent_requests: RecentRequest[];
 };
 
 type StatItem = {
     label: string;
     value: number;
     detail: string;
-    icon: typeof Layers3;
+    icon: typeof FileText;
     tone: string;
 };
 
 const emptyDashboardData: DashboardData = {
     summary: {
-        batches: 0,
-        records: 0,
-        shortlisted: 0,
-        initial_reviewed: 0,
-        quality_reviewed: 0,
+        total_requests: 0,
+        for_shortlisting: 0,
+        for_initial_review: 0,
+        for_quality_assurance: 0,
+        for_publishing: 0,
         published: 0,
     },
-    batch_statuses: [],
-    record_statuses: [],
+    request_statuses: [],
     review_decisions: [],
     source_distribution: [],
     quarter_trend: [],
     urgent_contents: [],
-    recent_batches: [],
+    recent_requests: [],
 };
 
 const chartColors = [
@@ -145,19 +141,16 @@ const formatStatus = (status: string | null): string => {
 };
 
 const getStatusTone = (status: string | null): string => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
         case 'published':
-            return 'border-sky-200 bg-sky-50 text-sky-700';
-        case 'for publishing':
-            return 'border-sky-200 bg-white text-sky-700';
-        case 'for quality approval':
+            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+        case 'qa approved':
             return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-        case 'for initial review':
-            return 'border-sky-100 bg-white text-slate-700';
-        case 'for shortlisting':
-            return 'border-sky-100 bg-sky-50 text-slate-600';
+        case 'initial disapproved':
+        case 'qa disapproved':
+            return 'border-rose-200 bg-rose-50 text-rose-700';
         default:
-            return 'border-slate-200 bg-white text-slate-600';
+            return 'border-sky-200 bg-sky-50 text-sky-700';
     }
 };
 
@@ -244,50 +237,59 @@ export default function Dashboard(): JSX.Element {
 
     const statItems: StatItem[] = [
         {
-            label: 'Total Batches',
-            value: data.summary.batches,
-            detail: 'active reporting scope',
-            icon: Layers3,
+            label: 'Total Requests',
+            value: data.summary.total_requests,
+            detail: 'content in selected scope',
+            icon: FileText,
             tone: 'text-sky-600 bg-sky-50 border-sky-100',
         },
         {
-            label: 'Total Records',
-            value: data.summary.records,
-            detail: 'all content records',
-            icon: Archive,
+            label: 'For Shortlisting',
+            value: data.summary.for_shortlisting,
+            detail: toPercent(
+                data.summary.for_shortlisting,
+                data.summary.total_requests,
+            ),
+            icon: ClipboardCheck,
             tone: 'text-cyan-600 bg-cyan-50 border-cyan-100',
         },
         {
-            label: 'Shortlisted',
-            value: data.summary.shortlisted,
-            detail: toPercent(data.summary.shortlisted, data.summary.records),
-            icon: ClipboardCheck,
+            label: 'For Initial Review',
+            value: data.summary.for_initial_review,
+            detail: toPercent(
+                data.summary.for_initial_review,
+                data.summary.total_requests,
+            ),
+            icon: CheckCircle2,
             tone: 'text-sky-600 bg-white border-sky-100',
         },
         {
-            label: 'Initial Reviewed',
-            value: data.summary.initial_reviewed,
+            label: 'For Quality Assurance',
+            value: data.summary.for_quality_assurance,
             detail: toPercent(
-                data.summary.initial_reviewed,
-                data.summary.records,
+                data.summary.for_quality_assurance,
+                data.summary.total_requests,
             ),
-            icon: CheckCircle2,
+            icon: ShieldCheck,
             tone: 'text-sky-600 bg-sky-50 border-sky-100',
         },
         {
-            label: 'QA Reviewed',
-            value: data.summary.quality_reviewed,
+            label: 'For Publishing',
+            value: data.summary.for_publishing,
             detail: toPercent(
-                data.summary.quality_reviewed,
-                data.summary.records,
+                data.summary.for_publishing,
+                data.summary.total_requests,
             ),
-            icon: ShieldCheck,
+            icon: BookOpenCheck,
             tone: 'text-cyan-600 bg-cyan-50 border-cyan-100',
         },
         {
             label: 'Published',
             value: data.summary.published,
-            detail: toPercent(data.summary.published, data.summary.records),
+            detail: toPercent(
+                data.summary.published,
+                data.summary.total_requests,
+            ),
             icon: BookOpenCheck,
             tone: 'text-sky-700 bg-sky-50 border-sky-200',
         },
@@ -295,18 +297,18 @@ export default function Dashboard(): JSX.Element {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-            <div className="space-y-5 ">
+            <Head title="Content Request Dashboard" />
+            <div className="space-y-5">
                 <section className="rounded-lg border border-sky-200 bg-linear-to-br from-sky-600 via-sky-500 to-cyan-500 p-5 shadow-sm md:p-6">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-bold tracking-tight text-slate-50">
-                                Content Review and Approval Dashboard
+                                Content Request Dashboard
                             </h1>
                             <p className="max-w-2xl text-sm text-slate-100">
-                                Monitor all STARBOOKS content records across
-                                shortlisting, reviews, quality assurance, and
-                                publishing.
+                                Follow each STARBOOKS content request from
+                                shortlisting through reviews, quality assurance,
+                                and publishing.
                             </p>
                         </div>
 
@@ -319,22 +321,24 @@ export default function Dashboard(): JSX.Element {
                                     <button
                                         type="button"
                                         onClick={() => setScope('all')}
-                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${scope === 'all'
-                                            ? 'bg-sky-500 text-sky-50 shadow-sm'
-                                            : 'text-slate-500 hover:text-slate-800'
-                                            }`}
+                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${
+                                            scope === 'all'
+                                                ? 'bg-sky-500 text-sky-50 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
                                     >
-                                        All
+                                        All Requests
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setScope('filtered')}
-                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${scope === 'filtered'
-                                            ? 'bg-sky-500 text-sky-50 shadow-sm'
-                                            : 'text-slate-500 hover:text-slate-800'
-                                            }`}
+                                        className={`h-9 rounded-md px-4 text-sm font-semibold transition ${
+                                            scope === 'filtered'
+                                                ? 'bg-sky-500 text-sky-50 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-800'
+                                        }`}
                                     >
-                                        Quarter
+                                        By Quarter
                                     </button>
                                 </div>
                             </div>
@@ -385,79 +389,83 @@ export default function Dashboard(): JSX.Element {
                         {error}
                     </div>
                 )}
-                {
-                    data.urgent_contents.length > 0 && (
-                        <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
-                            <div className="flex flex-col gap-2  px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h2 className="flex items-center gap-2 text-base font-bold text-slate-50">
-                                        <span className="rounded-md border border-sky-100 bg-sky-50 p-1.5 text-red-600">
-                                            <AlertTriangle className="size-4" />
-                                        </span>
-                                        Needs Urgent Review
-                                    </h2>
-                                    <p className="mt-1 text-sm text-slate-100">
-                                        Late content still waiting for review.
-                                    </p>
-                                </div>
-                                <span className="w-fit rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                                    {data.urgent_contents.length}{' '}
-                                    {data.urgent_contents.length === 1
-                                        ? 'late item'
-                                        : 'late items'}
-                                </span>
+                {data.urgent_contents.length > 0 && (
+                    <section className="rounded-lg border border-sky-100 bg-red-400 shadow-sm">
+                        <div className="flex flex-col gap-2 px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="flex items-center gap-2 text-base font-bold text-slate-50">
+                                    <span className="rounded-md border border-sky-100 bg-sky-50 p-1.5 text-red-600">
+                                        <AlertTriangle className="size-4" />
+                                    </span>
+                                    Requests Needing Attention
+                                </h2>
+                                <p className="mt-1 text-sm text-slate-100">
+                                    Content requests that are past their target
+                                    date.
+                                </p>
                             </div>
-                            <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
-                                {data.urgent_contents.map((content) => (
-                                        <div
-                                            key={content.id}
-                                            className="rounded-lg border border-sky-100 bg-sky-50 p-4"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-bold text-slate-900">
-                                                        {content.title || content.holdings_id || 'Untitled content'}
-                                                    </p>
-                                                    <p className="mt-1 text-xs text-slate-500">
-                                                        {content.holdings_id || 'No holdings ID'}
-                                                    </p>
-                                                </div>
-                                                <span className="rounded-full border border-sky-100 bg-red-500 px-2.5 py-1 text-[11px] font-bold text-sky-50">
-                                                    {content.days_late}d late
-                                                </span>
-                                            </div>
-                                            <div className="mt-4 grid gap-2 text-xs">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="text-slate-500">
-                                                        Stage
-                                                    </span>
-                                                    <span className="font-semibold text-sky-700">
-                                                        {content.stage}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="text-slate-500">
-                                                        Target
-                                                    </span>
-                                                    <span className="font-semibold text-slate-700">
-                                                        {formatDate(content.target_date)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="text-slate-500">
-                                                        Batch
-                                                    </span>
-                                                    <span className="font-semibold text-slate-700">
-                                                        {content.batch_name}
-                                                    </span>
-                                                </div>
-                                            </div>
+                            <span className="w-fit rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                                {data.urgent_contents.length}{' '}
+                                {data.urgent_contents.length === 1
+                                    ? 'late item'
+                                    : 'late items'}
+                            </span>
+                        </div>
+                        <div className="grid gap-3 p-4 lg:grid-cols-2 xl:grid-cols-4">
+                            {data.urgent_contents.map((content) => (
+                                <div
+                                    key={content.id}
+                                    className="rounded-lg border border-sky-100 bg-sky-50 p-4"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-bold text-slate-900">
+                                                {content.title ||
+                                                    content.holdings_id ||
+                                                    'Untitled content'}
+                                            </p>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                {content.holdings_id ||
+                                                    'No holdings ID'}
+                                            </p>
                                         </div>
-                                ))}
-                            </div>
-                        </section>
-                    )
-                }
+                                        <span className="rounded-full border border-sky-100 bg-red-500 px-2.5 py-1 text-[11px] font-bold text-sky-50">
+                                            {content.days_late}d late
+                                        </span>
+                                    </div>
+                                    <div className="mt-4 grid gap-2 text-xs">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-500">
+                                                Stage
+                                            </span>
+                                            <span className="font-semibold text-sky-700">
+                                                {content.stage}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-500">
+                                                Target
+                                            </span>
+                                            <span className="font-semibold text-slate-700">
+                                                {formatDate(
+                                                    content.target_date,
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-500">
+                                                Source
+                                            </span>
+                                            <span className="font-semibold text-slate-700">
+                                                {content.content_source}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
                 <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                     {statItems.map((item) => (
                         <StatCard
@@ -468,14 +476,13 @@ export default function Dashboard(): JSX.Element {
                     ))}
                 </section>
 
-
                 <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
                     <ChartPanel
-                        title="Approval Status"
-                        subtitle="Current content approval movement across the different stages of reviews"
+                        title="Requests by Workflow Status"
+                        subtitle="Current stage of every content request in the selected scope"
                     >
                         <ResponsiveContainer width="100%" height={420}>
-                            <BarChart data={data.record_statuses}>
+                            <BarChart data={data.request_statuses}>
                                 <CartesianGrid
                                     strokeDasharray="3 3"
                                     stroke="#e2e8f0"
@@ -494,7 +501,7 @@ export default function Dashboard(): JSX.Element {
                                 <Tooltip />
                                 <Bar
                                     dataKey="value"
-                                    name="Records"
+                                    name="Requests"
                                     fill="#38bdf8"
                                     radius={[6, 6, 0, 0]}
                                 />
@@ -503,34 +510,37 @@ export default function Dashboard(): JSX.Element {
                     </ChartPanel>
 
                     <ChartPanel
-                        title="Batch Status"
-                        subtitle="Batch volume by current status"
+                        title="Request Portfolio"
+                        subtitle="Share of requests at each workflow status"
                     >
                         <ResponsiveContainer width="100%" height={320}>
                             <PieChart>
                                 <Pie
-                                    data={data.batch_statuses}
+                                    data={data.request_statuses}
                                     dataKey="value"
                                     nameKey="name"
                                     innerRadius={68}
                                     outerRadius={112}
                                     paddingAngle={2}
                                 >
-                                    {data.batch_statuses.map((entry, index) => (
-                                        <Cell
-                                            key={entry.name}
-                                            fill={
-                                                chartColors[
-                                                index % chartColors.length
-                                                ]
-                                            }
-                                        />
-                                    ))}
+                                    {data.request_statuses.map(
+                                        (entry, index) => (
+                                            <Cell
+                                                key={entry.name}
+                                                fill={
+                                                    chartColors[
+                                                        index %
+                                                            chartColors.length
+                                                    ]
+                                                }
+                                            />
+                                        ),
+                                    )}
                                 </Pie>
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
-                        <ChartLegend items={data.batch_statuses} />
+                        <ChartLegend items={data.request_statuses} />
                     </ChartPanel>
                 </section>
 
@@ -559,7 +569,7 @@ export default function Dashboard(): JSX.Element {
                                 <Tooltip />
                                 <Bar
                                     dataKey="value"
-                                    name="Records"
+                                    name="Requests"
                                     fill="#38bdf8"
                                     radius={[6, 6, 0, 0]}
                                 />
@@ -569,7 +579,7 @@ export default function Dashboard(): JSX.Element {
 
                     <ChartPanel
                         title="Content Sources"
-                        subtitle="Batch volume by source"
+                        subtitle="Individual content request volume by source"
                     >
                         <ResponsiveContainer width="100%" height={280}>
                             <BarChart
@@ -593,7 +603,7 @@ export default function Dashboard(): JSX.Element {
                                 <Tooltip />
                                 <Bar
                                     dataKey="value"
-                                    name="Batches"
+                                    name="Requests"
                                     fill="#38bdf8"
                                     radius={[0, 6, 6, 0]}
                                 />
@@ -604,8 +614,8 @@ export default function Dashboard(): JSX.Element {
 
                 <section className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
                     <ChartPanel
-                        title="Quarter Trend"
-                        subtitle="Batches, records, and published records by period"
+                        title="Request Volume by Quarter"
+                        subtitle="Total and published content requests by reporting period"
                     >
                         <ResponsiveContainer width="100%" height={420}>
                             <BarChart data={data.quarter_trend}>
@@ -622,15 +632,9 @@ export default function Dashboard(): JSX.Element {
                                 />
                                 <Tooltip />
                                 <Bar
-                                    dataKey="batches"
-                                    fill="#7dd3fc"
-                                    name="Batches"
-                                    radius={[4, 4, 0, 0]}
-                                />
-                                <Bar
-                                    dataKey="records"
+                                    dataKey="requests"
                                     fill="#0ea5e9"
-                                    name="Records"
+                                    name="Requests"
                                     radius={[4, 4, 0, 0]}
                                 />
                                 <Bar
@@ -646,42 +650,47 @@ export default function Dashboard(): JSX.Element {
                     <section className="rounded-lg border border-sky-100 bg-white shadow-sm">
                         <div className="border-b border-sky-100 px-5 py-4">
                             <h2 className="text-base font-bold text-slate-900">
-                                Recent Batches
+                                Recent Content Requests
                             </h2>
                             <p className="text-sm text-slate-500">
-                                Latest batch activity.
+                                Latest individual requests added to the
+                                workflow.
                             </p>
                         </div>
                         <div className="divide-y divide-sky-50">
-                            {data.recent_batches.length === 0 ? (
+                            {data.recent_requests.length === 0 ? (
                                 <div className="px-5 py-8 text-center text-sm text-slate-500">
-                                    No batches found.
+                                    No content requests found.
                                 </div>
                             ) : (
-                                data.recent_batches.map((batch) => (
+                                data.recent_requests.map((request) => (
                                     <div
-                                        key={batch.id}
+                                        key={request.id}
                                         className="flex items-start justify-between gap-3 px-5 py-4"
                                     >
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-semibold text-slate-900">
-                                                {batch.batch_name}
+                                                {request.title ||
+                                                    request.holdings_id ||
+                                                    'Untitled content'}
                                             </p>
                                             <p className="mt-1 text-xs text-slate-500">
-                                                {batch.content_source} -{' '}
-                                                {batch.quarter} {batch.year}
+                                                {request.holdings_id ||
+                                                    'No holdings ID'}{' '}
+                                                - {request.content_source} -{' '}
+                                                {request.quarter} {request.year}
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 flex-col items-end gap-2">
                                             <span
                                                 className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${getStatusTone(
-                                                    batch.status,
+                                                    request.status,
                                                 )}`}
                                             >
-                                                {formatStatus(batch.status)}
+                                                {request.status}
                                             </span>
                                             <span className="text-xs font-semibold text-slate-500">
-                                                {batch.records_count} records
+                                                {formatDate(request.created_at)}
                                             </span>
                                         </div>
                                     </div>

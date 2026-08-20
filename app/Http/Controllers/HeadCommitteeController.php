@@ -27,6 +27,7 @@ class HeadCommitteeController extends Controller
             ->select([
                 'id', 'Title', 'MaterialType', 'HoldingsID', 'Author', 'Abstracts', 'Contents', 'Type',
                 'approval_status', 'batch_id', 'initial_reviewer_id', 'quality_assurance_reviewer_id',
+                'initial_reviewed_assigned_date', 'quality_assurance_assigned_date',
             ])
             ->with([
                 'batch:id,batch_name,batch_description,quarter,year,is_dost',
@@ -122,7 +123,22 @@ class HeadCommitteeController extends Controller
             return response()->json(['message' => 'DOST batch assignments cannot be changed.'], 422);
         }
 
-        $approvalRequest->update($request->validated());
+        $assignment = $request->validated();
+        $approvalRequest->fill($assignment);
+
+        if (array_key_exists('initial_reviewer_id', $assignment) && $approvalRequest->isDirty('initial_reviewer_id')) {
+            $approvalRequest->initial_reviewed_assigned_date = $assignment['initial_reviewer_id'] === null
+                ? null
+                : now();
+        }
+
+        if (array_key_exists('quality_assurance_reviewer_id', $assignment) && $approvalRequest->isDirty('quality_assurance_reviewer_id')) {
+            $approvalRequest->quality_assurance_assigned_date = $assignment['quality_assurance_reviewer_id'] === null
+                ? null
+                : now();
+        }
+
+        $approvalRequest->save();
 
         return response()->json(['message' => 'Reviewers assigned successfully.']);
     }

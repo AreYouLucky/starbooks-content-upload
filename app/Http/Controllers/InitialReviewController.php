@@ -2,27 +2,74 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ViewInitialReviewRequestsRequest;
 use App\Models\Batch;
 use App\Models\Log;
 use App\Models\LogDetail;
 use App\Models\Request as ContentRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class InitialReviewController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function initialReviewPage()
+    public function initialReviewPage(ViewInitialReviewRequestsRequest $request): Response
     {
-        return Inertia::render(
-            'initial-review/initial-review-page'
-        );
+        $validated = $request->validated();
+        $filters = [
+            'quarter' => $validated['quarter'] ?? 'all',
+            'year' => $validated['year'] ?? 'all',
+            'search' => $validated['search'] ?? '',
+        ];
+
+        $approvalRequests = ContentRequest::query()
+            ->where('initial_reviewer_id', $request->user()->id)
+            ->when($filters['quarter'] !== 'all', fn ($query) => $query->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('quarter', $filters['quarter'])
+            ))
+            ->when($filters['year'] !== 'all', fn ($query) => $query->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('year', $filters['year'])
+            ))
+            ->when($filters['search'] !== '', function ($query) use ($filters): void {
+                $query->where(function ($searchQuery) use ($filters): void {
+                    $searchQuery->where('HoldingsID', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Title', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Author', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Abstracts', 'like', '%'.$filters['search'].'%');
+                });
+            });
+
+        $analytics = [
+            'pending' => (clone $approvalRequests)->where('approval_status', 1)->count(),
+            'approved' => (clone $approvalRequests)->where('approval_status', 2)->count(),
+            'disapproved' => (clone $approvalRequests)->where('approval_status', 3)->count(),
+        ];
+
+        $availableBatches = Batch::query()
+            ->whereHas('approvalRequests', fn ($query) => $query
+                ->where('initial_reviewer_id', $request->user()->id));
+
+        return Inertia::render('initial-review/requests-list', [
+            'approval_requests' => $approvalRequests
+                ->orderBy('approval_status')
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+            'filters' => $filters,
+            'quarters' => (clone $availableBatches)->whereNotNull('quarter')->distinct()->orderBy('quarter')->pluck('quarter'),
+            'years' => (clone $availableBatches)->whereNotNull('year')->distinct()->orderByDesc('year')->pluck('year'),
+            'analytics' => $analytics,
+        ]);
     }
 
     public function initialReviewBatches(Request $request)
@@ -71,18 +118,9 @@ class InitialReviewController extends Controller
         ]);
     }
 
-    public function viewApprovalRequests(string $name)
+    public function viewApprovalRequests(string $name): RedirectResponse
     {
-        $batch = Batch::where('batch_name', $name)->first();
-        $approval_requests = ContentRequest::where('batch_id', $batch->id)->orderBy('approval_status', 'asc')->get();
-
-        return Inertia::render(
-            'initial-review/requests-list',
-            [
-                'approval_requests' => $approval_requests,
-                'batch' => $batch,
-            ]
-        );
+        return redirect('/initial-review-page');
     }
 
     public function reviewRequest(string $holdingsID)

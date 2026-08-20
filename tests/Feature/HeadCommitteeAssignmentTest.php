@@ -3,6 +3,7 @@
 use App\Http\Requests\UpdateApprovalRequestAssignmentRequest;
 use App\Models\Request as ContentRequest;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -25,6 +26,93 @@ test('approval requests expose reviewer assignment relationships', function () {
         ->toContain('initial_reviewer_id', 'quality_assurance_reviewer_id')
         ->and($approvalRequest->initialReviewer()->getForeignKeyName())->toBe('initial_reviewer_id')
         ->and($approvalRequest->qualityAssuranceReviewer()->getForeignKeyName())->toBe('quality_assurance_reviewer_id');
+});
+
+test('reviewer assignments record their corresponding assignment dates', function () {
+    $headCommittee = User::query()->create([
+        'username' => 'head-assignment-dates',
+        'full_name' => 'Head Assignment Dates',
+        'delivery_unit' => 'Review Unit',
+        'role' => 'head_committee',
+        'designation' => 'Head Committee',
+        'task_description' => 'Assign reviewers',
+        'password' => Hash::make('password'),
+    ]);
+    $initialReviewer = User::query()->create([
+        'username' => 'initial-assignment-dates',
+        'full_name' => 'Initial Assignment Dates',
+        'delivery_unit' => 'Review Unit',
+        'role' => 'committee',
+        'designation' => 'Reviewer',
+        'task_description' => 'Initial review',
+        'password' => Hash::make('password'),
+    ]);
+    $qualityReviewer = User::query()->create([
+        'username' => 'quality-assignment-dates',
+        'full_name' => 'Quality Assignment Dates',
+        'delivery_unit' => 'Review Unit',
+        'role' => 'quality',
+        'designation' => 'Reviewer',
+        'task_description' => 'Quality review',
+        'password' => Hash::make('password'),
+    ]);
+    $batchId = DB::table('batches')->insertGetId([
+        'batch_name' => 'Assignment Dates Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
+        'content_source' => 'Test',
+        'batch_description' => 'Assignment dates test batch',
+        'target_published_date' => '2026-12-31',
+        'target_initial_review_date' => '2026-09-30',
+        'is_dost' => false,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    $approvalRequest = ContentRequest::query()->create([
+        'HoldingsID' => 'ASSIGNMENT-DATES-001',
+        'Title' => 'Assignment Dates Request',
+        'approval_status' => 1,
+        'batch_id' => $batchId,
+    ]);
+
+    $initialAssignedAt = Carbon::parse('2026-08-17 10:30:00');
+    $this->travelTo($initialAssignedAt);
+
+    $this->actingAs($headCommittee)
+        ->patchJson("/approval-requests/{$approvalRequest->id}/assignments", [
+            'initial_reviewer_id' => $initialReviewer->id,
+            'initial_reviewed_assigned_date' => '2000-01-01 00:00:00',
+        ])
+        ->assertSuccessful();
+
+    $approvalRequest->refresh();
+
+    expect($approvalRequest->initial_reviewer_id)->toBe($initialReviewer->id)
+        ->and($approvalRequest->initial_reviewed_assigned_date?->equalTo($initialAssignedAt))->toBeTrue()
+        ->and($approvalRequest->quality_assurance_assigned_date)->toBeNull();
+
+    $qualityAssignedAt = Carbon::parse('2026-08-18 11:45:00');
+    $this->travelTo($qualityAssignedAt);
+
+    $this->actingAs($headCommittee)
+        ->patchJson("/approval-requests/{$approvalRequest->id}/assignments", [
+            'quality_assurance_reviewer_id' => $qualityReviewer->id,
+        ])
+        ->assertSuccessful();
+
+    $approvalRequest->refresh();
+
+    expect($approvalRequest->initial_reviewed_assigned_date?->equalTo($initialAssignedAt))->toBeTrue()
+        ->and($approvalRequest->quality_assurance_reviewer_id)->toBe($qualityReviewer->id)
+        ->and($approvalRequest->quality_assurance_assigned_date?->equalTo($qualityAssignedAt))->toBeTrue();
+
+    $this->actingAs($headCommittee)
+        ->patchJson("/approval-requests/{$approvalRequest->id}/assignments", [
+            'initial_reviewer_id' => null,
+        ])
+        ->assertSuccessful();
+
+    expect($approvalRequest->refresh()->initial_reviewed_assigned_date)->toBeNull();
 });
 
 test('request assignment page returns server paginated and filtered records', function () {

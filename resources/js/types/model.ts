@@ -76,6 +76,8 @@ export type RequestModel = TimestampFields & {
     batch?: BatchModel;
     initial_reviewer_id?: number | null;
     quality_assurance_reviewer_id?: number | null;
+    initial_reviewed_assigned_date?: string | null;
+    quality_assurance_assigned_date?: string | null;
     initial_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
     quality_assurance_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
 };

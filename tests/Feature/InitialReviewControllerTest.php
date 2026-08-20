@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -51,6 +52,71 @@ function createApprovalRequestForBatch(Batch $batch, int $approvalStatus): Conte
         'is_active' => 1,
     ]);
 }
+
+test('initial review request list filters and paginates requests assigned to the reviewer', function () {
+    $reviewer = createInitialReviewUser();
+    $otherReviewer = createInitialReviewUser();
+    $matchingBatch = createInitialReviewBatch([
+        'batch_name' => 'Science Review Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
+    ]);
+    $otherBatch = createInitialReviewBatch([
+        'batch_name' => 'Other Review Batch',
+        'quarter' => 'Q4',
+        'year' => '2026',
+    ]);
+
+    foreach (range(1, 11) as $index) {
+        createApprovalRequestForBatch($matchingBatch, 1)->update([
+            'Title' => "Science Request {$index}",
+            'initial_reviewer_id' => $reviewer->id,
+        ]);
+    }
+
+    createApprovalRequestForBatch($matchingBatch, 2)->update([
+        'Title' => 'Science Approved Request',
+        'initial_reviewer_id' => $reviewer->id,
+    ]);
+    createApprovalRequestForBatch($matchingBatch, 1)->update([
+        'Title' => 'Science Other Reviewer Request',
+        'initial_reviewer_id' => $otherReviewer->id,
+    ]);
+    createApprovalRequestForBatch($otherBatch, 1)->update([
+        'Title' => 'Science Other Quarter Request',
+        'initial_reviewer_id' => $reviewer->id,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->get('/initial-review-page?quarter=Q3&year=2026&search=Science')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('initial-review/requests-list')
+            ->has('approval_requests.data', 10)
+            ->where('approval_requests.total', 12)
+            ->where('approval_requests.per_page', 10)
+            ->where('filters.quarter', 'Q3')
+            ->where('filters.year', '2026')
+            ->where('filters.search', 'Science')
+            ->where('analytics.pending', 11)
+            ->where('analytics.approved', 1)
+            ->where('analytics.disapproved', 0)
+            ->where('quarters', ['Q3', 'Q4'])
+            ->where('years', ['2026'])
+            ->missing('batch')
+            ->where('approval_requests.next_page_url', fn ($url) => str_contains($url, 'quarter=Q3')
+                && str_contains($url, 'year=2026')
+                && str_contains($url, 'search=Science')));
+
+    $this->actingAs($reviewer)
+        ->get('/initial-review-page?quarter=Q3&year=2026&search=Science&page=2')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('approval_requests.current_page', 2)
+            ->has('approval_requests.data', 2)
+            ->where('analytics.pending', 11)
+            ->where('analytics.approved', 1));
+});
 
 test('initial review index returns approval request status counts per batch', function () {
     $batch = createInitialReviewBatch([
