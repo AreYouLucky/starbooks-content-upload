@@ -34,18 +34,19 @@ type ReviewerOption = {
     role: string;
 };
 
-type PublishingSummaryBatch = {
-    batch_name: string;
-    shortlisted_content_count: number;
-    initial_review_approved_count: number;
-    initial_review_disapproved_count: number;
-    quality_approved_count: number;
-    quality_disapproved_count: number;
-    published_content_count: number;
+type PublishingSummaryContent = {
+    title: string | null;
+    holdings_id: string | null;
+    batch_name: string | null;
+    content_source: string | null;
+    initial_review_status: string;
+    quality_assurance_status: string;
+    publishing_status: string;
+    published_at: string | null;
 };
 
 type PublishingSummaryResponse = {
-    batches: PublishingSummaryBatch[];
+    contents: PublishingSummaryContent[];
 };
 
 type PublishingReviewerResponse = {
@@ -72,13 +73,14 @@ type ReviewersResponse = {
 };
 
 const SUMMARY_HEADERS = [
+    'Content Title',
+    'Holdings ID',
     'Batch Name',
-    'No. of Shortlisted Content',
-    'Initial Review - Approved',
-    'Initial Review - Disapproved',
-    'QA Content - Approved',
-    'QA Content - Disapproved',
-    'No. of Published Content',
+    'Content Source',
+    'Initial Review',
+    'Quality Assurance',
+    'Publishing Status',
+    'Published Date',
 ] as const;
 
 const REVIEWER_HEADERS = [
@@ -240,29 +242,29 @@ const downloadWorkbook = async (
 };
 
 const downloadSummaryReport = async ({
-    batches,
+    contents,
     quarter,
     year,
 }: {
-    batches: PublishingSummaryBatch[];
+    contents: PublishingSummaryContent[];
     quarter: string;
     year: string;
 }): Promise<void> => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Publishing Summary');
 
-    worksheet.columns = [34, 24, 24, 26, 22, 24, 24].map((width) => ({
+    worksheet.columns = [38, 20, 30, 24, 20, 22, 20, 20].map((width) => ({
         width,
     }));
 
     styleMergedTitle(
         worksheet,
-        'A1:G1',
+        'A1:H1',
         'STARBOOKS CONTENT PUBLISHING SUMMARY REPORT',
     );
     styleMergedTitle(
         worksheet,
-        'A2:G2',
+        'A2:H2',
         `${getQuarterLabel(quarter)} ${year}`,
         false,
     );
@@ -271,16 +273,17 @@ const downloadSummaryReport = async ({
     headerRow.values = [...SUMMARY_HEADERS];
     styleHeaderRow(worksheet, 4);
 
-    batches.forEach((batch, index) => {
+    contents.forEach((content, index) => {
         const row = worksheet.getRow(index + 5);
         row.values = [
-            batch.batch_name,
-            batch.shortlisted_content_count,
-            batch.initial_review_approved_count,
-            batch.initial_review_disapproved_count,
-            batch.quality_approved_count,
-            batch.quality_disapproved_count,
-            batch.published_content_count,
+            getText(content.title),
+            getText(content.holdings_id),
+            getText(content.batch_name),
+            getText(content.content_source),
+            content.initial_review_status,
+            content.quality_assurance_status,
+            content.publishing_status,
+            formatManilaDate(content.published_at),
         ];
         row.eachCell((cell) => {
             cell.alignment = {
@@ -488,7 +491,7 @@ export default function GenerateReport({ show, onClose }: Props): JSX.Element {
 
             const result = (await response.json()) as PublishingSummaryResponse;
             await downloadSummaryReport({
-                batches: result.batches,
+                contents: result.contents,
                 quarter: summaryQuarter,
                 year: summaryYear,
             });

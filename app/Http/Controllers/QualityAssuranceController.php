@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ViewQualityAssuranceRequestsRequest;
 use App\Models\Batch;
 use App\Models\Log;
 use App\Models\LogDetail;
 use App\Models\Request as ContentRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +18,64 @@ use Inertia\Response;
 
 class QualityAssuranceController extends Controller
 {
-    public function qualityAssurancePage(): Response
+    public function qualityAssurancePage(ViewQualityAssuranceRequestsRequest $request): Response
     {
-        return Inertia::render('quality-assurance/quality-assurance-page');
+        $validated = $request->validated();
+        $filters = [
+            'quarter' => $validated['quarter'] ?? 'all',
+            'year' => $validated['year'] ?? 'all',
+            'search' => $validated['search'] ?? '',
+        ];
+
+        $approvalRequests = ContentRequest::query()
+            ->where('quality_assurance_reviewer_id', $request->user()->id)
+            ->whereIn('approval_status', [2, 4, 5])
+            ->whereHas('batch', fn ($query) => $query
+                ->where(fn ($batchQuery) => $batchQuery
+                    ->where('status', 'for quality approval')
+                    ->orWhereNotNull('quality_approval_date')))
+            ->when($filters['quarter'] !== 'all', fn ($query) => $query->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('quarter', $filters['quarter'])
+            ))
+            ->when($filters['year'] !== 'all', fn ($query) => $query->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('year', $filters['year'])
+            ))
+            ->when($filters['search'] !== '', function ($query) use ($filters): void {
+                $query->where(function ($searchQuery) use ($filters): void {
+                    $searchQuery->where('HoldingsID', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Title', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Author', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Abstracts', 'like', '%'.$filters['search'].'%');
+                });
+            });
+
+        $analytics = [
+            'pending' => (clone $approvalRequests)->where('approval_status', 2)->count(),
+            'approved' => (clone $approvalRequests)->where('approval_status', 4)->count(),
+            'disapproved' => (clone $approvalRequests)->where('approval_status', 5)->count(),
+        ];
+
+        $availableBatches = Batch::query()
+            ->where(fn ($query) => $query
+                ->where('status', 'for quality approval')
+                ->orWhereNotNull('quality_approval_date'))
+            ->whereHas('approvalRequests', fn ($query) => $query
+                ->where('quality_assurance_reviewer_id', $request->user()->id)
+                ->whereIn('approval_status', [2, 4, 5]));
+
+        return Inertia::render('quality-assurance/requests-list', [
+            'approval_requests' => $approvalRequests
+                ->orderBy('approval_status')
+                ->latest()
+                ->paginate(10)
+                ->withQueryString(),
+            'filters' => $filters,
+            'quarters' => (clone $availableBatches)->whereNotNull('quarter')->distinct()->orderBy('quarter')->pluck('quarter'),
+            'years' => (clone $availableBatches)->whereNotNull('year')->distinct()->orderByDesc('year')->pluck('year'),
+            'analytics' => $analytics,
+        ]);
     }
 
     public function qualityAssuranceBatches(Request $request): JsonResponse
@@ -73,38 +130,17 @@ class QualityAssuranceController extends Controller
         ]);
     }
 
-    public function viewApprovalRequests(string $name): Response
+    public function viewApprovalRequests(string $name): RedirectResponse
     {
-        $batch = Batch::query()
-            ->where('batch_name', $name)
-            ->where(function ($query): void {
-                $query->where('status', 'for quality approval')
-                    ->orWhereNotNull('quality_approval_date');
-            })
-            ->firstOrFail();
-
-        $approvalRequests = $batch->approvalRequests()
-            ->where(function ($query): void {
-                $query->where('approval_status', 2)
-                    ->orWhereHas(
-                        'approvalLogs',
-                        fn ($query) => $query->whereIn('progress_status', [4, 5])
-                    );
-            })
-            ->orderBy('approval_status')
-            ->get();
-
-        return Inertia::render('quality-assurance/requests-list', [
-            'approval_requests' => $approvalRequests,
-            'batch' => $batch,
-        ]);
+        return redirect('/quality-assurance-page');
     }
 
-    public function reviewRequest(string $holdingsID): Response
+    public function reviewRequest(Request $request, string $holdingsID): Response
     {
         $approvalRequest = ContentRequest::query()
             ->with('batch')
             ->where('HoldingsID', $holdingsID)
+            ->where('quality_assurance_reviewer_id', $request->user()->id)
             ->where('approval_status', 2)
             ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
             ->firstOrFail();
@@ -130,41 +166,42 @@ class QualityAssuranceController extends Controller
             ])],
         ]);
 
-        DB::beginTransaction();
-        $approvalRequest = ContentRequest::query()
-            ->where('HoldingsID', $validated['holdings_id'])
-            ->where('approval_status', 2)
-            ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
-            ->lockForUpdate()
-            ->firstOrFail();
-        $approvalStatus = $validated['review_decision'] === 'approved' ? 4 : 5;
+        DB::transaction(function () use ($request, $validated): void {
+            $approvalRequest = ContentRequest::query()
+                ->where('HoldingsID', $validated['holdings_id'])
+                ->where('quality_assurance_reviewer_id', $request->user()->id)
+                ->where('approval_status', 2)
+                ->whereHas('batch', fn ($query) => $query->where('status', 'for quality approval'))
+                ->lockForUpdate()
+                ->firstOrFail();
+            $approvalStatus = $validated['review_decision'] === 'approved' ? 4 : 5;
 
-        $approvalRequest->update(['approval_status' => $approvalStatus]);
+            $approvalRequest->update(['approval_status' => $approvalStatus]);
 
-        $approvalLog = Log::query()->forceCreate([
-            'request_id' => $approvalRequest->id,
-            'user_id' => Auth::id(),
-            'batch_id' => $approvalRequest->batch_id,
-            'is_approved' => $approvalStatus === 4,
-            'approval_status' => $approvalStatus,
-            'progress_status' => $approvalStatus,
-            'remarks' => $validated['remarks'] ?? '',
-        ]);
-
-        $disapprovalReasons = $approvalStatus === 5 ? $validated['disapproval_reasons'] ?? [] : [];
-
-        foreach ($disapprovalReasons as $reason) {
-            LogDetail::query()->forceCreate([
-                'approval_status' => $approvalStatus,
+            $approvalLog = Log::query()->forceCreate([
                 'request_id' => $approvalRequest->id,
                 'user_id' => Auth::id(),
-                'log_id' => $approvalLog->id,
-                'is_passed' => false,
-                'description' => $reason,
-                'remarks' => $reason,
+                'batch_id' => $approvalRequest->batch_id,
+                'is_approved' => $approvalStatus === 4,
+                'approval_status' => $approvalStatus,
+                'progress_status' => $approvalStatus,
+                'remarks' => $validated['remarks'] ?? '',
             ]);
-        }
-        DB::commit();
+
+            $disapprovalReasons = $approvalStatus === 5 ? $validated['disapproval_reasons'] ?? [] : [];
+
+            foreach ($disapprovalReasons as $reason) {
+                LogDetail::query()->forceCreate([
+                    'approval_status' => $approvalStatus,
+                    'request_id' => $approvalRequest->id,
+                    'user_id' => Auth::id(),
+                    'log_id' => $approvalLog->id,
+                    'is_passed' => false,
+                    'description' => $reason,
+                    'remarks' => $reason,
+                ]);
+            }
+        });
 
         return response()->json(['message' => 'Quality assurance review successfully saved.']);
     }

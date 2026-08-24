@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\ArchivedRecord;
 use App\Models\LkContent;
 use App\Models\Record;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -95,7 +96,10 @@ class ExistingRecordsController extends Controller
         abort_unless(in_array($status, ['published', 'unpublished'], true), 404);
 
         $record = $this->findRecord($status, $id);
-        $table = $status === 'published' ? 'tblrecord' : 'archived_records';
+        $model = $status === 'published' ? new Record : new ArchivedRecord;
+        $table = $model->getConnectionName()
+            ? $model->getConnectionName().'.'.$model->getTable()
+            : $model->getTable();
 
         $validated = $request->validate([
             'Title' => ['required', 'string', 'max:500', Rule::unique($table, 'Title')->ignore($record->getKey())],
@@ -152,26 +156,57 @@ class ExistingRecordsController extends Controller
      */
     private function paginatedRecords(array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = match ($filters['status']) {
-            'published' => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters),
-            'unpublished' => $this->recordsQueryForTable((new ArchivedRecord)->getTable(), 'unpublished', $filters),
-            default => $this->recordsQueryForTable((new Record)->getTable(), 'published', $filters)
-                ->unionAll($this->recordsQueryForTable((new ArchivedRecord)->getTable(), 'unpublished', $filters)),
-        };
+        if ($filters['status'] !== 'all') {
+            $model = $filters['status'] === 'published' ? new Record : new ArchivedRecord;
 
-        return DB::query()
-            ->fromSub($query, 'existing_records')
+            return $this->recordsQueryForModel($model, $filters['status'], $filters)
+                ->orderByDesc('id')
+                ->paginate($perPage)
+                ->withQueryString();
+        }
+
+        $publishedQuery = $this->recordsQueryForModel(new Record, 'published', $filters);
+        $unpublishedQuery = $this->recordsQueryForModel(new ArchivedRecord, 'unpublished', $filters);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $windowSize = $page * $perPage;
+        $total = (clone $publishedQuery)->count() + (clone $unpublishedQuery)->count();
+
+        $records = (clone $publishedQuery)
             ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->limit($windowSize)
+            ->get()
+            ->concat(
+                (clone $unpublishedQuery)
+                    ->orderByDesc('id')
+                    ->limit($windowSize)
+                    ->get()
+            )
+            ->sort(function (object $left, object $right): int {
+                $idComparison = ((int) $right->id) <=> ((int) $left->id);
+
+                return $idComparison !== 0
+                    ? $idComparison
+                    : strcmp((string) $left->record_status, (string) $right->record_status);
+            })
+            ->values()
+            ->slice(($page - 1) * $perPage, $perPage)
+            ->values();
+
+        return (new LengthAwarePaginator(
+            $records,
+            $total,
+            $perPage,
+            $page,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page']
+        ))->withQueryString();
     }
 
     /**
      * @param  array{content_group: string, status: string, search: string}  $filters
      */
-    private function recordsQueryForTable(string $table, string $status, array $filters): QueryBuilder
+    private function recordsQueryForModel(Model $model, string $status, array $filters): QueryBuilder
     {
-        $query = DB::table($table);
+        $query = $model->newQuery()->toBase();
 
         if ($filters['content_group'] !== 'all') {
             $query->where('Contents', $filters['content_group']);
@@ -191,8 +226,8 @@ class ExistingRecordsController extends Controller
             ->select([
                 'id',
                 ...$this->recordColumns(),
-                DB::raw("'{$status}' as record_status"),
-            ]);
+            ])
+            ->selectRaw('? as record_status', [$status]);
     }
 
     private function findRecord(string $status, int $id): Record|ArchivedRecord

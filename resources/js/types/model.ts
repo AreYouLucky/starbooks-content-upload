@@ -78,8 +78,12 @@ export type RequestModel = TimestampFields & {
     quality_assurance_reviewer_id?: number | null;
     initial_reviewed_assigned_date?: string | null;
     quality_assurance_assigned_date?: string | null;
+    published_at?: string | null;
     initial_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
-    quality_assurance_reviewer?: Pick<UserModel, 'id' | 'full_name' | 'role'> | null;
+    quality_assurance_reviewer?: Pick<
+        UserModel,
+        'id' | 'full_name' | 'role'
+    > | null;
 };
 
 export type ApprovalMultimediaModel = TimestampFields & {

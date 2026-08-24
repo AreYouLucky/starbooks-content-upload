@@ -199,7 +199,7 @@ test('initial review index includes reviewed batches after unreviewed batches', 
         ->assertJsonPath('analytics.reviewed', 1);
 });
 
-test('initial review report returns reviewed requests with their logs and details', function () {
+test('initial review report returns only content assigned to the reviewer', function () {
     $batch = createInitialReviewBatch([
         'batch_name' => 'Reviewed Committee Batch',
         'quarter' => 'Q3',
@@ -222,6 +222,10 @@ test('initial review report returns reviewed requests with their logs and detail
     ]);
     createApprovalRequestForBatch($batchWithoutReviewedLogs, 2);
     $user = createInitialReviewUser();
+    $reviewedRequest->update([
+        'initial_reviewer_id' => $user->id,
+        'initial_reviewed_assigned_date' => '2026-06-01 08:00:00',
+    ]);
 
     $approvalLog = Log::query()->create([
         'request_id' => $reviewedRequest->id,
@@ -252,19 +256,12 @@ test('initial review report returns reviewed requests with their logs and detail
     ]);
 
     $this->actingAs($user)
-        ->getJson('/generate-initial-review-report?quarter=Q3&year=2026')
+        ->getJson('/reports/initial-review/data?quarter=Q3&year=2026')
         ->assertOk()
-        ->assertJsonCount(1, 'batches')
-        ->assertJsonMissingPath('batches.1')
-        ->assertJsonCount(1, 'batches.0.approval_requests')
-        ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs')
-        ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs.0.log_details')
-        ->assertJsonPath(
-            'batches.0.approval_requests.0.approval_logs.0.reviewer.full_name',
-            $user->full_name
-        )
-        ->assertJsonCount(1, 'records')
-        ->assertJsonPath('records.0.id', $reviewedRequest->id);
+        ->assertJsonCount(1, 'rows')
+        ->assertJsonPath('rows.0.title', $reviewedRequest->Title)
+        ->assertJsonPath('rows.0.reviewer_name', $user->full_name)
+        ->assertJsonPath('rows.0.date_forwarded', fn ($date) => str_contains($date, '2026-06-01'));
 });
 
 test('initial review submission updates request and stores disapproval reasons', function () {
@@ -325,7 +322,7 @@ test('initial review submission requires reasons when disapproved', function () 
     expect($approvalRequest->approval_status)->toBe(1);
 });
 
-test('forwarding to quality assurance resets approved requests for the next review stage', function () {
+test('forwarding to quality assurance keeps approved requests pending for the quality stage', function () {
     $batch = createInitialReviewBatch(['batch_name' => 'Ready for QA Batch']);
     $approvedRequest = createApprovalRequestForBatch($batch, 2);
     $disapprovedRequest = createApprovalRequestForBatch($batch, 3);
@@ -337,6 +334,6 @@ test('forwarding to quality assurance resets approved requests for the next revi
         ->assertOk();
 
     expect($batch->refresh()->status)->toBe('for quality approval')
-        ->and($approvedRequest->refresh()->approval_status)->toBe(1)
+        ->and($approvedRequest->refresh()->approval_status)->toBe(2)
         ->and($disapprovedRequest->refresh()->approval_status)->toBe(3);
 });

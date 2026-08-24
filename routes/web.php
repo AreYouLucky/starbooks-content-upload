@@ -37,3 +37,5 @@ require __DIR__.'/backend/head_committee.php';
 require __DIR__.'/backend/quality-assurance.php';
 require __DIR__.'/backend/publishing.php';
 require __DIR__.'/backend/existing_records.php';
+require __DIR__.'/backend/qa_rejected.php';
+require __DIR__.'/backend/reports.php';

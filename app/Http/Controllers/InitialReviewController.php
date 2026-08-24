@@ -262,10 +262,6 @@ class InitialReviewController extends Controller
         }
 
         DB::transaction(function () use ($batch): void {
-            $batch->approvalRequests()
-                ->where('approval_status', 2)
-                ->update(['approval_status' => 1]);
-
             $batch->update([
                 'status' => 'for quality approval',
                 'initial_reviewed_date' => now(),

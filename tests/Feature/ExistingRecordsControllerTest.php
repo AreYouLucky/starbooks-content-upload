@@ -5,6 +5,7 @@ use App\Models\Record;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -12,41 +13,42 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    foreach (['tblrecord', 'archived_records'] as $tableName) {
-        if (! Schema::hasTable($tableName)) {
-            Schema::create($tableName, function (Blueprint $table): void {
-                $table->id();
-                $table->string('HoldingsID')->nullable();
-                $table->string('MaterialType')->nullable();
-                $table->string('Title')->nullable();
-                $table->string('SubTitle')->nullable();
-                $table->string('SeriesTitle')->nullable();
-                $table->text('BibliographicNote')->nullable();
-                $table->string('Contents')->nullable();
-                $table->text('Abstracts')->nullable();
-                $table->string('JournalTitle')->nullable();
-                $table->string('AgencyCode')->nullable();
-                $table->string('BroadClass')->nullable();
-                $table->string('PhysicalExtension')->nullable();
-                $table->string('VolumeNo')->nullable();
-                $table->string('IssueNo')->nullable();
-                $table->string('IssueDate')->nullable();
-                $table->string('Author')->nullable();
-                $table->string('AuthorStmt')->nullable();
-                $table->string('Type')->nullable();
-                $table->string('Subject')->nullable();
-                $table->string('Publication')->nullable();
-                $table->string('EditDate')->nullable();
-                $table->string('date_uploaded')->nullable();
-                $table->string('attribution')->nullable();
-                $table->unsignedBigInteger('uploaded_by')->nullable();
-                $table->string('url')->nullable();
-            });
-        }
+    config()->set('database.connections.starbooks', config('database.connections.sqlite'));
+    DB::purge('starbooks');
+
+    if (! Schema::connection('starbooks')->hasTable('tblrecord')) {
+        Schema::connection('starbooks')->create('tblrecord', function (Blueprint $table): void {
+            $table->id();
+            $table->string('HoldingsID')->nullable();
+            $table->string('MaterialType')->nullable();
+            $table->string('Title')->nullable();
+            $table->string('SubTitle')->nullable();
+            $table->string('SeriesTitle')->nullable();
+            $table->text('BibliographicNote')->nullable();
+            $table->string('Contents')->nullable();
+            $table->text('Abstracts')->nullable();
+            $table->string('JournalTitle')->nullable();
+            $table->string('AgencyCode')->nullable();
+            $table->string('BroadClass')->nullable();
+            $table->string('PhysicalExtension')->nullable();
+            $table->string('VolumeNo')->nullable();
+            $table->string('IssueNo')->nullable();
+            $table->string('IssueDate')->nullable();
+            $table->string('Author')->nullable();
+            $table->string('AuthorStmt')->nullable();
+            $table->string('Type')->nullable();
+            $table->string('Subject')->nullable();
+            $table->string('Publication')->nullable();
+            $table->string('EditDate')->nullable();
+            $table->string('date_uploaded')->nullable();
+            $table->string('attribution')->nullable();
+            $table->unsignedBigInteger('uploaded_by')->nullable();
+            $table->string('url')->nullable();
+        });
     }
 
-    if (! Schema::hasTable('lk_contents')) {
-        Schema::create('lk_contents', function (Blueprint $table): void {
+    if (! Schema::connection('starbooks')->hasTable('lk_contents')) {
+        Schema::connection('starbooks')->create('lk_contents', function (Blueprint $table): void {
             $table->id();
             $table->string('code');
             $table->string('desc');
@@ -107,6 +109,46 @@ test('existing records page lists published and unpublished records with filters
             ->where('analytics.unpublished', 1));
 });
 
+test('all records paginates published and unpublished data across their connections', function () {
+    foreach (range(1, 3) as $id) {
+        Record::query()->forceCreate(existingRecordPayload([
+            'id' => $id,
+            'Title' => "Published Record {$id}",
+        ]));
+        ArchivedRecord::query()->forceCreate(existingRecordPayload([
+            'id' => $id,
+            'Title' => "Archived Record {$id}",
+        ]));
+    }
+
+    $this->actingAs(createExistingRecordsUser())
+        ->get('/existing-records?status=all&per_page=2')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('existing-records/existing-records-page')
+            ->has('records.data', 2)
+            ->where('records.current_page', 1)
+            ->where('records.last_page', 3)
+            ->where('records.total', 6)
+            ->where('records.data.0.Title', 'Published Record 3')
+            ->where('records.data.0.record_status', 'published')
+            ->where('records.data.1.Title', 'Archived Record 3')
+            ->where('records.data.1.record_status', 'unpublished')
+            ->where('analytics.published', 3)
+            ->where('analytics.unpublished', 3));
+
+    $this->actingAs(createExistingRecordsUser())
+        ->get('/existing-records?status=all&per_page=2&page=2')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('existing-records/existing-records-page')
+            ->has('records.data', 2)
+            ->where('records.current_page', 2)
+            ->where('records.total', 6)
+            ->where('records.data.0.Title', 'Published Record 2')
+            ->where('records.data.1.Title', 'Archived Record 2'));
+});
+
 test('existing records page paginates records on the backend', function () {
     foreach (range(1, 10) as $number) {
         Record::query()->create(existingRecordPayload([
@@ -150,7 +192,7 @@ test('published records can be unpublished and republished', function () {
 
     $this->assertDatabaseMissing('tblrecord', [
         'HoldingsID' => 'MOVE-001',
-    ]);
+    ], 'starbooks');
     $this->assertDatabaseHas('archived_records', [
         'HoldingsID' => 'MOVE-001',
         'Title' => 'Movable Existing Record',
@@ -168,7 +210,7 @@ test('published records can be unpublished and republished', function () {
     $this->assertDatabaseHas('tblrecord', [
         'HoldingsID' => 'MOVE-001',
         'Title' => 'Movable Existing Record',
-    ]);
+    ], 'starbooks');
     $this->assertDatabaseMissing('archived_records', [
         'HoldingsID' => 'MOVE-001',
     ]);
@@ -192,5 +234,5 @@ test('existing records can be updated from the edit form route', function () {
         'id' => $record->id,
         'Title' => 'After Update',
         'Author' => 'Updated Author',
-    ]);
+    ], 'starbooks');
 });

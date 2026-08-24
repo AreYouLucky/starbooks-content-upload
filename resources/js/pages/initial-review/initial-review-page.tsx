@@ -1,19 +1,29 @@
 import { ReactNode, useState } from 'react';
 import type { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
-import { useFetchInitialReview, useForwardToQualityApproval } from './partials/initial-review-hooks';
+import {
+    useFetchInitialReview,
+    useForwardToQualityApproval,
+} from './partials/initial-review-hooks';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import { toast } from 'sonner';
-import { CalendarDays, CheckCircle2, Clock3, Eye, FolderSync, Forward, Search, ShieldX } from 'lucide-react';
+import {
+    CalendarDays,
+    CheckCircle2,
+    Clock3,
+    Eye,
+    FolderSync,
+    Forward,
+    Search,
+    ShieldX,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PiListBulletsFill } from 'react-icons/pi';
 import PaginatedSearchTable from '@/components/ui/data-table-server';
 import { BatchModel } from '@/types/model';
 import { displayDate, getPageFromUrl } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
-import GenerateReport from './partials/generate-report';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { usePage } from '@inertiajs/react';
 import { SharedData } from '@/types';
@@ -55,7 +65,6 @@ const reviewSummaryItems = [
 export default function InitialReviewPage() {
     const { auth } = usePage<SharedData>().props;
     const [page, setPage] = useState(1);
-    const [generateReportDialog, setGenerateReportDialog] = useState(false);
     const { item, setItem } = useHandleChange({ search: '', batch_id: 0 });
     const [batchName, setBatchName] = useState('');
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -82,21 +91,25 @@ export default function InitialReviewPage() {
 
     const forwardToQA = useForwardToQualityApproval();
     const forwardToQAFn = () => {
-        forwardToQA.mutate({ batchName }, {
-            onSuccess: (res) => {
-                if (res.message) {
-                    toast.success(res.message);
-                    setShowConfirmation(false);
-                }
+        forwardToQA.mutate(
+            { batchName },
+            {
+                onSuccess: (res) => {
+                    if (res.message) {
+                        toast.success(res.message);
+                        setShowConfirmation(false);
+                    }
+                },
+                onError: (error) => {
+                    const message =
+                        error.response?.data?.message ??
+                        error.response?.data?.error ??
+                        'Failed to forward batch to Quality Assurance. Please try again.';
+                    alert(message);
+                },
             },
-            onError: (error) => {
-                const message = error.response?.data?.message
-                    ?? error.response?.data?.error
-                    ?? "Failed to forward batch to Quality Assurance. Please try again.";
-                alert(message);
-            }
-        });
-    }
+        );
+    };
 
     return (
         <div className="space-y-5 p-1">
@@ -150,7 +163,7 @@ export default function InitialReviewPage() {
 
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50/80 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="space-y-1 flex flex-row gap-2">
+                    <div className="flex flex-row gap-2 space-y-1">
                         <div className="relative min-w-0 sm:w-72">
                             <Search
                                 className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sky-500"
@@ -181,18 +194,6 @@ export default function InitialReviewPage() {
                             Refresh
                         </Button>
                     </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setGenerateReportDialog(true)}
-                            className="h-10 rounded-lg border-sky-500 bg-sky-600 px-4 text-slate-50 shadow-none hover:bg-sky-700"
-                        >
-                            <PiListBulletsFill className="size-4" />
-                            Generate Report
-                        </Button>
-                    </div>
                 </div>
 
                 <div className="p-4 sm:p-5">
@@ -214,7 +215,7 @@ export default function InitialReviewPage() {
                                     key={batch.id}
                                     className="border-b border-slate-100 bg-white transition"
                                 >
-                                    <td className="px-6 py-4 align-center">
+                                    <td className="align-center px-6 py-4">
                                         <div className="space-y-1">
                                             <div className="font-semibold text-slate-900">
                                                 {batch.batch_name}
@@ -249,10 +250,13 @@ export default function InitialReviewPage() {
                                                 }) => {
                                                     const value =
                                                         key === 'pending'
-                                                            ? batch.pending ?? 0
+                                                            ? (batch.pending ??
+                                                              0)
                                                             : key === 'approved'
-                                                                ? batch.approved ?? 0
-                                                                : batch.rejected ?? 0;
+                                                              ? (batch.approved ??
+                                                                0)
+                                                              : (batch.rejected ??
+                                                                0);
 
                                                     return (
                                                         <div
@@ -283,26 +287,30 @@ export default function InitialReviewPage() {
                                                 <Eye className="size-4" />
                                                 View Requests
                                             </Link>
-                                            {
-                                                ['stii_admin', 'super_admin'].includes(auth.user.role) && (
-
-                                                    <Button
-                                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                                                        disabled={!isCurrentReviewBatch}
-                                                        onClick={() => {
-                                                            setBatchName(
-                                                                batch.batch_name,
-                                                            );
-                                                            setShowConfirmation(true);
-                                                        }}
-                                                    >
-                                                        <Forward className="size-4" />
-                                                        {isCurrentReviewBatch
-                                                            ? 'Forward to QA'
-                                                            : 'Reviewed'}
-                                                    </Button>
-                                                )
-                                            }
+                                            {[
+                                                'stii_admin',
+                                                'super_admin',
+                                            ].includes(auth.user.role) && (
+                                                <Button
+                                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-4 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                                                    disabled={
+                                                        !isCurrentReviewBatch
+                                                    }
+                                                    onClick={() => {
+                                                        setBatchName(
+                                                            batch.batch_name,
+                                                        );
+                                                        setShowConfirmation(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    <Forward className="size-4" />
+                                                    {isCurrentReviewBatch
+                                                        ? 'Forward to QA'
+                                                        : 'Reviewed'}
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -328,8 +336,13 @@ export default function InitialReviewPage() {
                     />
                 </div>
             </section>
-            <GenerateReport show={generateReportDialog} onClose={() => setGenerateReportDialog(false)} />
-            <ConfirmationDialog show={showConfirmation} onClose={() => setShowConfirmation(false)} message={`Are you sure you want to forward this batch to Quality Assurance?`} onConfirm={forwardToQAFn} type={2} />
+            <ConfirmationDialog
+                show={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
+                message={`Are you sure you want to forward this batch to Quality Assurance?`}
+                onConfirm={forwardToQAFn}
+                type={2}
+            />
         </div>
     );
 }

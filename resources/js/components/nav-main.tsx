@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import { Fragment, type JSX } from 'react';
 import {
     BookOpenCheck,
     ClipboardCheck,
@@ -8,16 +9,27 @@ import {
     Settings2,
     ArchiveRestore,
     ShieldCheck,
+    ShieldX,
     UsersRound,
-    CalendarCog
+    CalendarCog,
+    ChevronRight,
+    FileChartColumnIncreasing,
 } from 'lucide-react';
 
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { type IsCurrentUrlFn, useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem, SharedData } from '@/types';
@@ -57,7 +69,13 @@ const workflowItems: NavItem[] = [
         title: 'For Quality Assurance',
         href: '/quality-assurance-page',
         icon: ShieldCheck,
-        allowedRoles: ['admin', 'super_admin',  'quality'],
+        allowedRoles: ['admin', 'super_admin', 'quality'],
+    },
+    {
+        title: 'QA Rejected',
+        href: '/quality-assurance-rejected',
+        icon: ShieldX,
+        allowedRoles: ['stii_admin', 'super_admin', 'admin'],
     },
     {
         title: 'For Publishing',
@@ -82,6 +100,33 @@ const configurationItems: NavItem[] = [
     },
 ];
 
+const reportItems: NavItem[] = [
+    {
+        title: 'Shortlisted',
+        href: '/reports/shortlisted',
+        icon: ListChecks,
+        allowedRoles: ['stii_admin', 'admin', 'super_admin'],
+    },
+    {
+        title: 'Initial Review',
+        href: '/reports/initial-review',
+        icon: ClipboardCheck,
+        allowedRoles: ['committee', 'admin', 'super_admin'],
+    },
+    {
+        title: 'Quality Assurance',
+        href: '/reports/quality-assurance',
+        icon: ShieldCheck,
+        allowedRoles: ['quality', 'quality_admin', 'admin', 'super_admin'],
+    },
+    {
+        title: 'Publishing',
+        href: '/reports/publishing',
+        icon: SendToBack,
+        allowedRoles: ['stii_admin', 'admin', 'super_admin'],
+    },
+];
+
 const menuButtonClassName =
     'h-10 rounded-lg px-3 text-[13px] font-medium tracking-[-0.01em] text-slate-600 transition-colors hover:bg-sky-50 hover:text-sky-800 data-[active=true]:bg-sky-600 data-[active=true]:font-semibold data-[active=true]:text-white data-[active=true]:shadow-sm [&>svg]:size-[17px] [&>svg]:text-sky-600 data-[active=true]:[&>svg]:text-white';
 
@@ -89,6 +134,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user?.role;
+    const visibleReportItems = filterNavigationItems(reportItems, userRole);
 
     const sections: NavigationSection[] = [
         {
@@ -110,22 +156,84 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                 isCurrentUrl={isCurrentUrl}
             />
 
-            {sections.map((section) => (
-                <div
-                    className="space-y-1 group-data-[collapsible=icon]:contents"
-                    key={section.label}
-                >
-                    <SidebarGroupLabel className="h-7 gap-2 px-3 text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase group-data-[collapsible=icon]:hidden">
-                        <section.icon className="size-3.5" />
-                        <span>{section.label}</span>
-                    </SidebarGroupLabel>
-                    <NavigationMenu
-                        items={section.items}
-                        isCurrentUrl={isCurrentUrl}
-                    />
-                </div>
+            {sections.map((section, index) => (
+                <Fragment key={section.label}>
+                    <div className="space-y-1 group-data-[collapsible=icon]:contents">
+                        <SidebarGroupLabel className="h-7 gap-2 px-3 text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase group-data-[collapsible=icon]:hidden">
+                            <section.icon className="size-3.5" />
+                            <span>{section.label}</span>
+                        </SidebarGroupLabel>
+                        <NavigationMenu
+                            items={section.items}
+                            isCurrentUrl={isCurrentUrl}
+                        />
+                    </div>
+                    {index === 0 && visibleReportItems.length > 0 ? (
+                        <ReportNavigationMenu
+                            items={visibleReportItems}
+                            isCurrentUrl={isCurrentUrl}
+                        />
+                    ) : null}
+                </Fragment>
             ))}
         </SidebarGroup>
+    );
+}
+
+function ReportNavigationMenu({
+    items,
+    isCurrentUrl,
+}: {
+    items: NavItem[];
+    isCurrentUrl: IsCurrentUrlFn;
+}): JSX.Element {
+    const isReportActive = items.some((item) => isCurrentUrl(item.href));
+
+    return (
+        <div className="space-y-1 group-data-[collapsible=icon]:contents">
+            <SidebarGroupLabel className="h-7 gap-2 px-3 text-[10px] font-semibold tracking-[0.12em] text-slate-400 uppercase group-data-[collapsible=icon]:hidden">
+                <FileChartColumnIncreasing className="size-3.5" />
+                Reporting
+            </SidebarGroupLabel>
+            <SidebarMenu>
+                <Collapsible
+                    defaultOpen={isReportActive}
+                    className="group/report"
+                >
+                    <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                                isActive={isReportActive}
+                                tooltip={{ children: 'Generate Report' }}
+                                className={`${menuButtonClassName} group-data-[state=open]/report:bg-sky-50 group-data-[state=open]/report:text-sky-800 data-[active=true]:group-data-[state=open]/report:bg-sky-600 data-[active=true]:group-data-[state=open]/report:text-white`}
+                            >
+                                <FileChartColumnIncreasing />
+                                <span>Generate Report</span>
+                                <ChevronRight className="ml-auto transition-transform group-data-[state=open]/report:rotate-90" />
+                            </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-1">
+                            <SidebarMenuSub className="mx-3 gap-1 border-sky-200 px-2 py-1">
+                                {items.map((item) => (
+                                    <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={isCurrentUrl(item.href)}
+                                            className="h-9 rounded-lg px-2.5 text-xs font-medium text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-800 data-[active=true]:bg-sky-100 data-[active=true]:font-semibold data-[active=true]:text-sky-800 [&>svg]:size-3.5 [&>svg]:text-sky-500"
+                                        >
+                                            <Link href={item.href} prefetch>
+                                                {item.icon && <item.icon />}
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                ))}
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </SidebarMenuItem>
+                </Collapsible>
+            </SidebarMenu>
+        </div>
     );
 }
 

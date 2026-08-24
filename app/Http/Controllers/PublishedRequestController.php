@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ViewPublishingRequestsRequest;
 use App\Models\Batch;
 use App\Models\Record;
 use App\Models\Request as ContentRequest;
@@ -19,103 +20,134 @@ class PublishedRequestController extends Controller
         return Inertia::render('publishing/publishing-page');
     }
 
-    public function publishingBatches(Request $request): JsonResponse
+    public function publishingRequests(ViewPublishingRequestsRequest $request): JsonResponse
     {
-        $query = Batch::query()
-            ->select([
-                'id',
-                'batch_name',
-                'content_source',
-                'batch_description',
-                'target_published_date',
-                'quality_approval_date',
-                'published_date',
-                'status',
-            ])
-            ->where('is_active', 1)
-            ->where('status', 'for publishing')
-            ->orWhere('status', 'published')
-            ->withCount([
-                'approvalRequests as records_count',
-            ]);
-
-        if ($request->filled('search')) {
-            $search = $request->string('search')->toString();
-
-            $query->where(function ($builder) use ($search): void {
-                $builder->where('batch_name', 'like', '%'.$search.'%')
-                    ->orWhere('batch_description', 'like', '%'.$search.'%')
-                    ->orWhere('content_source', 'like', '%'.$search.'%');
-            });
-        }
-
-        $readyForPublishingCount = (clone $query)->count();
-        $publishedCount = Batch::query()
-            ->where('is_active', 1)
-            ->where('status', 'published')
-            ->count();
-
-        $analytics = [
-            'for_publishing' => $readyForPublishingCount,
-            'published' => $publishedCount,
-            'total_batches' => $readyForPublishingCount + $publishedCount,
+        $validated = $request->validated();
+        $filters = [
+            'search' => $validated['search'] ?? '',
+            'quarter' => $validated['quarter'] ?? 'all',
+            'year' => $validated['year'] ?? 'all',
         ];
 
-        $paginatedBatches = $query->latest()->paginate(5);
+        $query = ContentRequest::query()
+            ->with('batch:id,batch_name,content_source,quarter,year,target_published_date,quality_approval_date,published_date,status')
+            ->where('is_active', 1)
+            ->whereIn('approval_status', [4, 6])
+            ->whereHas('batch', fn ($batchQuery) => $batchQuery
+                ->where('is_active', 1))
+            ->when($filters['quarter'] !== 'all', fn ($contentQuery) => $contentQuery->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('quarter', $filters['quarter'])
+            ))
+            ->when($filters['year'] !== 'all', fn ($contentQuery) => $contentQuery->whereHas(
+                'batch',
+                fn ($batchQuery) => $batchQuery->where('year', $filters['year'])
+            ))
+            ->when($filters['search'] !== '', function ($contentQuery) use ($filters): void {
+                $contentQuery->where(function ($searchQuery) use ($filters): void {
+                    $searchQuery->where('HoldingsID', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Title', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('Author', 'like', '%'.$filters['search'].'%')
+                        ->orWhereHas('batch', fn ($batchQuery) => $batchQuery
+                            ->where('batch_name', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('content_source', 'like', '%'.$filters['search'].'%'));
+                });
+            });
+
+        $now = now();
+        $currentQuarter = 'Q'.(int) ceil($now->month / 3);
+        $currentYear = (string) $now->year;
+        $eligibleBatches = Batch::query()
+            ->where('is_active', 1)
+            ->whereIn('status', ['for publishing', 'published'])
+            ->whereHas('approvalRequests', fn ($contentQuery) => $contentQuery
+                ->where('is_active', 1)
+                ->whereIn('approval_status', [4, 6]));
+
+        $analytics = [
+            'for_publishing' => (clone $query)->where('approval_status', 4)->count(),
+            'published' => (clone $query)->where('approval_status', 6)->count(),
+            'total_contents' => (clone $query)->count(),
+            'published_this_quarter' => ContentRequest::query()
+                ->where('is_active', 1)
+                ->where('approval_status', 6)
+                ->whereHas('batch', fn ($batchQuery) => $batchQuery
+                    ->where('is_active', 1))
+                ->whereBetween('published_at', [
+                    $now->copy()->startOfQuarter(),
+                    $now->copy()->endOfQuarter(),
+                ])
+                ->count(),
+            'published_this_year' => ContentRequest::query()
+                ->where('is_active', 1)
+                ->where('approval_status', 6)
+                ->whereHas('batch', fn ($batchQuery) => $batchQuery
+                    ->where('is_active', 1))
+                ->whereBetween('published_at', [
+                    $now->copy()->startOfYear(),
+                    $now->copy()->endOfYear(),
+                ])
+                ->count(),
+            'current_quarter' => $currentQuarter,
+            'current_year' => $currentYear,
+        ];
+
+        $paginatedRequests = $query
+            ->orderBy('approval_status')
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return response()->json([
-            ...$paginatedBatches->toArray(),
+            ...$paginatedRequests->toArray(),
             'analytics' => $analytics,
+            'filters' => $filters,
+            'quarters' => (clone $eligibleBatches)->whereNotNull('quarter')->distinct()->orderBy('quarter')->pluck('quarter'),
+            'years' => (clone $eligibleBatches)->whereNotNull('year')->distinct()->orderByDesc('year')->pluck('year'),
         ]);
     }
 
-    public function publishBatch(Request $request): JsonResponse
+    public function publishRequest(string $id): JsonResponse
     {
-        $validated = $request->validate([
-            'batchName' => ['required', 'string', 'max:255'],
-        ]);
+        $publishedRequest = DB::transaction(function () use ($id): ContentRequest {
+            $approvalRequest = ContentRequest::query()
+                ->whereKey($id)
+                ->where('is_active', 1)
+                ->where('approval_status', 4)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $batch = Batch::query()
-            ->where('batch_name', $validated['batchName'])
-            ->where('status', 'for publishing')
-            ->firstOrFail();
+            $batch = Batch::query()
+                ->whereKey($approvalRequest->batch_id)
+                ->where('is_active', 1)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        DB::transaction(function () use ($batch): void {
-            $batch->update([
-                'status' => 'published',
-                'published_date' => now(),
+            Record::query()->create($this->publishedRecordAttributes($approvalRequest));
+            $approvalRequest->update([
+                'approval_status' => 6,
+                'published_at' => now(),
             ]);
 
-            $requests = ContentRequest::query()
+            $hasUnpublishedContent = ContentRequest::query()
                 ->where('batch_id', $batch->id)
-                ->get();
+                ->where('is_active', 1)
+                ->where('approval_status', 4)
+                ->exists();
 
-            foreach ($requests as $approvalRequest) {
-                $approvalRequest->update(['approval_status' => 6]);
-
-                Record::query()->create([
-                    'Title' => $approvalRequest->Title ?? '',
-                    'Author' => $approvalRequest->Author ?? '',
-                    'HoldingsID' => $approvalRequest->HoldingsID ?? '',
-                    'Contents' => $approvalRequest->Contents ?? '',
-                    'MaterialType' => $approvalRequest->MaterialType ?? '',
-                    'JournalTitle' => $approvalRequest->JournalTitle ?? '',
-                    'Subject' => $approvalRequest->Subject ?? '',
-                    'SubTitle' => $approvalRequest->SubTitle ?? '',
-                    'VolumeNo' => $approvalRequest->VolumeNo ?? '',
-                    'IssueNo' => $approvalRequest->IssueNo ?? '',
-                    'IssueDate' => $approvalRequest->IssueDate ?? '',
-                    'BroadClass' => $approvalRequest->BroadClass ?? '',
-                    'AgencyCode' => $approvalRequest->AgencyCode ?? '',
-                    'Type' => $approvalRequest->Type ?? '',
-                    'Abstracts' => $approvalRequest->Abstracts ?? '',
+            if (! $hasUnpublishedContent) {
+                $batch->update([
+                    'status' => 'published',
+                    'published_date' => now(),
                 ]);
             }
+
+            return $approvalRequest->fresh('batch');
         });
 
         return response()->json([
-            'message' => 'Batch published successfully.',
-            'batch' => $batch->refresh(),
+            'message' => 'Content published successfully.',
+            'request' => $publishedRequest,
         ]);
     }
 
@@ -136,43 +168,54 @@ class PublishedRequestController extends Controller
             'year' => ['required', 'string', 'max:50'],
         ]);
 
-        $batches = Batch::query()
-            ->select('id', 'batch_name', 'quarter', 'year', 'status', 'shortlisted_date', 'published_date')
-            ->where('quarter', $validated['quarter'])
-            ->where('year', $validated['year'])
-            ->where(function ($query): void {
-                $query->whereNotNull('shortlisted_date')
-                    ->orWhereIn('status', [
-                        'for initial review',
-                        'for quality approval',
-                        'for publishing',
-                        'published',
-                    ]);
-            })
-            ->withCount([
-                'approvalRequests as shortlisted_content_count',
-                'approvalRequests as initial_review_approved_count' => fn ($query) => $query->whereHas(
-                    'approvalLogs',
-                    fn ($query) => $query->where('progress_status', 2)
-                ),
-                'approvalRequests as initial_review_disapproved_count' => fn ($query) => $query->whereHas(
-                    'approvalLogs',
-                    fn ($query) => $query->where('progress_status', 3)
-                ),
-                'approvalRequests as quality_approved_count' => fn ($query) => $query->whereHas(
-                    'approvalLogs',
-                    fn ($query) => $query->where('progress_status', 4)
-                ),
-                'approvalRequests as quality_disapproved_count' => fn ($query) => $query->whereHas(
-                    'approvalLogs',
-                    fn ($query) => $query->where('progress_status', 5)
-                ),
-                'approvalRequests as published_content_count' => fn ($query) => $query->where('approval_status', 6),
+        $contents = ContentRequest::query()
+            ->select('id', 'Title', 'HoldingsID', 'approval_status', 'published_at', 'batch_id')
+            ->where('is_active', 1)
+            ->whereHas('batch', fn ($query) => $query
+                ->where('is_active', 1)
+                ->where('quarter', $validated['quarter'])
+                ->where('year', $validated['year']))
+            ->with([
+                'batch:id,batch_name,content_source',
+                'approvalLogs' => fn ($query) => $query
+                    ->select('id', 'request_id', 'progress_status')
+                    ->whereIn('progress_status', [2, 3, 4, 5])
+                    ->orderBy('id'),
             ])
-            ->orderBy('batch_name')
-            ->get();
+            ->orderBy('Title')
+            ->get()
+            ->map(function (ContentRequest $approvalRequest): array {
+                $initialReviewStatus = $approvalRequest->approvalLogs
+                    ->whereIn('progress_status', [2, 3])
+                    ->last()?->progress_status;
+                $qualityAssuranceStatus = $approvalRequest->approvalLogs
+                    ->whereIn('progress_status', [4, 5])
+                    ->last()?->progress_status;
 
-        return response()->json(['batches' => $batches]);
+                return [
+                    'title' => $approvalRequest->Title,
+                    'holdings_id' => $approvalRequest->HoldingsID,
+                    'batch_name' => $approvalRequest->batch?->batch_name,
+                    'content_source' => $approvalRequest->batch?->content_source,
+                    'initial_review_status' => match ($initialReviewStatus) {
+                        2 => 'Approved',
+                        3 => 'Disapproved',
+                        default => 'Pending',
+                    },
+                    'quality_assurance_status' => match ($qualityAssuranceStatus) {
+                        4 => 'Approved',
+                        5 => 'Disapproved',
+                        default => 'Pending',
+                    },
+                    'publishing_status' => (int) $approvalRequest->approval_status === 6
+                        ? 'Published'
+                        : 'Not Published',
+                    'published_at' => $approvalRequest->published_at?->toISOString(),
+                ];
+            })
+            ->values();
+
+        return response()->json(['contents' => $contents]);
     }
 
     public function generatePublishingReviewerReport(Request $request): JsonResponse
@@ -290,5 +333,29 @@ class PublishedRequestController extends Controller
             5 => 'Quality Assurance - Disapproved',
             default => 'Reviewed',
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publishedRecordAttributes(ContentRequest $approvalRequest): array
+    {
+        return [
+            'Title' => $approvalRequest->Title ?? '',
+            'Author' => $approvalRequest->Author ?? '',
+            'HoldingsID' => $approvalRequest->HoldingsID ?? '',
+            'Contents' => $approvalRequest->Contents ?? '',
+            'MaterialType' => $approvalRequest->MaterialType ?? '',
+            'JournalTitle' => $approvalRequest->JournalTitle ?? '',
+            'Subject' => $approvalRequest->Subject ?? '',
+            'SubTitle' => $approvalRequest->SubTitle ?? '',
+            'VolumeNo' => $approvalRequest->VolumeNo ?? '',
+            'IssueNo' => $approvalRequest->IssueNo ?? '',
+            'IssueDate' => $approvalRequest->IssueDate ?? '',
+            'BroadClass' => $approvalRequest->BroadClass ?? '',
+            'AgencyCode' => $approvalRequest->AgencyCode ?? '',
+            'Type' => $approvalRequest->Type ?? '',
+            'Abstracts' => $approvalRequest->Abstracts ?? '',
+        ];
     }
 }

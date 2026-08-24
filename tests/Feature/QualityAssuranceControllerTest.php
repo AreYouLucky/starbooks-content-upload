@@ -8,12 +8,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
-function createQualityUser(): User
+function createQualityUser(array $attributes = []): User
 {
-    return User::query()->create([
+    return User::query()->create(array_merge([
         'username' => 'quality_'.Str::lower(Str::random(8)),
         'full_name' => 'Quality Reviewer '.Str::random(6),
         'delivery_unit' => 'QA',
@@ -21,7 +22,7 @@ function createQualityUser(): User
         'designation' => 'Reviewer',
         'task_description' => 'Quality assurance test',
         'password' => Hash::make('password'),
-    ]);
+    ], $attributes));
 }
 
 function createQualityBatch(array $attributes = []): Batch
@@ -66,6 +67,97 @@ function createQualityLog(
         'remarks' => 'Quality assurance decision.',
     ]);
 }
+
+function qualityRejectedUpdatePayload(ContentRequest $approvalRequest): array
+{
+    return [
+        'Title' => 'Corrected QA Rejected Title',
+        'Author' => 'Corrected Author',
+        'HoldingsID' => $approvalRequest->HoldingsID,
+        'Contents' => 'SCI',
+        'MaterialType' => 'Article',
+        'JournalTitle' => 'Corrected Journal',
+        'Subject' => 'Corrected Subject',
+        'SubTitle' => 'Corrected Subtitle',
+        'VolumeNo' => '12',
+        'IssueNo' => '3',
+        'IssueDate' => '2026',
+        'BroadClass' => 'Science',
+        'AgencyCode' => 'STII',
+        'Type' => '1',
+        'batch_id' => $approvalRequest->batch_id,
+        'Abstracts' => '<p>Corrected abstract.</p>',
+    ];
+}
+
+test('quality assurance request list filters and paginates requests assigned to the reviewer', function () {
+    $reviewer = createQualityUser();
+    $otherReviewer = createQualityUser();
+    $matchingBatch = createQualityBatch([
+        'batch_name' => 'Science QA Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
+    ]);
+    $otherBatch = createQualityBatch([
+        'batch_name' => 'Other QA Batch',
+        'quarter' => 'Q4',
+        'year' => '2026',
+    ]);
+
+    foreach (range(1, 11) as $index) {
+        createQualityRequest($matchingBatch, 2)->update([
+            'Title' => "Science Request {$index}",
+            'quality_assurance_reviewer_id' => $reviewer->id,
+        ]);
+    }
+
+    createQualityRequest($matchingBatch, 4)->update([
+        'Title' => 'Science Approved Request',
+        'quality_assurance_reviewer_id' => $reviewer->id,
+    ]);
+    createQualityRequest($matchingBatch, 2)->update([
+        'Title' => 'Science Other Reviewer Request',
+        'quality_assurance_reviewer_id' => $otherReviewer->id,
+    ]);
+    createQualityRequest($otherBatch, 5)->update([
+        'Title' => 'Science Other Quarter Request',
+        'quality_assurance_reviewer_id' => $reviewer->id,
+    ]);
+    createQualityRequest($matchingBatch, 3)->update([
+        'Title' => 'Science Initial Review Rejected Request',
+        'quality_assurance_reviewer_id' => $reviewer->id,
+    ]);
+
+    $this->actingAs($reviewer)
+        ->get('/quality-assurance-page?quarter=Q3&year=2026&search=Science')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('quality-assurance/requests-list')
+            ->has('approval_requests.data', 10)
+            ->where('approval_requests.total', 12)
+            ->where('approval_requests.per_page', 10)
+            ->where('filters.quarter', 'Q3')
+            ->where('filters.year', '2026')
+            ->where('filters.search', 'Science')
+            ->where('analytics.pending', 11)
+            ->where('analytics.approved', 1)
+            ->where('analytics.disapproved', 0)
+            ->where('quarters', ['Q3', 'Q4'])
+            ->where('years', ['2026'])
+            ->missing('batch')
+            ->where('approval_requests.next_page_url', fn ($url) => str_contains($url, 'quarter=Q3')
+                && str_contains($url, 'year=2026')
+                && str_contains($url, 'search=Science')));
+
+    $this->actingAs($reviewer)
+        ->get('/quality-assurance-page?quarter=Q3&year=2026&search=Science&page=2')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('approval_requests.current_page', 2)
+            ->has('approval_requests.data', 2)
+            ->where('analytics.pending', 11)
+            ->where('analytics.approved', 1));
+});
 
 test('quality assurance index returns stage-specific request counts', function () {
     $batch = createQualityBatch(['batch_name' => 'Science QA Batch']);
@@ -119,29 +211,22 @@ test('quality assurance index includes reviewed batches after unreviewed batches
         ->assertJsonPath('analytics.reviewed', 1);
 });
 
-test('quality assurance request list excludes committee-disapproved requests', function () {
-    $batch = createQualityBatch(['batch_name' => 'Filtered QA Batch']);
+test('legacy quality assurance batch route redirects to the all requests list', function () {
+    createQualityBatch(['batch_name' => 'Filtered QA Batch']);
     $user = createQualityUser();
-    $pending = createQualityRequest($batch, 2);
-    $qualityReviewed = createQualityRequest($batch, 4);
-    $committeeRejected = createQualityRequest($batch, 3);
-    createQualityLog($qualityReviewed, $user, 4);
-    createQualityLog($committeeRejected, $user, 3);
 
     $this->actingAs($user)
         ->get('/view-quality-assurance-batch/Filtered%20QA%20Batch')
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('quality-assurance/requests-list')
-            ->has('approval_requests', 2)
-            ->where('approval_requests.0.id', $pending->id)
-            ->where('approval_requests.1.id', $qualityReviewed->id));
+        ->assertRedirect('/quality-assurance-page');
 });
 
 test('quality assurance submission stores a separate quality-stage decision', function () {
     $batch = createQualityBatch();
     $approvalRequest = createQualityRequest($batch, 2);
     $user = createQualityUser();
+    $approvalRequest->update([
+        'quality_assurance_reviewer_id' => $user->id,
+    ]);
 
     $this->actingAs($user)
         ->postJson('/submit-quality-assurance-review', [
@@ -170,10 +255,37 @@ test('quality assurance submission stores a separate quality-stage decision', fu
     ]);
 });
 
+test('quality reviewer cannot review a request assigned to another reviewer', function () {
+    $batch = createQualityBatch();
+    $assignedReviewer = createQualityUser();
+    $otherReviewer = createQualityUser();
+    $approvalRequest = createQualityRequest($batch, 2);
+    $approvalRequest->update([
+        'quality_assurance_reviewer_id' => $assignedReviewer->id,
+    ]);
+
+    $this->actingAs($otherReviewer)
+        ->get('/quality-assurance-request/'.$approvalRequest->HoldingsID)
+        ->assertNotFound();
+
+    $this->actingAs($otherReviewer)
+        ->postJson('/submit-quality-assurance-review', [
+            'holdings_id' => $approvalRequest->HoldingsID,
+            'review_decision' => 'approved',
+            'remarks' => '',
+        ])
+        ->assertNotFound();
+
+    expect($approvalRequest->refresh()->approval_status)->toBe(2);
+});
+
 test('quality assurance disapproval requires remarks', function () {
     $batch = createQualityBatch();
     $approvalRequest = createQualityRequest($batch, 2);
     $user = createQualityUser();
+    $approvalRequest->update([
+        'quality_assurance_reviewer_id' => $user->id,
+    ]);
 
     $this->actingAs($user)
         ->postJson('/submit-quality-assurance-review', [
@@ -207,15 +319,20 @@ test('quality assurance batch can only be forwarded after pending reviews are co
         ->and($batch->quality_approval_date)->not->toBeNull();
 });
 
-test('quality assurance report returns only quality-stage review logs', function () {
+test('quality assurance report returns only content assigned to the reviewer', function () {
     $batch = createQualityBatch([
         'batch_name' => 'Reported QA Batch',
         'quarter' => 'Q3',
         'year' => '2026',
         'status' => 'for publishing',
+        'is_dost' => 1,
     ]);
     $approvalRequest = createQualityRequest($batch, 4);
     $user = createQualityUser();
+    $approvalRequest->update([
+        'quality_assurance_reviewer_id' => $user->id,
+        'quality_assurance_assigned_date' => '2026-06-21 08:00:00',
+    ]);
 
     createQualityLog($approvalRequest, $user, 2);
     $qualityLog = createQualityLog($approvalRequest, $user, 4);
@@ -231,22 +348,232 @@ test('quality assurance report returns only quality-stage review logs', function
     ]);
 
     $this->actingAs($user)
-        ->getJson('/generate-quality-assurance-report?quarter=Q3&year=2026')
+        ->getJson('/reports/quality-assurance/data?quarter=Q3&year=2026')
         ->assertOk()
-        ->assertJsonCount(1, 'batches')
-        ->assertJsonCount(1, 'batches.0.approval_requests')
-        ->assertJsonCount(1, 'batches.0.approval_requests.0.approval_logs')
-        ->assertJsonPath(
-            'batches.0.approval_requests.0.approval_logs.0.progress_status',
-            4
+        ->assertJsonCount(1, 'rows')
+        ->assertJsonPath('rows.0.title', $approvalRequest->Title)
+        ->assertJsonPath('rows.0.reviewer_name', $user->full_name)
+        ->assertJsonPath('rows.0.date_forwarded', fn ($date) => str_contains($date, '2026-06-21'));
+});
+
+test('qa rejected list mirrors reviewer filters and server pagination', function () {
+    $admin = createQualityUser(['role' => 'stii_admin']);
+    $reviewer = createQualityUser();
+    $otherReviewer = createQualityUser();
+    $matchingBatch = createQualityBatch([
+        'batch_name' => 'Rejected Science Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
+    ]);
+    $otherBatch = createQualityBatch([
+        'batch_name' => 'Rejected Other Batch',
+        'quarter' => 'Q4',
+        'year' => '2026',
+    ]);
+
+    foreach (range(1, 11) as $index) {
+        $approvalRequest = createQualityRequest($matchingBatch, 5);
+        $approvalRequest->update([
+            'Title' => "Rejected Science Request {$index}",
+            'quality_assurance_reviewer_id' => $reviewer->id,
+        ]);
+        createQualityLog($approvalRequest, $reviewer, 5);
+    }
+
+    $otherReviewerRequest = createQualityRequest($matchingBatch, 5);
+    $otherReviewerRequest->update([
+        'Title' => 'Rejected Science Other Reviewer',
+        'quality_assurance_reviewer_id' => $otherReviewer->id,
+    ]);
+    createQualityLog($otherReviewerRequest, $otherReviewer, 5);
+
+    $otherQuarterRequest = createQualityRequest($otherBatch, 5);
+    $otherQuarterRequest->update([
+        'Title' => 'Rejected Science Other Quarter',
+        'quality_assurance_reviewer_id' => $reviewer->id,
+    ]);
+    createQualityLog($otherQuarterRequest, $reviewer, 5);
+
+    $this->actingAs($admin)
+        ->get('/quality-assurance-rejected?quarter=Q3&year=2026&search=Science&page=2')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('qa-rejected/rejected-requests-list')
+            ->where('approval_requests.current_page', 2)
+            ->where('approval_requests.total', 12)
+            ->has('approval_requests.data', 2)
+            ->where('filters.quarter', 'Q3')
+            ->where('filters.year', '2026')
+            ->where('filters.search', 'Science')
+            ->where('quarters', ['Q3', 'Q4'])
+            ->where('years', ['2026'])
+            ->where('approval_requests.next_page_url', null)
+            ->where('approval_requests.prev_page_url', fn ($url) => str_contains($url, 'quarter=Q3')
+                && str_contains($url, 'year=2026')
+                && str_contains($url, 'search=Science')));
+});
+
+test('qa rejected list includes the latest rejection remarks and log details', function () {
+    $admin = createQualityUser(['role' => 'stii_admin']);
+    $reviewer = createQualityUser();
+    $batch = createQualityBatch();
+    $approvalRequest = createQualityRequest($batch, 5);
+    $olderLog = createQualityLog($approvalRequest, $reviewer, 5);
+    $olderLog->update(['remarks' => 'Older rejection remarks.']);
+    $latestLog = createQualityLog($approvalRequest, $reviewer, 5);
+    $latestLog->update(['remarks' => 'Please correct the incomplete metadata.']);
+
+    LogDetail::query()->forceCreate([
+        'approval_status' => 5,
+        'request_id' => $approvalRequest->id,
+        'log_id' => $latestLog->id,
+        'user_id' => $reviewer->id,
+        'is_passed' => false,
+        'description' => 'Completeness',
+        'remarks' => 'Completeness',
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/quality-assurance-rejected')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('qa-rejected/rejected-requests-list')
+            ->has('approval_requests.data.0.approval_logs', 1)
+            ->where('approval_requests.data.0.approval_logs.0.id', $latestLog->id)
+            ->where(
+                'approval_requests.data.0.approval_logs.0.remarks',
+                'Please correct the incomplete metadata.'
+            )
+            ->where(
+                'approval_requests.data.0.approval_logs.0.log_details.0.description',
+                'Completeness'
+            )
+            ->has('approval_requests.data.0.approval_logs.0.log_details', 1));
+});
+
+test('qa rejected request can be edited without changing request or log status', function () {
+    $admin = createQualityUser(['role' => 'admin']);
+    $reviewer = createQualityUser();
+    $batch = createQualityBatch();
+    $approvalRequest = createQualityRequest($batch, 5);
+    $approvalRequest->update(['quality_assurance_reviewer_id' => $reviewer->id]);
+    $log = createQualityLog($approvalRequest, $reviewer, 5);
+
+    $this->actingAs($admin)
+        ->get("/quality-assurance-rejected/{$approvalRequest->id}/edit")
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('shortlisted/partials/single-upload-form')
+            ->where('approval_request.id', $approvalRequest->id)
+            ->where('update_url', "/quality-assurance-rejected/{$approvalRequest->id}")
+            ->where('form_title', 'Edit QA Rejected Request')
+            ->where('form_breadcrumbs.1.title', 'QA Rejected'));
+
+    $payload = [
+        ...qualityRejectedUpdatePayload($approvalRequest),
+        'approval_status' => 4,
+        'progress_status' => 4,
+    ];
+
+    $this->actingAs($admin)
+        ->postJson("/quality-assurance-rejected/{$approvalRequest->id}", $payload)
+        ->assertOk()
+        ->assertJsonPath('status', 'QA rejected request successfully updated.');
+
+    expect($approvalRequest->refresh()->Title)->toBe('Corrected QA Rejected Title')
+        ->and($approvalRequest->approval_status)->toBe(5)
+        ->and($log->refresh()->progress_status)->toBe(5);
+});
+
+test('qa rejected endpoints deny quality reviewers and retain rejected state checks', function () {
+    $admin = createQualityUser(['role' => 'super_admin']);
+    $assignedReviewer = createQualityUser();
+    $batch = createQualityBatch();
+    $approvalRequest = createQualityRequest($batch, 5);
+    $approvalRequest->update(['quality_assurance_reviewer_id' => $assignedReviewer->id]);
+    createQualityLog($approvalRequest, $assignedReviewer, 5);
+
+    $this->actingAs($assignedReviewer)
+        ->get('/quality-assurance-rejected')
+        ->assertForbidden();
+
+    $this->actingAs($assignedReviewer)
+        ->get("/quality-assurance-rejected/{$approvalRequest->id}/edit")
+        ->assertForbidden();
+
+    $this->actingAs($assignedReviewer)
+        ->postJson(
+            "/quality-assurance-rejected/{$approvalRequest->id}",
+            qualityRejectedUpdatePayload($approvalRequest),
         )
-        ->assertJsonPath(
-            'batches.0.approval_requests.0.approval_logs.0.reviewer.full_name',
-            $user->full_name
-        )
-        ->assertJsonCount(
-            1,
-            'batches.0.approval_requests.0.approval_logs.0.log_details'
-        )
-        ->assertJsonCount(1, 'records');
+        ->assertForbidden();
+
+    $this->actingAs($assignedReviewer)
+        ->postJson("/quality-assurance-rejected/{$approvalRequest->id}/forward")
+        ->assertForbidden();
+
+    $approvalRequest->update(['approval_status' => 4]);
+
+    $this->actingAs($admin)
+        ->postJson("/quality-assurance-rejected/{$approvalRequest->id}/forward")
+        ->assertNotFound();
+});
+
+test('forwarding a qa rejected request returns the request and log to quality assurance', function () {
+    $admin = createQualityUser(['role' => 'stii_admin']);
+    $reviewer = createQualityUser();
+    $batch = createQualityBatch();
+    $approvalRequest = createQualityRequest($batch, 5);
+    $approvalRequest->update([
+        'quality_assurance_reviewer_id' => $reviewer->id,
+        'Title' => 'Rejected title remains unchanged',
+    ]);
+    $log = createQualityLog($approvalRequest, $reviewer, 5);
+    $requestAttributes = collect($approvalRequest->fresh()->getAttributes())
+        ->except(['approval_status', 'updated_at'])
+        ->all();
+    $logAttributes = $log->fresh()->only([
+        'request_id',
+        'user_id',
+        'batch_id',
+        'is_approved',
+        'approval_status',
+        'remarks',
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson("/quality-assurance-rejected/{$approvalRequest->id}/forward")
+        ->assertOk()
+        ->assertJsonPath('message', 'Request successfully forwarded to Quality Assurance.');
+
+    expect($approvalRequest->refresh()->approval_status)->toBe(4)
+        ->and(collect($approvalRequest->getAttributes())->except(['approval_status', 'updated_at'])->all())->toBe($requestAttributes)
+        ->and($log->refresh()->progress_status)->toBe(4)
+        ->and($log->only(array_keys($logAttributes)))->toBe($logAttributes);
+});
+
+test('qa rejected page is accessible to authorized admin roles', function (string $role) {
+    $user = createQualityUser(['role' => $role]);
+
+    $this->actingAs($user)
+        ->get('/quality-assurance-rejected')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('qa-rejected/rejected-requests-list'));
+})->with(['stii admin' => 'stii_admin', 'super admin' => 'super_admin', 'admin' => 'admin']);
+
+test('qa rejected page rejects unauthorized roles', function (string $role) {
+    $user = createQualityUser(['role' => $role]);
+
+    $this->actingAs($user)
+        ->get('/quality-assurance-rejected')
+        ->assertForbidden();
+})->with([
+    'quality reviewer' => 'quality',
+    'committee reviewer' => 'committee',
+    'head committee' => 'head_committee',
+]);
+
+test('qa rejected page requires authentication', function () {
+    $this->get('/quality-assurance-rejected')->assertRedirect('/');
 });

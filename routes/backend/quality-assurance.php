@@ -9,7 +9,6 @@ Route::middleware(['auth', 'quality'])->group(function () {
     Route::get('/view-quality-assurance-batch/{name}', [QualityAssuranceController::class, 'viewApprovalRequests']);
     Route::get('/quality-assurance-request/{holdingsID}', [QualityAssuranceController::class, 'reviewRequest']);
     Route::post('/submit-quality-assurance-review', [QualityAssuranceController::class, 'submitReview']);
-    Route::get('/generate-quality-assurance-report', [QualityAssuranceController::class, 'generateQualityAssuranceReport']);
 });
 
 Route::middleware(['auth', 'stii_admin'])->group(function () {

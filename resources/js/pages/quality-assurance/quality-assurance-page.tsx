@@ -6,7 +6,6 @@ import {
     CheckCircle2,
     Clock3,
     Eye,
-    FileSpreadsheet,
     FolderSync,
     Forward,
     Search,
@@ -30,7 +29,6 @@ import {
     useFetchQualityAssurance,
     useForwardToPublishing,
 } from './partials/quality-assurance-hooks';
-import GenerateReport from './partials/generate-report';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -63,7 +61,6 @@ export default function QualityAssurancePage(): JSX.Element {
     const { auth } = usePage<SharedData>().props;
     const [batchName, setBatchName] = useState('');
     const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-    const [isGenerateReportOpen, setIsGenerateReportOpen] = useState(false);
     const { item, setItem } = useHandleChange({ search: '', batch_id: 0 });
     const debouncedSearch = useDebounce(item.search, 1000);
     const { data, isFetching, refetch } = useFetchQualityAssurance(page, {
@@ -146,13 +143,6 @@ export default function QualityAssurancePage(): JSX.Element {
                             <FolderSync className="size-4" /> Refresh
                         </Button>
                     </div>
-                    <Button
-                        type="button"
-                        onClick={() => setIsGenerateReportOpen(true)}
-                        className="h-10 bg-sky-600 text-white hover:bg-sky-700"
-                    >
-                        <FileSpreadsheet className="size-4" /> Generate Report
-                    </Button>
                 </div>
 
                 <div className="p-4 sm:p-5">
@@ -174,7 +164,7 @@ export default function QualityAssurancePage(): JSX.Element {
                                     key={batch.id}
                                     className="border-b border-slate-100 bg-white"
                                 >
-                                    <td className="px-6 py-4 align-center">
+                                    <td className="align-center px-6 py-4">
                                         <p className="font-semibold text-slate-900">
                                             {batch.batch_name}
                                         </p>
@@ -228,28 +218,32 @@ export default function QualityAssurancePage(): JSX.Element {
                                                 <Eye className="size-4" /> View
                                                 Requests
                                             </Link>
-                                            {
-                                                ['stii_admin', 'super_admin'].includes(auth.user.role) && (
-
-                                                    <Button
-                                                        type="button"
-                                                        disabled={
-                                                            !isCurrentQualityBatch ||
-                                                            (batch.pending ?? 0) > 0
-                                                        }
-                                                        onClick={() => {
-                                                            setBatchName(batch.batch_name);
-                                                            setIsConfirmationOpen(true);
-                                                        }}
-                                                        className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                                                    >
-                                                        <Forward className="size-4" />{' '}
-                                                        {isCurrentQualityBatch
-                                                            ? 'Forward to Publishing'
-                                                            : 'Reviewed'}
-                                                    </Button>
-                                                )
-                                            }
+                                            {[
+                                                'stii_admin',
+                                                'super_admin',
+                                            ].includes(auth.user.role) && (
+                                                <Button
+                                                    type="button"
+                                                    disabled={
+                                                        !isCurrentQualityBatch ||
+                                                        (batch.pending ?? 0) > 0
+                                                    }
+                                                    onClick={() => {
+                                                        setBatchName(
+                                                            batch.batch_name,
+                                                        );
+                                                        setIsConfirmationOpen(
+                                                            true,
+                                                        );
+                                                    }}
+                                                    className="h-10 bg-sky-700 text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                                >
+                                                    <Forward className="size-4" />{' '}
+                                                    {isCurrentQualityBatch
+                                                        ? 'Forward to Publishing'
+                                                        : 'Reviewed'}
+                                                </Button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -279,10 +273,6 @@ export default function QualityAssurancePage(): JSX.Element {
                 onClose={() => setIsConfirmationOpen(false)}
                 message="Are you sure you want to forward this batch for publishing?"
                 onConfirm={handleForward}
-            />
-            <GenerateReport
-                show={isGenerateReportOpen}
-                onClose={() => setIsGenerateReportOpen(false)}
             />
         </div>
     );

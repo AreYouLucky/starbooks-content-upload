@@ -7,6 +7,8 @@ use App\Models\Request as ContentRequest;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -14,8 +16,11 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    if (! Schema::hasTable('tblrecord')) {
-        Schema::create('tblrecord', function (Blueprint $table) {
+    config()->set('database.connections.starbooks', config('database.connections.sqlite'));
+    DB::purge('starbooks');
+
+    if (! Schema::connection('starbooks')->hasTable('tblrecord')) {
+        Schema::connection('starbooks')->create('tblrecord', function (Blueprint $table) {
             $table->id();
             $table->string('Title')->nullable();
             $table->string('Author')->nullable();
@@ -28,6 +33,7 @@ beforeEach(function () {
             $table->string('VolumeNo')->nullable();
             $table->string('IssueNo')->nullable();
             $table->string('IssueDate')->nullable();
+            $table->string('BroadClass')->nullable();
             $table->string('AgencyCode')->nullable();
             $table->string('Type')->nullable();
             $table->text('Abstracts')->nullable();
@@ -73,6 +79,7 @@ function createPublishingRequest(Batch $batch, array $attributes = []): ContentR
     return ContentRequest::query()->create(array_merge([
         'HoldingsID' => 'PUB-'.Str::upper(Str::random(8)),
         'Title' => 'Publishing Request '.Str::upper(Str::random(4)),
+        'Type' => 1,
         'batch_id' => $batch->id,
         'approval_status' => 4,
         'is_active' => 1,
@@ -106,34 +113,79 @@ test('publishing page renders for authenticated users', function () {
             ->component('publishing/publishing-page'));
 });
 
-test('publishing index returns active batches that require publishing', function () {
+test('publishing index returns filtered content requests and content analytics', function () {
+    Carbon::setTestNow('2026-08-24 09:00:00');
     $user = createPublishingUser();
     $publishingBatch = createPublishingBatch([
         'batch_name' => 'Ready Publishing Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
     ]);
-    createPublishingRequest($publishingBatch);
-    createPublishingRequest($publishingBatch);
-    createPublishingBatch([
+    createPublishingRequest($publishingBatch, ['Title' => 'Science Ready One']);
+    createPublishingRequest($publishingBatch, ['Title' => 'Science Ready Two']);
+    createPublishingRequest($publishingBatch, [
+        'Title' => 'Science Published While Batch Is Open',
+        'approval_status' => 6,
+        'published_at' => '2026-08-09 08:00:00',
+    ]);
+
+    $publishedBatch = createPublishingBatch([
         'batch_name' => 'Published Batch',
+        'quarter' => 'Q3',
+        'year' => '2026',
         'status' => 'published',
     ]);
-    createPublishingBatch([
+    createPublishingRequest($publishedBatch, [
+        'Title' => 'Science Published Content',
+        'approval_status' => 6,
+        'published_at' => '2026-08-10 08:00:00',
+    ]);
+
+    $otherQuarterBatch = createPublishingBatch([
+        'batch_name' => 'Other Quarter Published Batch',
+        'quarter' => 'Q4',
+        'year' => '2026',
+        'status' => 'published',
+    ]);
+    createPublishingRequest($otherQuarterBatch, [
+        'Title' => 'Science Other Quarter',
+        'approval_status' => 6,
+        'published_at' => '2026-08-11 08:00:00',
+    ]);
+
+    $inactiveBatch = createPublishingBatch([
         'batch_name' => 'Inactive Publishing Batch',
+        'status' => 'published',
         'is_active' => 0,
+    ]);
+    createPublishingRequest($inactiveBatch, [
+        'Title' => 'Science Inactive Content',
+        'approval_status' => 6,
+        'published_at' => '2026-08-12 08:00:00',
+    ]);
+    createPublishingRequest($publishingBatch, [
+        'Title' => 'Science QA Rejected Content',
+        'approval_status' => 5,
     ]);
 
     $this->actingAs($user)
-        ->getJson('/publishing-batches?search=Ready')
+        ->getJson('/publishing-requests?search=Science&quarter=Q3&year=2026')
         ->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.batch_name', 'Ready Publishing Batch')
-        ->assertJsonPath('data.0.records_count', 2)
-        ->assertJsonPath('analytics.for_publishing', 1)
-        ->assertJsonPath('analytics.published', 1)
-        ->assertJsonPath('analytics.total_batches', 2);
+        ->assertJsonCount(4, 'data')
+        ->assertJsonPath('data.0.Title', 'Science Ready One')
+        ->assertJsonPath('data.0.batch.batch_name', 'Ready Publishing Batch')
+        ->assertJsonPath('analytics.for_publishing', 2)
+        ->assertJsonPath('analytics.published', 2)
+        ->assertJsonPath('analytics.total_contents', 4)
+        ->assertJsonPath('analytics.published_this_quarter', 3)
+        ->assertJsonPath('analytics.published_this_year', 3)
+        ->assertJsonPath('analytics.current_quarter', 'Q3')
+        ->assertJsonPath('analytics.current_year', '2026')
+        ->assertJsonPath('quarters', fn ($quarters) => in_array('Q3', $quarters, true))
+        ->assertJsonPath('years', fn ($years) => in_array('2026', $years, true));
 });
 
-test('publishing action publishes a batch and creates records', function () {
+test('publishing action publishes one content request and completes the batch last', function () {
     $user = createPublishingUser();
     $batch = createPublishingBatch([
         'batch_name' => 'Ready To Publish Batch',
@@ -144,25 +196,45 @@ test('publishing action publishes a batch and creates records', function () {
         'Author' => 'DOST Author',
         'MaterialType' => 'Article',
     ]);
+    $otherRequest = createPublishingRequest($batch, [
+        'HoldingsID' => 'PUB-READY-002',
+        'Title' => 'Other Ready Publishing Request',
+    ]);
 
     $this->actingAs($user)
-        ->postJson('/publish-batch', ['batchName' => $batch->batch_name])
+        ->postJson("/publish-request/{$approvalRequest->id}")
         ->assertOk()
-        ->assertJsonPath('message', 'Batch published successfully.');
+        ->assertJsonPath('message', 'Content published successfully.');
 
-    expect($batch->refresh()->status)->toBe('published')
-        ->and($batch->published_date)->not->toBeNull()
-        ->and($approvalRequest->refresh()->approval_status)->toBe(6);
+    expect($batch->refresh()->status)->toBe('for publishing')
+        ->and($batch->published_date)->toBeNull()
+        ->and($approvalRequest->refresh()->approval_status)->toBe(6)
+        ->and($approvalRequest->published_at)->not->toBeNull()
+        ->and($otherRequest->refresh()->approval_status)->toBe(4);
 
     $this->assertDatabaseHas('tblrecord', [
         'HoldingsID' => 'PUB-READY-001',
         'Title' => 'Ready Publishing Request',
         'Author' => 'DOST Author',
         'MaterialType' => 'Article',
-    ]);
+    ], 'starbooks');
+    $this->assertDatabaseMissing('tblrecord', [
+        'HoldingsID' => 'PUB-READY-002',
+    ], 'starbooks');
+
+    $this->actingAs($user)
+        ->postJson("/publish-request/{$otherRequest->id}")
+        ->assertOk();
+
+    expect($batch->refresh()->status)->toBe('published')
+        ->and($batch->published_date)->not->toBeNull();
+
+    $this->actingAs($user)
+        ->postJson("/publish-request/{$approvalRequest->id}")
+        ->assertNotFound();
 });
 
-test('publishing summary report returns batch workflow counts', function () {
+test('publishing summary report returns one row per active content', function () {
     $user = createPublishingUser();
     $batch = createPublishingBatch([
         'batch_name' => 'Q3 Publishing Report Batch',
@@ -172,12 +244,19 @@ test('publishing summary report returns batch workflow counts', function () {
         'status' => 'published',
     ]);
     $publishedRequest = createPublishingRequest($batch, [
+        'HoldingsID' => 'PUB-SUMMARY-001',
+        'Title' => 'Published Summary Content',
         'approval_status' => 6,
+        'published_at' => '2026-08-10 08:00:00',
     ]);
     $qualityDisapprovedRequest = createPublishingRequest($batch, [
+        'HoldingsID' => 'PUB-SUMMARY-002',
+        'Title' => 'QA Disapproved Summary Content',
         'approval_status' => 5,
     ]);
     $initialDisapprovedRequest = createPublishingRequest($batch, [
+        'HoldingsID' => 'PUB-SUMMARY-003',
+        'Title' => 'Initial Disapproved Summary Content',
         'approval_status' => 3,
     ]);
     createPublishingBatch([
@@ -194,17 +273,28 @@ test('publishing summary report returns batch workflow counts', function () {
     createPublishingLog($qualityDisapprovedRequest, $user, 5);
     createPublishingLog($initialDisapprovedRequest, $user, 3);
 
+    $inactiveRequest = createPublishingRequest($batch, [
+        'Title' => 'Inactive Summary Content',
+        'is_active' => 0,
+    ]);
+    createPublishingLog($inactiveRequest, $user, 2);
+
     $this->actingAs($user)
         ->getJson('/generate-publishing-summary-report?quarter=Q3&year=2026')
         ->assertOk()
-        ->assertJsonCount(1, 'batches')
-        ->assertJsonPath('batches.0.batch_name', 'Q3 Publishing Report Batch')
-        ->assertJsonPath('batches.0.shortlisted_content_count', 3)
-        ->assertJsonPath('batches.0.initial_review_approved_count', 2)
-        ->assertJsonPath('batches.0.initial_review_disapproved_count', 1)
-        ->assertJsonPath('batches.0.quality_approved_count', 1)
-        ->assertJsonPath('batches.0.quality_disapproved_count', 1)
-        ->assertJsonPath('batches.0.published_content_count', 1);
+        ->assertJsonCount(3, 'contents')
+        ->assertJsonPath('contents.0.title', 'Initial Disapproved Summary Content')
+        ->assertJsonPath('contents.0.initial_review_status', 'Disapproved')
+        ->assertJsonPath('contents.0.quality_assurance_status', 'Pending')
+        ->assertJsonPath('contents.0.publishing_status', 'Not Published')
+        ->assertJsonPath('contents.1.title', 'Published Summary Content')
+        ->assertJsonPath('contents.1.holdings_id', 'PUB-SUMMARY-001')
+        ->assertJsonPath('contents.1.batch_name', 'Q3 Publishing Report Batch')
+        ->assertJsonPath('contents.1.initial_review_status', 'Approved')
+        ->assertJsonPath('contents.1.quality_assurance_status', 'Approved')
+        ->assertJsonPath('contents.1.publishing_status', 'Published')
+        ->assertJsonPath('contents.2.title', 'QA Disapproved Summary Content')
+        ->assertJsonPath('contents.2.quality_assurance_status', 'Disapproved');
 });
 
 test('publishing reviewer report returns selected reviewer rows and lists every reviewer account', function () {

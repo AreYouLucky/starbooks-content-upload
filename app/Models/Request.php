@@ -37,6 +37,7 @@ class Request extends Model
         'initial_reviewed_assigned_date',
         'quality_assurance_reviewer_id',
         'quality_assurance_assigned_date',
+        'published_at',
         'uploaded_by',
         'batch_id',
         'is_active',
@@ -49,6 +50,7 @@ class Request extends Model
             'quality_assurance_date' => 'date',
             'initial_reviewed_assigned_date' => 'datetime',
             'quality_assurance_assigned_date' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 

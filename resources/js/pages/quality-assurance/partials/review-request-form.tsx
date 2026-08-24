@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/text-area';
 import { useHandleChange } from '@/hooks/use-handle-change';
 import type { BreadcrumbItem } from '@/types';
-import type { RequestModel, BatchModel } from '@/types/model';
+import type { RequestModel } from '@/types/model';
 import {
     getQualityAssuranceErrorMessage,
     type QualityAssuranceValidationErrors,
@@ -26,8 +26,7 @@ type ReviewFormValues = {
 };
 type ReviewFormErrors = Partial<Record<keyof ReviewFormValues, string>>;
 type PageProps = {
-    approval_request?: RequestModel & { batch?: BatchModel };
-    batch?: BatchModel;
+    approval_request?: RequestModel;
 };
 
 const disapprovalReasons = [
@@ -54,7 +53,6 @@ function mapValidationErrors(
 export default function QualityAssuranceReviewForm(): JSX.Element {
     const { props } = usePage<PageProps>();
     const request = props.approval_request;
-    const batch = props.batch;
     const holdingsID = request?.HoldingsID ?? '';
     const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const {
@@ -73,12 +71,9 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
     const isDisapproved = item.review_decision === 'disapproved';
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Quality Assurance Batches', href: '/quality-assurance-page' },
         {
-            title: batch?.batch_name ?? 'Batch',
-            href: batch
-                ? `/view-quality-assurance-batch/${batch.batch_name}`
-                : '/quality-assurance-page',
+            title: 'Quality Assurance Requests',
+            href: '/quality-assurance-page',
         },
         {
             title: 'Review Request',
@@ -145,9 +140,7 @@ export default function QualityAssuranceReviewForm(): JSX.Element {
             onSuccess: (response) => {
                 setIsConfirmationOpen(false);
                 toast.success(response.message);
-                router.visit(
-                    `/view-quality-assurance-batch/${batch?.batch_name}`,
-                );
+                router.visit('/quality-assurance-page');
             },
             onError: (error) => {
                 setIsConfirmationOpen(false);

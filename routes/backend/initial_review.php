@@ -9,7 +9,6 @@ Route::middleware(['auth', 'initial_review'])->group(function (): void {
     Route::get('/view-initial-review-batch/{id}', [InitialReviewController::class, 'viewApprovalRequests'])->name('view-initial-review-batches-by-id');
     Route::get('/initial-review-request/{holdingsID}', [InitialReviewController::class, 'reviewRequest']);
     Route::post('/submit-initial-review', [InitialReviewController::class, 'submitReview']);
-    Route::get('/generate-initial-review-report', [InitialReviewController::class, 'generateInitialReviewReport']);
 });
 
 Route::middleware(['auth', 'stii_admin'])->group(function () {

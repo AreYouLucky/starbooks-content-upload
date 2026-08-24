@@ -9,7 +9,7 @@ import {
     Eye,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { PiListPlusLight, PiListBulletsFill } from 'react-icons/pi';
+import { PiListPlusLight } from 'react-icons/pi';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,7 +26,6 @@ import { toast } from 'react-toastify';
 import { Link } from '@inertiajs/react';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { getStatusTone } from '../batches/partials/defaults';
-import GenerateReport from './partials/generate-report';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,7 +51,6 @@ export default function ShortlistedPage() {
 
     const debouncedSearch = useDebounce(item.search, 1000);
     const [open, setOpen] = useState(false);
-    const [reportDialog, setReportDialog] = useState(false);
     const [id, setId] = useState(0);
     const queryFilters = {
         ...item,
@@ -83,8 +81,8 @@ export default function ShortlistedPage() {
     return (
         <div className="space-y-4 p-1">
             <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-linear-to-br from-sky-600 via-sky-500 to-cyan-500 p-5 text-white shadow-sm md:p-7">
-                <div className="relative flex flex-col gap-4 lg:flex-row lg:justify-between items-center">
-                    <div className="max-w-2xl space-y-4 flex">
+                <div className="relative flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
+                    <div className="flex max-w-2xl space-y-4">
                         <div className="space-y-1">
                             <h1 className="text-3xl font-bold">
                                 For Shortlisting
@@ -146,7 +144,7 @@ export default function ShortlistedPage() {
                             Bulk Upload
                         </Link>
                     </div>
-                    <div className='flex gap-1'>
+                    <div className="flex gap-1">
                         <div className="relative space-y-1">
                             <Search
                                 className="absolute top-3 left-3 text-sky-500"
@@ -175,15 +173,6 @@ export default function ShortlistedPage() {
                         >
                             <FolderSync className="size-4" />
                             Refresh
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="h-10 rounded-lg border-white/70 bg-sky-600 px-4 text-slate-50 shadow-none"
-                            onClick={() => setReportDialog(true)}
-                        >
-                            <PiListBulletsFill className="size-4" />
-                            Generate Report
                         </Button>
                     </div>
                 </div>
@@ -248,21 +237,21 @@ export default function ShortlistedPage() {
                                             {(batch.status ===
                                                 'for shortlisting' ||
                                                 batch.status ===
-                                                'for initial review') && (
-                                                    <Button
-                                                        className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-500 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                                                        onClick={() => {
-                                                            setOpen(true);
-                                                            setId(batch.id);
-                                                        }}
-                                                    >
-                                                        <PencilLine className="size-4" />
-                                                        {batch.status ===
-                                                            'for shortlisting'
-                                                            ? 'Shortlist'
-                                                            : 'Shortlisted'}
-                                                    </Button>
-                                                )}
+                                                    'for initial review') && (
+                                                <Button
+                                                    className={`h-9 w-full rounded-lg px-3 py-5 shadow-none hover:text-gray-500 ${batch.status === 'for shortlisting' ? 'bg-sky-500 text-white hover:bg-sky-50 hover:text-sky-800' : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                                                    onClick={() => {
+                                                        setOpen(true);
+                                                        setId(batch.id);
+                                                    }}
+                                                >
+                                                    <PencilLine className="size-4" />
+                                                    {batch.status ===
+                                                    'for shortlisting'
+                                                        ? 'Shortlist'
+                                                        : 'Shortlisted'}
+                                                </Button>
+                                            )}
                                             <Link
                                                 href={`/shortlist/${batch.batch_name}`}
                                                 className="flex h-9 items-center justify-center gap-2 rounded-lg border border-sky-400 bg-sky-600 px-3 py-5 font-semibold text-sky-50 hover:bg-sky-50 hover:text-sky-800"
@@ -300,10 +289,6 @@ export default function ShortlistedPage() {
                 type={2}
                 onConfirm={toggleBatchShortlistFn}
                 message="Are you sure you want to proceed?"
-            />
-            <GenerateReport
-                show={reportDialog}
-                onClose={() => setReportDialog(false)}
             />
         </div>
     );

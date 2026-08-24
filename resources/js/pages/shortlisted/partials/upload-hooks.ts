@@ -1,8 +1,13 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { RequestModel } from "@/types/model";
-import axios from "axios";
-import { AxiosError } from "axios";
-type ApiOk = { status: string; approval_request?: RequestModel; errors: undefined, id?: number };
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { RequestModel } from '@/types/model';
+import axios from 'axios';
+import { AxiosError } from 'axios';
+type ApiOk = {
+    status: string;
+    approval_request?: RequestModel;
+    errors: undefined;
+    id?: number;
+};
 type ApiValidationErrors = Record<string, string[]>;
 type ApiError = {
     message?: string;
@@ -13,42 +18,58 @@ export const useUploadSingleRequest = () => {
     const queryClient = useQueryClient();
     return useMutation<ApiOk, AxiosError<ApiError>, FormData>({
         mutationFn: (payload) =>
-            axios.post<ApiOk>("/single-upload", payload).then((res) => res.data),
+            axios
+                .post<ApiOk>('/single-upload', payload)
+                .then((res) => res.data),
         onSuccess: (res) => {
-            queryClient.invalidateQueries({ queryKey: ["requests"+res.approval_request?.id] });
+            queryClient.invalidateQueries({
+                queryKey: ['requests' + res.approval_request?.id],
+            });
         },
     });
-}
+};
 
 export const useUpdateSingleRequest = () => {
     const queryClient = useQueryClient();
-    return useMutation<ApiOk, AxiosError<ApiError>, {id: number; payload: FormData}>({
-        mutationFn: ({id,payload}) =>
-            axios.post<ApiOk>("/update-single-upload/"+id, payload).then((res) => res.data),
+    return useMutation<
+        ApiOk,
+        AxiosError<ApiError>,
+        { id: number; payload: FormData; url?: string }
+    >({
+        mutationFn: ({ id, payload, url }) =>
+            axios
+                .post<ApiOk>(url ?? '/update-single-upload/' + id, payload)
+                .then((res) => res.data),
         onSuccess: (res) => {
-            queryClient.invalidateQueries({ queryKey: ["requests"+res.approval_request?.id] });
+            queryClient.invalidateQueries({
+                queryKey: ['requests' + res.approval_request?.id],
+            });
         },
     });
-}
+};
 
 export const useDeleteSingleRequest = () => {
     const queryClient = useQueryClient();
     return useMutation<ApiOk, AxiosError<ApiError>, number>({
         mutationFn: (id) =>
-            axios.delete<ApiOk>("/single-upload/"+id).then((res) => res.data),
+            axios.delete<ApiOk>('/single-upload/' + id).then((res) => res.data),
         onSuccess: (res) => {
-            queryClient.invalidateQueries({ queryKey: ["requests"+res.approval_request?.id] });
+            queryClient.invalidateQueries({
+                queryKey: ['requests' + res.approval_request?.id],
+            });
         },
     });
-}
+};
 
 export const useUploadBulkRequest = () => {
     const queryClient = useQueryClient();
     return useMutation<ApiOk, AxiosError<ApiError>, FormData>({
         mutationFn: (payload) =>
-            axios.post<ApiOk>("/bulk-upload", payload).then((res) => res.data),
+            axios.post<ApiOk>('/bulk-upload', payload).then((res) => res.data),
         onSuccess: (res) => {
-            queryClient.invalidateQueries({ queryKey: ["requests"+res.approval_request?.id] });
+            queryClient.invalidateQueries({
+                queryKey: ['requests' + res.approval_request?.id],
+            });
         },
     });
-}
+};
