@@ -57,7 +57,7 @@ const workflowItems: NavItem[] = [
         title: 'For Assignment',
         href: '/view-assignment-designation',
         icon: CalendarCog,
-        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
+        allowedRoles: ['admin', 'super_admin', 'stii_admin','head_committee'],
     },
     {
         title: 'For Initial Review',
@@ -111,7 +111,7 @@ const reportItems: NavItem[] = [
         title: 'Initial Review',
         href: '/reports/initial-review',
         icon: ClipboardCheck,
-        allowedRoles: ['committee', 'admin', 'super_admin'],
+        allowedRoles: ['committee', 'admin', 'super_admin','head_committee'],
     },
     {
         title: 'Quality Assurance',
