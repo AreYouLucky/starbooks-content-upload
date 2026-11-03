@@ -19,8 +19,8 @@ class WorkflowReportController extends Controller
 {
     private const SECTION_ROLES = [
         'shortlisted' => ['stii_admin', 'admin', 'super_admin'],
-        'initial-review' => ['committee', 'admin', 'super_admin'],
-        'quality-assurance' => ['quality', 'quality_admin', 'admin', 'super_admin'],
+        'initial-review' => ['committee', 'admin', 'super_admin', 'head_committee', 'stii_admin'],
+        'quality-assurance' => ['quality', 'quality_admin', 'admin', 'super_admin', 'stii_admin'],
         'publishing' => ['stii_admin', 'admin', 'super_admin'],
     ];
 
@@ -103,12 +103,21 @@ class WorkflowReportController extends Controller
     {
         $requests = ContentRequest::query()
             ->select([
-                'id', 'HoldingsID', 'MaterialType', 'Title', 'AgencyCode',
-                'JournalTitle', 'Abstracts', 'Author', 'VolumeNo', 'IssueNo',
-                'IssueDate', 'batch_id',
+                'id',
+                'HoldingsID',
+                'MaterialType',
+                'Title',
+                'AgencyCode',
+                'JournalTitle',
+                'Abstracts',
+                'Author',
+                'VolumeNo',
+                'IssueNo',
+                'IssueDate',
+                'batch_id',
             ])
             ->where('is_active', 1)
-            ->whereHas('batch', fn (Builder $query) => $query
+            ->whereHas('batch', fn(Builder $query) => $query
                 ->where('is_active', 1)
                 ->where('quarter', $quarter)
                 ->where('year', $year))
@@ -130,7 +139,7 @@ class WorkflowReportController extends Controller
                 'issue_no' => 'Issue No.',
                 'issue_date' => 'Issue Date',
             ]),
-            'rows' => $requests->map(fn (ContentRequest $content) => [
+            'rows' => $requests->map(fn(ContentRequest $content) => [
                 'holdings_id' => $content->HoldingsID,
                 'content_type' => $content->MaterialType,
                 'title' => $content->Title,
@@ -152,21 +161,21 @@ class WorkflowReportController extends Controller
     private function initialReviewReport(Request $request, array $validated): array
     {
         $reviewerId = $this->reviewerIdFor($request, $validated, ['committee', 'head_committee']);
-        $logFilter = fn ($query) => $query
+        $logFilter = fn($query) => $query
             ->whereIn('progress_status', [2, 3])
-            ->when($reviewerId !== null, fn ($query) => $query->where('user_id', $reviewerId));
+            ->when($reviewerId !== null, fn($query) => $query->where('user_id', $reviewerId));
 
         $contents = ContentRequest::query()
             ->where('is_active', 1)
-            ->whereHas('batch', fn (Builder $query) => $query
+            ->whereHas('batch', fn(Builder $query) => $query
                 ->where('is_active', 1)
                 ->where('quarter', $validated['quarter'])
                 ->where('year', $validated['year']))
-            ->when($reviewerId !== null, fn (Builder $query) => $query->where('initial_reviewer_id', $reviewerId))
+            ->when($reviewerId !== null, fn(Builder $query) => $query->where('initial_reviewer_id', $reviewerId))
             ->whereHas('approvalLogs', $logFilter)
             ->with([
                 'batch:id,batch_name,content_source,target_initial_review_date',
-                'approvalLogs' => fn ($query) => $logFilter($query)
+                'approvalLogs' => fn($query) => $logFilter($query)
                     ->oldest('created_at')
                     ->oldest('id')
                     ->limit(1)
@@ -178,8 +187,8 @@ class WorkflowReportController extends Controller
         return $this->reviewReport(
             'STARBOOKS Initial Review Report',
             $contents,
-            fn (ContentRequest $content, Log $log) => $content->initial_reviewed_assigned_date?->toISOString(),
-            fn (ContentRequest $content) => $content->batch?->target_initial_review_date
+            fn(ContentRequest $content, Log $log) => $content->initial_reviewed_assigned_date?->toISOString(),
+            fn(ContentRequest $content) => $content->batch?->target_initial_review_date
         );
     }
 
@@ -193,17 +202,17 @@ class WorkflowReportController extends Controller
 
         $contents = ContentRequest::query()
             ->where('is_active', 1)
-            ->whereHas('batch', fn (Builder $query) => $query
+            ->whereHas('batch', fn(Builder $query) => $query
                 ->where('is_active', 1)
                 ->where('quarter', $validated['quarter'])
                 ->where('year', $validated['year']))
-            ->when($reviewerId !== null, fn (Builder $query) => $query->where('quality_assurance_reviewer_id', $reviewerId))
-            ->whereHas('approvalLogs', fn (Builder $query) => $query
+            ->when($reviewerId !== null, fn(Builder $query) => $query->where('quality_assurance_reviewer_id', $reviewerId))
+            ->whereHas('approvalLogs', fn(Builder $query) => $query
                 ->whereIn('progress_status', [4, 5])
-                ->when($reviewerId !== null, fn (Builder $query) => $query->where('user_id', $reviewerId)))
+                ->when($reviewerId !== null, fn(Builder $query) => $query->where('user_id', $reviewerId)))
             ->with([
                 'batch:id,batch_name,content_source,target_quality_approval_date,is_dost',
-                'approvalLogs' => fn ($query) => $query
+                'approvalLogs' => fn($query) => $query
                     ->whereIn('progress_status', [2, 4, 5])
                     ->orderBy('created_at')
                     ->orderBy('id')
@@ -216,11 +225,11 @@ class WorkflowReportController extends Controller
             $forwardedAt = (bool) $content->batch?->is_dost
                 ? $content->quality_assurance_assigned_date?->toISOString()
                 : $content->approvalLogs
-                    ->where('progress_status', 2)
-                    ->first()?->created_at?->toISOString();
+                ->where('progress_status', 2)
+                ->first()?->created_at?->toISOString();
             $qualityLog = $content->approvalLogs
                 ->whereIn('progress_status', [4, 5])
-                ->when($reviewerId !== null, fn (Collection $logs) => $logs->where('user_id', $reviewerId))
+                ->when($reviewerId !== null, fn(Collection $logs) => $logs->where('user_id', $reviewerId))
                 ->first();
 
             $content->setAttribute('report_forwarded_at', $forwardedAt);
@@ -230,8 +239,8 @@ class WorkflowReportController extends Controller
         return $this->reviewReport(
             'STARBOOKS Quality Assurance Report',
             $contents,
-            fn (ContentRequest $content, Log $log) => $content->getAttribute('report_forwarded_at'),
-            fn (ContentRequest $content) => $content->batch?->target_quality_approval_date
+            fn(ContentRequest $content, Log $log) => $content->getAttribute('report_forwarded_at'),
+            fn(ContentRequest $content) => $content->batch?->target_quality_approval_date
         );
     }
 
@@ -243,7 +252,7 @@ class WorkflowReportController extends Controller
         $contents = ContentRequest::query()
             ->where('is_active', 1)
             ->where('approval_status', 6)
-            ->whereHas('batch', fn (Builder $query) => $query
+            ->whereHas('batch', fn(Builder $query) => $query
                 ->where('is_active', 1)
                 ->where('quarter', $quarter)
                 ->where('year', $year))
@@ -263,7 +272,7 @@ class WorkflowReportController extends Controller
                 'publishing_status' => 'Publishing Status',
                 'published_at' => 'Published Date',
             ]),
-            'rows' => $contents->map(fn (ContentRequest $content) => [
+            'rows' => $contents->map(fn(ContentRequest $content) => [
                 'title' => $content->Title,
                 'holdings_id' => $content->HoldingsID,
                 'batch_name' => $content->batch?->batch_name,
@@ -333,7 +342,7 @@ class WorkflowReportController extends Controller
      */
     private function averageSummary(Collection $rows): array
     {
-        $scores = $rows->pluck('score')->filter(fn (mixed $score): bool => is_numeric($score));
+        $scores = $rows->pluck('score')->filter(fn(mixed $score): bool => is_numeric($score));
         $count = $scores->count();
         $total = (int) $scores->sum();
         $average = $count > 0 ? $total / $count : null;
@@ -409,7 +418,7 @@ class WorkflowReportController extends Controller
     private function columns(array $columns): array
     {
         return collect($columns)
-            ->map(fn (string $label, string $key) => compact('key', 'label'))
+            ->map(fn(string $label, string $key) => compact('key', 'label'))
             ->values()
             ->all();
     }

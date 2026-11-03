@@ -45,13 +45,13 @@ const workflowItems: NavItem[] = [
         title: 'Batches',
         href: '/view-batches',
         icon: BookUser,
-        allowedRoles: ['admin', 'super_admin', 'stii_admin', 'head_committee'],
+        allowedRoles: ['admin', 'super_admin', 'stii_admin'],
     },
     {
         title: 'For Shortlisting',
         href: '/view-shortlisted',
         icon: ListChecks,
-        allowedRoles: ['super_admin', 'head_committee'],
+        allowedRoles: ['super_admin', 'stii_admin'],
     },
     {
         title: 'For Assignment',
